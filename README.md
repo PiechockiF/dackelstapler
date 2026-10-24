@@ -6,6 +6,69 @@ Quick start: `uv run uvicorn server.main:app --reload --port 8000`, then `cd web
 
 Native iOS app (Flutter UI, SceneKit twin, same backend): lives on its own branch, `feat/flutter-ios` (`git switch feat/flutter-ios`). See `mobile/README.md` on that branch for the architecture, the backend ↔ app data flow and how to run it on an iPhone from Xcode.
 
+## iOS app (Capacitor)
+
+The web app also runs as a native iOS app: Capacitor packs the built frontend into a native shell (`web/ios/`). The app lives on the **`ios_build_local`** branch. `main` only has part of its Xcode project, so build it from that branch.
+
+The app is self-contained. The buildings are bundled, and routing, bookings and edits run and are saved on the phone, so it needs no server, API keys or network. Cloud AI, voice and automatic measurement are not included. Details are in `docs/LOCAL_FIRST_IOS_PLAN.md` and `docs/TESTFLIGHT.md` on that branch.
+
+### Requirements
+
+- A Mac with Xcode, with the command line tools pointing at it: `sudo xcode-select -s /Applications/Xcode.app/Contents/Developer`.
+- Node.js 22.12 or later.
+- `uv`, because the build exports the buildings and routing graphs with the Python core.
+- An Apple ID added in **Xcode → Settings → Accounts**. A free personal team is enough for your own iPhone.
+- An iPhone with iOS 15 or later, and a USB cable for the first install.
+
+These build steps were checked with Xcode 27.1 and Node 23.11 up to a simulator build. Installing on a physical iPhone has not been checked yet.
+
+### 1. Build
+
+```bash
+git fetch origin
+git switch ios_build_local
+cd web
+npm ci
+npm run build:local   # exports the buildings with uv, then builds the frontend in local mode
+npx cap sync ios      # copies the build and capacitor.config.json into the Xcode project
+npx cap open ios      # opens the project in Xcode
+```
+
+Repeat `npm run build:local` and `npx cap sync ios` after every frontend change. The files that `cap sync` copies are git-ignored, so a fresh checkout does not build in Xcode until you have run it.
+
+To try the app in a browser first, without Xcode or a server, run `npm run dev:local`.
+
+### 2. Install on your iPhone
+
+1. Connect the iPhone with the cable, unlock it and tap **Trust**.
+2. In Xcode, select the **App** project, then the **App** target, then **Signing & Capabilities**.
+3. Turn on **Automatically manage signing** and choose your team.
+4. Unless you are in the project's team (`CV955K8T33`), change the bundle identifier from `com.sitetwin.app` to something unique, for example `com.yourname.sitetwin`; the original ID belongs to that team. Don't commit your team or bundle ID. TestFlight builds depend on the project's values.
+5. On the iPhone, open **Settings → Privacy & Security → Developer Mode**, turn it on and restart the phone. The switch appears only after the phone has been connected to Xcode once.
+6. Select your iPhone in Xcode's run-destination menu and press **⌘R**. The first build also downloads the Capacitor Swift packages.
+7. If iOS reports an untrusted developer on first launch, open **Settings → General → VPN & Device Management**, trust your Apple ID and start the app again.
+
+The app then starts from the home screen without Xcode. Installs signed with a free personal team expire after 7 days; press **⌘R** again to renew.
+
+### 3. TestFlight (project team only)
+
+Members of team `CV955K8T33` can share the app without a cable:
+
+```bash
+cd web
+npm run ios:archive
+```
+
+The script builds local mode, checks that the bundle contains the buildings and loads no server, and writes a signed archive to `~/Library/Developer/Xcode/Archives/`. In Xcode, open **Window → Organizer**, select the archive and choose **Distribute App → TestFlight & App Store**. Build 2 has already been uploaded, so let Xcode raise the build number. Testers install the app from TestFlight.
+
+### Troubleshooting
+
+- **"Failed to register bundle identifier" or no signing certificate:** change the bundle identifier (step 4 above) and check the team.
+- **The build cannot find `public` or `capacitor.config.json`:** run `npm run build:local` and `npx cap sync ios` first.
+- **Code signing fails with "resource fork, Finder information, or similar detritus not allowed":** the build products ended up in a folder synced by iCloud (Desktop or Documents). Keep Xcode's DerivedData in its default location under `~/Library/Developer/Xcode/`.
+
+---
+
 The original project plan follows.
 
 ## First step (housekeeping)
