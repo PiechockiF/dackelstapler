@@ -1,5 +1,5 @@
 import { Html } from '@react-three/drei'
-import { useFrame, type ThreeEvent } from '@react-three/fiber'
+import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
 import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import type { Building } from '../lib/types'
@@ -13,6 +13,7 @@ import { useTwinUi } from './uiStore'
 import { useReach } from './useReach'
 
 const tmp = new THREE.Object3D()
+const proj = new THREE.Vector3()
 
 export function FloorView({ building, anim }: { building: Building; anim: FloorAnim }) {
   const layout = useLayout()
@@ -153,14 +154,15 @@ function FloorLabel({ anim, x, z }: { anim: FloorAnim; x: number; z: number }) {
   const focus = useTwin((s) => s.focusFloorId)
   const setFocus = useTwin((s) => s.setFocusFloor)
   const active = focus === anim.floor.id
-  const dimmed = focus != null && !active
+  // Another floor is focused: its tag would only sit on top of that floor's room labels.
+  if (focus != null && !active) return null
   return (
     <Html position={[x, 0.2, z]} zIndexRange={[20, 0]} style={{ pointerEvents: 'auto' }}>
       <button
         onClick={() => setFocus(active ? null : anim.floor.id)}
         className={`-translate-x-full -translate-y-1/2 whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[11px] font-medium backdrop-blur transition ${
           active ? 'border-sky-300/70 bg-sky-400/25 text-sky-50' : 'border-white/10 bg-slate-900/60 text-slate-300 hover:border-sky-300/40'
-        } ${dimmed ? 'opacity-40' : ''}`}
+        }`}
       >
         <span className="mr-1 font-mono text-sky-300">L{anim.floor.level}</span>
         {anim.floor.name}
@@ -184,17 +186,40 @@ function RoomLabels({ building, anim }: { building: Building; anim: FloorAnim })
       .map(({ s }) => ({ id: s.id, name: s.name, p: idx.anchors.get(s.id)! }))
   }, [show, building, anim.floor.id])
   const layout = useLayout()
+  const group = useRef<THREE.Group>(null)
+  const els = useRef<(HTMLDivElement | null)[]>([])
+  const camera = useThree((s) => s.camera)
+  const size = useThree((s) => s.size)
+  // Declutter: biggest rooms first, skip any label that would overlap one already shown.
+  useFrame(() => {
+    const g = group.current
+    if (!g) return
+    const placed: number[][] = []
+    labels.forEach((l, i) => {
+      const el = els.current[i]
+      if (!el) return
+      const [x, z] = layout.toXZ(l.p)
+      proj.set(x, 0.4, z).applyMatrix4(g.matrixWorld).project(camera)
+      const sx = ((proj.x + 1) / 2) * size.width, sy = ((1 - proj.y) / 2) * size.height
+      const hw = (el.offsetWidth || l.name.length * 6 + 12) / 2 + 2, hh = (el.offsetHeight || 16) / 2 + 1
+      const box = [sx - hw, sy - hh, sx + hw, sy + hh]
+      const hidden = proj.z > 1 || placed.some((b) => box[0] < b[2] && box[2] > b[0] && box[1] < b[3] && box[3] > b[1])
+      if (!hidden) placed.push(box)
+      const visibility = hidden ? 'hidden' : 'visible'
+      if (el.style.visibility !== visibility) el.style.visibility = visibility
+    })
+  })
   if (!show) return null
   return (
-    <>
-      {labels.map((l) => {
+    <group ref={group}>
+      {labels.map((l, i) => {
         const [x, z] = layout.toXZ(l.p)
         return (
           <Html key={l.id} position={[x, 0.4, z]} center zIndexRange={[10, 0]} style={{ pointerEvents: 'none' }}>
-            <div className="whitespace-nowrap rounded bg-slate-950/55 px-1.5 py-px text-[10px] text-slate-200/90 backdrop-blur-sm">{l.name}</div>
+            <div ref={(el) => { els.current[i] = el }} className="whitespace-nowrap rounded bg-slate-950/55 px-1.5 py-px text-[10px] text-slate-200/90 backdrop-blur-sm">{l.name}</div>
           </Html>
         )
       })}
-    </>
+    </group>
   )
 }

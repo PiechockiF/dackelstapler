@@ -1,6 +1,8 @@
 import { ArrowUpDown, Footprints, Navigation, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useTwin } from '../../lib/store'
+import { useNav } from '../../nav/navStore'
+import { walkingRoute } from '../../nav/pdr'
 import type { Building } from '../../lib/types'
 import { navigate, originOf } from '../../twin/actions'
 import { indexBuilding } from '../../twin/geom'
@@ -93,7 +95,7 @@ export function RoutePanel({ building, siteId }: { building: Building; siteId: s
         </label>
         <label className="ml-auto flex items-center gap-2 whitespace-nowrap text-xs text-slate-300">
           Min width
-          <input type="number" step={0.1} min={0} value={minWidth} onChange={(e) => setMinWidth(e.target.value)} placeholder="m" className={`${inputCls} w-16 py-1`} />
+          <input type="number" step={0.1} min={0} value={minWidth} onChange={(e) => setMinWidth(e.target.value)} placeholder="m" className={`${inputCls.replace('w-full ', '')} w-20 py-1`} />
         </label>
       </div>
       <div className="flex gap-2">
@@ -106,12 +108,17 @@ export function RoutePanel({ building, siteId }: { building: Building; siteId: s
           </Btn>
         )}
       </div>
+      {route?.reachable && (
+        <Btn tone="ok" className="py-2" onClick={() => void useNav.getState().begin(siteId, route)}>
+          <Footprints size={14} /> Start navigation
+        </Btn>
+      )}
       {err && <div className="text-xs text-rose-300">{err}</div>}
       {route && !route.reachable && <div className="text-xs text-rose-300">{route.message ?? 'No route is available with these constraints.'}</div>}
       {route?.reachable && (
         <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-semibold text-sky-200">{route.length_m.toFixed(1)}</span>
+            <span className="text-2xl font-semibold text-sky-200">{walkingRoute(route, building).total.toFixed(0)}</span>
             <span className="text-sm text-slate-400">m</span>
             {route.step_free && <span className="ml-auto flex items-center gap-1 rounded-full bg-violet-500/20 px-2 py-0.5 text-[11px] text-violet-200"><Footprints size={11} /> step-free</span>}
           </div>

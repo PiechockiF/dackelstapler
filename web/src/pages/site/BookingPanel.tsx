@@ -76,7 +76,7 @@ export function BookingPanel({ siteId }: { siteId: string }) {
     try {
       if (!search) return
       const { s, e } = search
-      await api.book(siteId, { space_id: r.space_id, start: s, end: e, who: 'SiteTwin demo', title: `Meeting (${search.people} people)` })
+      await api.book(siteId, { space_id: r.space_id, start: s, end: e, who: 'You', title: `Meeting (${search.people} people)` })
       const next = new Set(booked).add(r.space_id)
       setBooked(next)
       await result.refetch()

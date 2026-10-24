@@ -17,6 +17,8 @@ import { Popover } from './Popover'
 import { mobileGraphics } from '../lib/mode'
 const RoomScans = lazy(() => import('./RoomScans').then((module) => ({ default: module.RoomScans })))
 import { buildParts, RouteView } from './RouteView'
+import { NavMarker } from './NavMarker'
+import { useNav } from '../nav/navStore'
 import { makeSkyMaterial } from './shaders'
 import { useTwinUi } from './uiStore'
 
@@ -77,6 +79,7 @@ export default function TwinScene({ building, siteId, layout, insets, lite, show
         <Highlights building={building} />
         <Deliveries />
         <RouteView />
+        <NavMarker />
         {showScans && <Suspense fallback={null}><RoomScans siteId={siteId} /></Suspense>}
         <Popover building={building} siteId={siteId} />
 
@@ -156,18 +159,23 @@ function CameraDirector({ building, insets }: { building: Building; insets?: Twi
     if (import.meta.env.DEV) (window as unknown as { __twin: unknown }).__twin = { camera, controls, layout, scene, store: useTwin }
   }, [camera, layout, scene])
 
+  /** What the camera was last asked to show, so it can be re-fitted when panels open or close. */
+  const lastBox = useRef<THREE.Box3 | null>(null)
   const frameBox = useMemo(
     () =>
       (box: THREE.Box3, opts: { polar?: number; azimuth?: number; transition?: boolean } = {}) => {
         const c = controls.current
         if (!c || box.isEmpty() || size.width <= 0 || size.height <= 0) return
+        lastBox.current = box.clone()
         const sphere = box.getBoundingSphere(new THREE.Sphere())
         const cam = camera as THREE.PerspectiveCamera
         const ins = insets ?? { left: 0, right: 0, top: 0, bottom: 0 }
         const w = Math.max(200, size.width - ins.left - ins.right)
         const h = Math.max(200, size.height - ins.top - ins.bottom)
         const vfov = THREE.MathUtils.degToRad(cam.fov)
-        const dist = Math.max(8, (sphere.radius * 0.9 * size.height) / (Math.min(w, h) * Math.tan(vfov / 2)))
+        // Portrait phones: long buildings run across the narrow axis, so leave a bit more margin.
+        const fit = w < h ? 1.05 : 0.9
+        const dist = Math.max(8, (sphere.radius * fit * size.height) / (Math.min(w, h) * Math.tan(vfov / 2)))
         const az = opts.azimuth ?? c.azimuthAngle
         const polar = opts.polar ?? THREE.MathUtils.clamp(c.polarAngle, 0.5, 1.15)
         const target = sphere.center
@@ -204,6 +212,21 @@ function CameraDirector({ building, insets }: { building: Building; insets?: Twi
     [frameBox, floorBox, layout],
   )
 
+  const frameAllRef = useRef(frameAll)
+  useEffect(() => {
+    frameAllRef.current = frameAll
+  }, [frameAll])
+
+  // The visible area changed (a panel opened/closed, rotation): glide to fit the same content into it.
+  const sized = useRef(false)
+  useEffect(() => {
+    if (!sized.current) {
+      sized.current = true
+      return
+    }
+    if (lastBox.current && !intro.current && useNav.getState().status === 'idle') frameBox(lastBox.current, { transition: true })
+  }, [frameBox])
+
   // Intro: start wide and low, then glide in once floors have risen.
   useEffect(() => {
     const c = controls.current
@@ -213,8 +236,8 @@ function CameraDirector({ building, insets }: { building: Building; insets?: Twi
     const pos = new THREE.Vector3().setFromSphericalCoords(sphere.radius * 4.2, THREE.MathUtils.degToRad(72), DEFAULT_AZ - 0.9).add(sphere.center)
     c.setLookAt(pos.x, pos.y, pos.z, sphere.center.x, sphere.center.y, sphere.center.z, false)
     intro.current = !layout.introDone
-    if (layout.introDone) frameAll(false)
-  }, [layout, floorBox, frameAll])
+    if (layout.introDone && useNav.getState().status === 'idle') frameAllRef.current(false)
+  }, [layout, floorBox])
 
   useFrame(() => {
     if (intro.current && layout.time > 0.3) {
@@ -233,6 +256,11 @@ function CameraDirector({ building, insets }: { building: Building; insets?: Twi
     let prev = useTwin.getState()
     let prevUi = useTwinUi.getState()
     const unsubA = useTwin.subscribe((s) => {
+      // Navigation drives the camera itself (and sets the focus floor / reroutes on the way).
+      if (useNav.getState().status !== 'idle') {
+        prev = s
+        return
+      }
       if (s.focusFloorId !== prev.focusFloorId) {
         if (s.focusFloorId) frameBox(floorBox([s.focusFloorId]), { polar: 0.75 })
         else if (!s.route) frameAll()
@@ -279,6 +307,40 @@ function CameraDirector({ building, insets }: { building: Building; insets?: Twi
       unsubB()
     }
   }, [frameBox, floorBox, frameAll, layout, building])
+
+  // Navigation: follow the walker, heading-up along the route, until the user grabs the camera.
+  useEffect(() => {
+    const c = controls.current
+    if (!c) return
+    const follow = (s: ReturnType<typeof useNav.getState>) => {
+      if (!s.follow || !s.xy || !s.floorId) return
+      const [x, z] = layout.toXZ(s.xy)
+      const y = layout.y(s.floorId)
+      const dist = 26
+      // Plan bearing b is "up" on screen when the camera's azimuth is b - 90°.
+      const pos = new THREE.Vector3().setFromSphericalCoords(dist, 0.85, s.routeBearing - Math.PI / 2).add(new THREE.Vector3(x, y, z))
+      c.normalizeRotations()
+      c.setLookAt(pos.x, pos.y, pos.z, x, y, z, true)
+      // Keep the walker in the lower part of the screen so more of the way ahead is visible.
+      c.setFocalOffset(0, -dist * 0.12, 0, true)
+    }
+    let prev = useNav.getState()
+    // Re-subscribed (e.g. the HUD changed the insets) mid-walk: pick the walker up again.
+    if (prev.status !== 'idle') follow(prev)
+    const unsub = useNav.subscribe((s) => {
+      if (s.status !== 'idle' && (prev.status === 'idle' || s.xy !== prev.xy || s.routeBearing !== prev.routeBearing || s.follow !== prev.follow || s.floorId !== prev.floorId)) follow(s)
+      else if (s.status === 'idle' && prev.status !== 'idle') frameAll()
+      prev = s
+    })
+    const release = () => {
+      if (useNav.getState().status !== 'idle' && useNav.getState().follow) useNav.getState().setFollow(false)
+    }
+    c.addEventListener('controlstart', release)
+    return () => {
+      unsub()
+      c.removeEventListener('controlstart', release)
+    }
+  }, [layout, frameAll])
 
   return (
     <CameraControls
