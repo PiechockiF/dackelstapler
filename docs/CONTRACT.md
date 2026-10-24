@@ -50,7 +50,7 @@ def capacity(bm, space_id) -> int  # chairs in the room, else floor(area / 2.5)
 ## JSON shapes
 
 ```ts
-Site = { id, name, lat, lon, source, building_id, data_path, floors: number, demo_location: boolean, kind: 'factory'|'campus'|'office'|'airport'|'mall'|'other' }
+Site = { id, name, lat, lon, source, building_id, data_path, floors: number, demo_location: boolean, kind: 'factory'|'campus'|'office'|'airport'|'mall'|'other', address?: string|null }
 
 Route = {
   reachable: boolean, length_m: number, step_free: boolean, min_width_m: number | null,
@@ -96,7 +96,11 @@ RoomScan = { id, site_id, space_id, splat_url: string, transform: number[] /* 4x
 | Method | Path | Body / query | Returns |
 |---|---|---|---|
 | GET | `/api/sites` | | `Site[]` |
-| POST | `/api/sites` | multipart: `name, lat, lon`, `file` (building.json or floor-plan PNG/PDF), optional `preview=true` | `Site`; preview returns `{building, warnings}` without saving |
+| POST | `/api/sites` | multipart: `lat, lon`, optional `name` (falls back to `address`, then coordinates), `address`, `kind`, `width_m` (longest building side), `file` (building.json or one plan) and/or repeated `files` (floor-plan / escape-plan photos, PNG/JPG/WebP/PDF), `preview=true`, `site_id` (confirm: reuse the preview's id) | `Site` (+ `warnings`); preview returns `SiteDraft {site_id, building, warnings, extractions, matches}` without saving. Plans of one storey are stitched, storeys stacked and linked by stair/lift connectors; `building.building.plans[]` lists each image's storey and its `transform` (SVG matrix, normalised 0..1000 image coords → metres). On confirm, building.json + images are sent together and the images are kept in `storage/sites/<id>/plans/` |
+| POST | `/api/sites/restitch` | `{extractions, matches?, level_overrides: {image_index: level}, site_id?, name?, address?, lat?, lon?, width_m?}` | `SiteDraft` (no Claude call) |
+| POST | `/api/sites/{id}/rebuild` | | re-stitch a saved floor-plan site from `plans/extractions.json` (no Claude call); `Site` + `warnings`, old file kept as `building.prev.json` |
+| GET | `/api/geocode` | `?q=&lat=&lon=` (lat/lon bias) | `{label, lat, lon}[]` (Photon, Nominatim fallback) |
+| GET | `/api/geocode/reverse` | `?lat=&lon=` | `{label, lat, lon}` |
 | GET | `/api/sites/{id}/building` | | raw `building.json` (with added doors) |
 | GET | `/api/sites/{id}/state` | | `SiteState` |
 | POST | `/api/sites/{id}/route` | `{from, to, step_free?, min_width_m?, via?}` (ids, refs or names) | `Route` |
@@ -166,7 +170,7 @@ cd web && npm run dev        # http://localhost:5173, proxies /api, /ws, /storag
 | Component | Owner | Props | Rendered by |
 |---|---|---|---|
 | `web/src/chat/ChatPanel.tsx` | D | `{ siteId: string }`; dispatches chat actions into `useTwin` | SitePage (B) |
-| `web/src/sites/AddSiteDialog.tsx` | D | `{ lat, lon, onClose, onCreated(site) }` | MapPage (B) |
+| `web/src/sites/AddSiteDialog.tsx` | D | `{ lat?, lon?, pickSeq?, picking?, onPickOnMap?(current), onCancelPick?, onClose, onCreated(site) }` (stays mounted while `picking`; MapPage forwards map picks) | MapPage (B) |
 | `web/src/capture/CaptureQR.tsx` | C | `{ siteId: string }` | SitePage (B) |
 | `web/src/capture/DeliveryCard.tsx` | C | `{ delivery: Delivery }` | SitePage (B) |
 
