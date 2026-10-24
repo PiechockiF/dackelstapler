@@ -106,7 +106,8 @@ The server sends two kinds of message to every client. The app filters them by `
 
 | Action in the app | Backend call | What follows |
 |---|---|---|
-| Plan a route (Activity → Route, a room's "Route here", "Navigate" on a room) | **`POST /api/sites/{id}/route`** with `{from, to, step_free, min_width_m, via}`; `from` defaults to the current starting point | The route is drawn in SceneKit and the floors not on the route are dimmed |
+| Plan a route (Activity → Route, "Navigate here" in the details card, "Navigate" on a room) | **`POST /api/sites/{id}/route`** with `{from, to, step_free, min_width_m, via}`; `from` defaults to the current starting point | The route is drawn in SceneKit and the floors not on the route are dimmed |
+| Set your position ("I'm here" on a room) | – (client only) | Becomes the starting point for routes and the `here` sent with chat messages. The room gets a "You are here" marker |
 | Close or reopen a lift or door | **`POST /api/sites/{id}/closures`** with `{element_id, closed}` | Returns the new state and the route is re-planned. The server also broadcasts a `closure` event to every other client |
 | Re-plan after any live change | `POST …/route` again with the stored `from_space_id`, `to_space_id`, `step_free`, `min_width_m` and `via`, even when the route was unreachable | A generation counter discards answers that arrive after a newer request |
 | Find free rooms | **`GET /api/sites/{id}/rooms/bookable?start&end&people&near`**, where `near` is the starting point | Free rooms are listed with their distance |
@@ -125,7 +126,7 @@ The server sends two kinds of message to every client. The app filters them by `
 | `delta` `{text}` | The reply text grows live |
 | `action` `set_location` | Moves the starting point, the same "you are here" the web app uses |
 | `action` `show_route` | Draws the route on the twin |
-| `action` `highlight` `{ids, label}` | Shows highlight rings for those ids |
+| `action` `highlight` `{ids, label}` | Shows an amber marker (ring and light beam) for those ids, sized by camera distance as in the web twin, with the label as a chip |
 | `action` `focus_floor` | Isolates a floor |
 | `action` `understood` `{chips}` | Shows the "understood" chips above the reply |
 | `action` `state_changed` | Calls `GET /state` and re-plans the route |
