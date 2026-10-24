@@ -4,7 +4,7 @@ The interrupted integration is now completed and checked against the real local 
 
 Quick start: `uv run uvicorn server.main:app --reload --port 8000`, then `cd web && npm run dev`. The application works without API keys using its labelled fallback paths.
 
-Native iOS app (Flutter UI, SceneKit twin, same backend): see [mobile/README.md](mobile/README.md) for the architecture, the backend ↔ app data flow and how to run it on an iPhone from Xcode.
+Native iOS app (Flutter UI, SceneKit twin, same backend): lives on its own branch, `feat/flutter-ios` (`git switch feat/flutter-ios`). See `mobile/README.md` on that branch for the architecture, the backend ↔ app data flow and how to run it on an iPhone from Xcode.
 
 The original project plan follows.
 
