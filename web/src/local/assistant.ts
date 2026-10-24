@@ -3,6 +3,9 @@ import { loadMobileBuilding } from './catalog'
 import { withRecord } from './edits'
 import { localProvider } from './provider'
 import { resolveSpace } from './router'
+
+const when = (d: Date | string) => new Date(d).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })
+const time = (d: Date) => d.toLocaleTimeString([], { timeStyle: 'short' })
 import { readRecord } from './storage'
 
 export interface CommandReply { text: string; actions: ChatAction[] }
@@ -17,7 +20,7 @@ export async function runLocalCommand(siteId: string, message: string, origin: s
   if (/^(help|hello|hi)$/i.test(text)) return reply(help)
   if (/what changed|recent changes|latest changes/i.test(text)) {
     const events = await localProvider.events(siteId)
-    return reply(events.length ? events.slice(0, 8).map((e) => `${new Date(e.ts).toLocaleString()}: ${e.title}`).join('\n') : 'No changes have been saved on this phone yet.')
+    return reply(events.length ? events.slice(0, 8).map((e) => `${when(e.ts)}: ${e.title}`).join('\n') : 'No changes have been saved on this phone yet.')
   }
   if ((match = text.match(/^(?:area|capacity) (?:of )?(.+)$/i))) {
     const id = resolveSpace(data, match[1], assetRooms), room = b.spaces.find((s) => s.id === id)!
@@ -67,13 +70,13 @@ export async function runLocalCommand(siteId: string, message: string, origin: s
     const id = resolveSpace(data, match[1], assetRooms)
     const booking = await localProvider.book(siteId, { space_id: id, start: start.toISOString(), end: new Date(start.getTime() + minutes * 60_000).toISOString(), who: 'Local user', title: 'Local meeting' })
     actions.push({ type: 'state_changed' }, { type: 'highlight', ids: [id], label: 'Booked on this phone' })
-    return reply(`Booked ${b.spaces.find((s) => s.id === id)!.name}, ${new Date(booking.start).toLocaleString()} for ${minutes} minutes. This booking is only on this device.`)
+    return reply(`Booked ${b.spaces.find((s) => s.id === id)!.name}, ${when(booking.start)} for ${minutes} minutes. This booking is only on this device.`)
   }
   if ((match = text.match(/^(?:find )?free rooms?(?: for (\d+)(?: people)?)?(?: at (\d{1,2}:\d{2}))?$/i))) {
     const start = match[2] ? parseClock(match[2]) : new Date(), end = new Date(start.getTime() + 60 * 60_000)
     const rooms = (await localProvider.bookableRooms(siteId, start.toISOString(), end.toISOString(), Number(match[1] ?? 1))).filter((r) => r.free)
     actions.push({ type: 'highlight', ids: rooms.slice(0, 12).map((r) => r.space_id), label: 'Free on this device' })
-    return reply(`Local availability ${start.toLocaleString()}–${end.toLocaleTimeString()}:\n${rooms.slice(0, 8).map((r) => `${r.name} — ${r.capacity} people, ${r.area_m2.toFixed(1)} m²`).join('\n') || 'No matching free rooms.'}`)
+    return reply(`Local availability ${when(start)}–${time(end)}:\n${rooms.slice(0, 8).map((r) => `${r.name} — ${r.capacity} people, ${r.area_m2.toFixed(1)} m²`).join('\n') || 'No matching free rooms.'}`)
   }
   if (/^(route|take me|navigate|how do i get)/i.test(text)) {
     const stepFree = /without stairs|step[- ]free|no stairs/i.test(text)

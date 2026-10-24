@@ -61,7 +61,7 @@ export function Popover({ building, siteId }: { building: Building; siteId: stri
             <div className="flex items-start justify-between gap-2">
               <div>
                 <div className="text-sm font-semibold leading-tight">{title}</div>
-                <div className="mt-0.5 text-[11px] capitalize text-slate-400">{sub}</div>
+                <div className="mt-0.5 text-[11px] text-slate-400">{sub.charAt(0).toUpperCase() + sub.slice(1)}</div>
               </div>
               <button className="rounded p-0.5 text-slate-400 hover:bg-white/10 hover:text-white" onClick={() => setPop(null)}>
                 <X size={14} />

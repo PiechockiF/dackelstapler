@@ -24,7 +24,7 @@ export default function LocalCapturePage() {
     catch (e) { setError((e as Error).message) }
     finally { setBusy(false) }
   }
-  return <main className="local-home h-full overflow-y-auto px-5 text-slate-200"><div className="mx-auto max-w-lg pb-10 pt-6">
+  return <main className="local-home h-full overflow-y-auto px-5 pb-[var(--safe-bottom)] pt-[var(--safe-top)] text-slate-200"><div className="mx-auto max-w-lg pb-10 pt-6">
     <Link to={siteId ? `/site/${siteId}` : '/'} className="inline-flex items-center gap-2 text-sm text-sky-300"><ArrowLeft size={16} /> Back to building</Link>
     <h1 className="mt-5 text-2xl font-semibold text-white">Save a delivery</h1>
     <p className="mt-2 text-sm leading-relaxed text-slate-400">Photo and entered dimensions are stored on this phone. The route check compares doorway widths; it does not measure the photo or assess turns, height or floor fit.</p>

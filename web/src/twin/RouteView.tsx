@@ -5,6 +5,8 @@ import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import type { Route, XY } from '../lib/types'
 import { useTwin } from '../lib/store'
+import { useNav } from '../nav/navStore'
+import { walkingRoute } from '../nav/pdr'
 import { Beam, PulseRing } from './Effects'
 import { FloorAnchor } from './FloorAnchor'
 import { type TwinLayout, useLayout } from './layout'
@@ -86,14 +88,32 @@ export function buildParts(route: Route, layout: TwinLayout): { parts: Part[]; t
 }
 
 export function RouteView() {
-  const route = useTwin((s) => s.route)
+  const planned = useTwin((s) => s.route)
+  const building = useTwin((s) => s.building)
+  // Draw the route as walked: straight between doors, not via each corridor's centre point.
+  const navRoute = useNav((s) => s.route)
+  const walk = useMemo(() => (planned?.reachable ? walkingRoute(planned, building ?? undefined) : null), [planned, building])
+  const route = navRoute ?? walk?.route ?? planned
   const layout = useLayout()
   const built = useMemo(() => (route && route.reachable ? buildParts(route, layout) : null), [route, layout])
   if (!route || !built || !built.parts.length) return null
-  return <RouteBody key={JSON.stringify(route.space_path) + route.length_m} route={route} parts={built.parts} total={built.total} />
+  return <RouteBody key={JSON.stringify(route.space_path) + route.length_m + (navRoute ? ':nav' : '')} route={route} parts={built.parts} total={built.total} navigating={!!navRoute} lengthM={walk?.total ?? route.length_m} />
 }
 
-function RouteBody({ route, parts, total }: { route: Route; parts: Part[]; total: number }) {
+/** Distance along the drawn (filleted) route that the walker has covered. */
+function walkedAlong(parts: Part[]): number | null {
+  const nav = useNav.getState()
+  if (nav.status === 'idle' || !nav.path) return null
+  const legs = nav.path.legs
+  const li = legs.findIndex((l) => l.floorId === nav.floorId && nav.globalS <= l.start + l.length + 1e-6)
+  const floors = parts.filter((p): p is Seg => p.kind === 'floor')
+  const leg = legs[li], part = floors[li]
+  if (!leg || !part) return null
+  const u = leg.length > 0 ? THREE.MathUtils.clamp((nav.globalS - leg.start) / leg.length, 0, 1) : 1
+  return part.start + u * part.length
+}
+
+function RouteBody({ route, parts, total, navigating, lengthM }: { route: Route; parts: Part[]; total: number; navigating: boolean; lengthM: number }) {
   const layout = useLayout()
   const color = route.step_free ? COLORS.accent2 : COLORS.accent
   const born = useRef<number | null>(null)
@@ -108,6 +128,19 @@ function RouteBody({ route, parts, total }: { route: Route; parts: Part[]; total
   useFrame(({ clock }) => {
     if (born.current == null) born.current = clock.elapsedTime
     const age = clock.elapsedTime - born.current
+    const walked = walkedAlong(parts)
+    if (walked != null) {
+      // Navigating: the glow head sits on the walker and the NavMarker replaces the avatar.
+      for (const m of mats) {
+        m.uniforms.uTime.value = mobileGraphics ? 1 : clock.elapsedTime
+        m.uniforms.uReveal.value = total + 1
+        m.uniforms.uHead.value = walked
+        m.uniforms.uWalked.value = walked
+      }
+      if (avatar.current) avatar.current.visible = false
+      return
+    }
+    if (avatar.current) avatar.current.visible = !mobileGraphics
     const reveal = mobileGraphics ? total + 1 : Math.min(total + 1, (age / 1.8) * total * 1.05)
     const cycle = total / SPEED + 1.2
     const s = age < 1.8 ? reveal : Math.min(total, ((age - 1.8) % cycle) * SPEED)
@@ -116,6 +149,7 @@ function RouteBody({ route, parts, total }: { route: Route; parts: Part[]; total
       m.uniforms.uTime.value = mobileGraphics ? 1 : clock.elapsedTime
       m.uniforms.uReveal.value = reveal
       m.uniforms.uHead.value = s
+      m.uniforms.uWalked.value = -1
     }
     // avatar position
     const part = parts.find((p) => s <= p.start + p.length) ?? parts[parts.length - 1]
@@ -150,11 +184,12 @@ function RouteBody({ route, parts, total }: { route: Route; parts: Part[]; total
       <FloorAnchor floorId={last.floorId}>
         <PulseRing x={endPt.x} z={endPt.z} radius={2.6} color={color} />
         <Beam x={endPt.x} z={endPt.z} radius={0.7} height={layout.gap * 1.5 + 8} color={color} />
-        <Html position={[endPt.x, 2.8, endPt.z]} center zIndexRange={[30, 0]} style={{ pointerEvents: 'none' }}>
+        {/* The planned length is wrong once walking (the HUD shows what's left). */}
+        {!navigating && <Html position={[endPt.x, 2.8, endPt.z]} center zIndexRange={[30, 0]} style={{ pointerEvents: 'none' }}>
           <div className="whitespace-nowrap rounded-full border border-sky-300/50 bg-sky-500/20 px-3 py-1 text-xs font-semibold text-sky-50 shadow-[0_0_24px_rgba(56,189,248,0.5)] backdrop-blur">
-            {route.length_m.toFixed(1)} m{route.step_free ? ' · step-free' : ''}
+            {lengthM.toFixed(0)} m{route.step_free ? ' · step-free' : ''}
           </div>
-        </Html>
+        </Html>}
       </FloorAnchor>
       <group ref={avatar} visible={!mobileGraphics}>
         <mesh>
