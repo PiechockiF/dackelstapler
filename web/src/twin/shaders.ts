@@ -16,6 +16,7 @@ export function makeFlowMaterial(color: THREE.Color, opts: { offset: number; len
       uColor: { value: color.clone() },
       uReveal: { value: 0 },
       uHead: { value: 0 },
+      uWalked: { value: -1 },
     },
     vertexShader: /* glsl */ `
       uniform float uOffset; uniform float uLength;
@@ -28,7 +29,7 @@ export function makeFlowMaterial(color: THREE.Color, opts: { offset: number; len
         gl_Position = projectionMatrix * mv;
       }`,
     fragmentShader: /* glsl */ `
-      uniform float uTime; uniform float uTotal; uniform vec3 uColor; uniform float uReveal; uniform float uHead;
+      uniform float uTime; uniform float uTotal; uniform vec3 uColor; uniform float uReveal; uniform float uHead; uniform float uWalked;
       varying float vDist; varying vec3 vN; varying vec3 vView;
       void main() {
         if (vDist > uReveal) discard;
@@ -38,6 +39,7 @@ export function makeFlowMaterial(color: THREE.Color, opts: { offset: number; len
         float head = exp(-abs(vDist - uHead) * 0.5);
         vec3 col = uColor * (0.55 + 1.9 * d + 0.6 * rim) + vec3(1.0) * head * 3.0;
         float a = clamp(0.35 + 0.65 * d + rim * 0.4 + head, 0.0, 1.0);
+        if (vDist < uWalked - 0.6) { col *= 0.3; a *= 0.3; } // already walked (navigation)
         if (any(isnan(col)) || isnan(a)) discard; // NaN would smear across the whole frame via bloom
         gl_FragColor = vec4(col, a);
       }`,

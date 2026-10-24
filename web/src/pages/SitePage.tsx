@@ -12,6 +12,8 @@ import { api } from '../lib/api'
 import { useTwin } from '../lib/store'
 import type { Delivery, WsMessage } from '../lib/types'
 import { useLive } from '../lib/ws'
+import { NavOverlay } from '../nav/NavOverlay'
+import { useNav } from '../nav/navStore'
 import { refreshRoute } from '../twin/actions'
 import { TwinLayout } from '../twin/layout'
 import { ROOM_LEGEND } from '../twin/palette'
@@ -35,6 +37,17 @@ const TABS: { id: Tab; label: string; icon: ReactNode }[] = [
   { id: 'route', label: 'Route', icon: <Navigation size={14} /> },
 ]
 
+/** Notch / home-indicator sizes in px (the CSS env() values resolved). */
+function safeInsets() {
+  const probe = document.createElement('div')
+  probe.style.cssText = 'position:fixed;visibility:hidden;padding-top:var(--safe-top);padding-bottom:var(--safe-bottom)'
+  document.body.appendChild(probe)
+  const cs = getComputedStyle(probe)
+  const out = { top: parseFloat(cs.paddingTop) || 0, bottom: parseFloat(cs.paddingBottom) || 0 }
+  probe.remove()
+  return out
+}
+
 const LEFT_W = 340
 const CHAT_W = 380
 
@@ -44,12 +57,13 @@ export default function SitePage() {
   const { width, height } = useViewport()
   const compact = width < 760
   const [mobilePanel, setMobilePanel] = useState<Tab | 'chat' | null>(null)
-  const [showDemoScan, setShowDemoScan] = useState(false)
   const building = useTwin((s) => (s.siteId === siteId ? s.building : null))
   const [error, setError] = useState<string | null>(null)
   const [tab, setTab] = useState<Tab>('feed')
-  const [chatOpen, setChatOpen] = useState(() => window.innerWidth >= 760)
+  // Only open the assistant beside the panel when both fit with room for the scene (not portrait iPad).
+  const [chatOpen, setChatOpen] = useState(() => window.innerWidth >= 1200)
   const [toast, setToast] = useState<{ text: string; tone: 'info' | 'ok' | 'warn' } | null>(null)
+  const navActive = useNav((s) => s.status !== 'idle')
   const sites = useQuery({ queryKey: ['sites'], queryFn: api.sites, staleTime: 60_000 })
   const site = sites.data?.find((s) => s.id === siteId)
 
@@ -93,10 +107,33 @@ export default function SitePage() {
 
   useEffect(() => () => window.clearTimeout(refetchTimer.current), [siteId])
 
+  // A room popover belongs to the view it was opened in.
+  useEffect(() => useTwin.subscribe((s, prev) => {
+    if (s.focusFloorId !== prev.focusFloorId) useTwinUi.getState().setPopover(null)
+  }), [])
+  useEffect(() => {
+    if (mobilePanel) useTwinUi.getState().setPopover(null)
+  }, [mobilePanel])
+
+  // Walking navigation takes over the screen; it ends when leaving the site.
+  useEffect(() => useNav.subscribe((s, prev) => {
+    if (s.status !== 'idle' && prev.status === 'idle') setMobilePanel(null)
+  }), [])
+  useEffect(() => () => useNav.getState().end(), [siteId])
+
   // A route requested anywhere (map popover, Rooms, Route tab) opens the Route tab with its directions.
   useEffect(() => useTwinUi.subscribe((s, prev) => {
-    if (s.directionsTick !== prev.directionsTick) setTab('route')
+    if (s.directionsTick !== prev.directionsTick) {
+      setTab('route')
+      // Phones: show the directions (and Start navigation) instead of just the line.
+      if (window.innerWidth < 760) setMobilePanel('route')
+    }
   }), [])
+
+  // An assistant/delivery highlight belongs to the panel that made it (closing the panel keeps it in view).
+  useEffect(() => {
+    if (useTwin.getState().highlight) useTwin.getState().setHighlight(null)
+  }, [tab])
 
   const showToast = useCallback((text: string, tone: 'info' | 'ok' | 'warn' = 'info') => {
     setToast({ text, tone })
@@ -128,10 +165,26 @@ export default function SitePage() {
   useLive(onLive)
 
   const layout = useMemo(() => (building ? new TwinLayout(building, isLocalMode) : null), [building])
-  const insets = useMemo(
-    () => compact ? { left: 8, right: 8, top: 130, bottom: mobilePanel ? Math.round(height * 0.5) + 70 : 145 } : { left: LEFT_W + 24, right: chatOpen ? CHAT_W + 24 : 0, top: 72, bottom: 84 },
-    [chatOpen, compact, mobilePanel, height],
-  )
+  // Phones: frame the building in the part of the screen the panels leave free (measured, not guessed).
+  const panelRef = useRef<HTMLDivElement>(null)
+  const [panelH, setPanelH] = useState(0)
+  useEffect(() => {
+    const el = panelRef.current
+    if (!el) return
+    const ro = new ResizeObserver(() => setPanelH(Math.round(el.offsetHeight / 24) * 24)) // coarse, so typing doesn't re-fit
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [mobilePanel, building, navActive])
+  const safe = useMemo(() => safeInsets(), [width, height]) // eslint-disable-line react-hooks/exhaustive-deps
+  const insets = useMemo(() => {
+    if (!compact) return { left: LEFT_W + 24, right: chatOpen ? CHAT_W + 24 : 0, top: 72 + safe.top, bottom: 84 + safe.bottom }
+    const top = safe.top + 140 // header + floor switcher
+    const free = height - safe.top - safe.bottom
+    const bottom = mobilePanel === 'chat' ? Math.round(free * 0.57) + safe.bottom + 8
+      : mobilePanel ? panelH + 72 + safe.bottom + 12
+      : 145 + safe.bottom // timeline + tab bar
+    return { left: 8, right: 8, top, bottom }
+  }, [chatOpen, compact, mobilePanel, height, panelH, safe])
 
   return (
     <div className="relative h-full w-full overflow-hidden bg-[#05070d] text-slate-200">
@@ -139,13 +192,15 @@ export default function SitePage() {
         <Suspense fallback={null}>
           {/* isolate: keeps drei <Html> labels (z-index) below the HUD panels */}
           <div className="absolute inset-0 isolate">
-            <TwinScene key={siteId} building={building} siteId={siteId} layout={layout} insets={insets} showScans={!isLocalMode || showDemoScan} />
+            <TwinScene key={siteId} building={building} siteId={siteId} layout={layout} insets={insets} showScans={!isLocalMode} />
           </div>
         </Suspense>
       )}
 
+      {/* HUD, kept clear of the notch and home indicator; children opt back into pointer events */}
+      <div className="pointer-events-none absolute" style={{ top: 'var(--safe-top)', bottom: 'var(--safe-bottom)', left: 'var(--safe-left)', right: 'var(--safe-right)' }}>
       {/* header */}
-      <div className="pointer-events-none absolute left-4 top-4 flex items-start gap-3" style={{ width: compact ? 'calc(100% - 32px)' : LEFT_W }}>
+      <div className={clsx('pointer-events-none absolute left-4 top-4 flex items-start gap-3', navActive && 'hidden')} style={{ width: compact ? 'calc(100% - 32px)' : LEFT_W }}>
         <Glass className="pointer-events-auto flex w-full items-center gap-3 px-3 py-2.5">
           <button onClick={() => nav('/')} className="grid size-8 shrink-0 place-items-center rounded-lg bg-white/5 text-slate-300 transition hover:bg-white/10 hover:text-white" title="Back to map">
             <ArrowLeft size={16} />
@@ -161,16 +216,24 @@ export default function SitePage() {
       </div>
 
       {/* left panel */}
-      {building && (!compact || mobilePanel && mobilePanel !== 'chat') && (
-        <div className="pointer-events-none absolute left-4 flex flex-col" style={{ width: compact ? 'calc(100% - 32px)' : LEFT_W, bottom: compact ? 70 : 96, top: compact ? '48%' : 84 }}>
-          <Glass className="pointer-events-auto flex max-h-full min-h-0 flex-col">
-            <div className="flex gap-1 border-b border-white/5 p-1.5">
+      {building && !navActive && (!compact || mobilePanel && mobilePanel !== 'chat') && (
+        <div className={clsx('pointer-events-none absolute left-4 flex flex-col', compact && 'justify-end')} style={{ width: compact ? 'calc(100% - 32px)' : LEFT_W, bottom: compact ? 72 : 96, top: compact ? '42%' : 84 }}>
+          <Glass ref={panelRef} className="pointer-events-auto flex max-h-full min-h-0 flex-col">
+            {compact ? (
+              // The bottom bar already switches tabs on phones: just name the panel.
+              <div className="flex items-center gap-2 border-b border-white/5 py-1.5 pl-3.5 pr-1.5 text-sm font-semibold text-slate-100">
+                <span className="text-sky-300">{TABS.find((t) => t.id === tab)?.icon}</span>
+                {TABS.find((t) => t.id === tab)?.label}
+                <button aria-label="Close panel" className="ml-auto grid size-8 place-items-center rounded-lg text-slate-400 hover:bg-white/5 hover:text-white" onClick={() => setMobilePanel(null)}><X size={16} /></button>
+              </div>
+            ) : (
+            <div className="flex gap-0.5 border-b border-white/5 p-1.5">
               {TABS.map((t) => (
                 <button
                   key={t.id}
                   onClick={() => { setTab(t.id); if (compact) setMobilePanel(t.id) }}
                   className={clsx(
-                    'flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium transition',
+                    'flex min-w-0 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-1.5 py-1.5 text-xs font-medium transition [&>svg]:shrink-0',
                     tab === t.id ? 'bg-sky-500/20 text-sky-50' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200',
                   )}
                 >
@@ -178,8 +241,8 @@ export default function SitePage() {
                   {t.label}
                 </button>
               ))}
-              {compact && <button aria-label="Close panel" className="px-2 text-slate-400" onClick={() => setMobilePanel(null)}><X size={15} /></button>}
             </div>
+            )}
             <div className="min-h-0 flex-1 overflow-y-auto p-2.5 [scrollbar-width:thin]">
               {tab === 'feed' && (
                 <div className="flex flex-col gap-3">
@@ -202,10 +265,10 @@ export default function SitePage() {
         </div>
       )}
 
-      {building && <ManualEntryDialog siteId={siteId} building={building} />}
+      {building && navActive && <NavOverlay building={building} compact={compact} />}
 
       {/* floor switcher */}
-      {building && (
+      {building && !navActive && (
         <div className="pointer-events-none absolute flex justify-center" style={{ top: compact ? 84 : 16, left: compact ? 8 : LEFT_W + 32, right: compact ? 8 : chatOpen ? CHAT_W + 32 : 16 }}>
           <div className="pointer-events-auto max-w-full overflow-x-auto">
             <FloorBar building={building} />
@@ -222,7 +285,7 @@ export default function SitePage() {
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: CHAT_W + 40, opacity: 0 }}
             transition={{ type: 'spring', stiffness: 260, damping: 30 }}
-            className="absolute right-4 flex flex-col"
+            className="pointer-events-auto absolute right-4 flex flex-col"
             style={{ width: compact ? 'calc(100% - 32px)' : CHAT_W, bottom: compact ? 70 : 16, top: compact ? '43%' : 16 }}
           >
             <Glass className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -239,7 +302,7 @@ export default function SitePage() {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
             onClick={() => setChatOpen(true)}
-            className="absolute right-4 top-4 grid size-11 place-items-center rounded-2xl border border-sky-400/30 bg-sky-500/20 text-sky-100 shadow-[0_0_30px_rgba(56,189,248,0.35)] backdrop-blur-xl hover:bg-sky-500/30"
+            className="pointer-events-auto absolute right-4 top-4 grid size-11 place-items-center rounded-2xl border border-sky-400/30 bg-sky-500/20 text-sky-100 shadow-[0_0_30px_rgba(56,189,248,0.35)] backdrop-blur-xl hover:bg-sky-500/30"
             title="Open assistant"
           >
             <MessageSquare size={18} />
@@ -248,14 +311,14 @@ export default function SitePage() {
       </AnimatePresence>
 
       {/* timeline */}
-      {building && (!compact || !mobilePanel) && (
-        <div className="absolute" style={{ bottom: compact ? 72 : 16, left: compact ? 16 : LEFT_W + 32, right: !compact && chatOpen ? CHAT_W + 32 : 16 }}>
+      {building && !navActive && (!compact || !mobilePanel) && (
+        <div className="pointer-events-auto absolute" style={{ bottom: compact ? 72 : 16, left: compact ? 16 : LEFT_W + 32, right: !compact && chatOpen ? CHAT_W + 32 : 16 }}>
           <Timeline />
         </div>
       )}
 
       {/* legend + attribution */}
-      {building && !compact && (
+      {building && !compact && !navActive && (
         <div className="pointer-events-none absolute bottom-4 left-4 flex flex-col gap-1.5" style={{ width: LEFT_W }}>
           <div className="flex flex-wrap gap-x-2.5 gap-y-1 px-1">
             {ROOM_LEGEND.map(([label, color]) => (
@@ -295,13 +358,16 @@ export default function SitePage() {
         )}
       </AnimatePresence>
 
-      {building && compact && <nav aria-label="Building panels" className="absolute inset-x-0 bottom-0 z-30 flex h-16 items-center border-t border-white/10 bg-slate-950/95 px-1 backdrop-blur-xl">
+      </div>
+
+      {building && compact && !navActive && <nav aria-label="Building panels" className="absolute inset-x-0 bottom-0 z-30 flex h-[calc(4rem+var(--safe-bottom))] items-center border-t border-white/10 bg-slate-950/95 px-1 pb-[var(--safe-bottom)] backdrop-blur-xl">
         <button className={`flex flex-1 flex-col items-center gap-1 py-2 text-[9px] ${!mobilePanel ? 'text-sky-300' : 'text-slate-400'}`} onClick={() => setMobilePanel(null)}><Box size={18} /> 3D view</button>
         {TABS.map((t) => <button key={t.id} className={`flex flex-1 flex-col items-center gap-1 py-2 text-[9px] ${mobilePanel === t.id ? 'text-sky-300' : 'text-slate-400'}`} onClick={() => { setTab(t.id); setMobilePanel(mobilePanel === t.id ? null : t.id) }}>{t.icon}{t.label}</button>)}
         <button className={`flex flex-1 flex-col items-center gap-1 py-2 text-[9px] ${mobilePanel === 'chat' ? 'text-sky-300' : 'text-slate-400'}`} onClick={() => setMobilePanel(mobilePanel === 'chat' ? null : 'chat')}><MessageSquare size={17} /> Assistant</button>
       </nav>}
-      {building && compact && !mobilePanel && <p className="pointer-events-none absolute bottom-[147px] left-4 max-w-[90%] truncate text-[9px] text-slate-500">{building.building.attribution}</p>}
-      {isLocalMode && building?.building.id === 'proc-factory-dev-003' && <button className="absolute right-4 top-[132px] rounded-lg border border-white/10 bg-slate-950/80 px-2 py-1.5 text-[10px] text-slate-400" onClick={() => setShowDemoScan(!showDemoScan)}>{showDemoScan ? 'Hide example scan' : 'Show example scan'}</button>}
+      {building && compact && !mobilePanel && !navActive && <p className="pointer-events-none absolute bottom-[calc(147px+var(--safe-bottom))] left-4 max-w-[90%] truncate text-[9px] text-slate-500">{building.building.attribution}</p>}
+
+      {building && <ManualEntryDialog siteId={siteId} building={building} />}
 
       {error && (
         <div className="absolute inset-0 grid place-items-center">

@@ -166,7 +166,9 @@ export default function DeliveryCard({ delivery, building: providedBuilding }: {
             )}
           </>
         )}
-        {delivery.measurement_source === 'manual' && <Line tone="warn" icon={<TriangleAlert size={14} />}>{check.summary}</Line>}
+        {delivery.measurement_source === 'manual' && (/assumed|⚠|not /i.test(check.summary)
+          ? <Line tone="warn" icon={<TriangleAlert size={14} />}>{check.summary}</Line>
+          : <Line tone="muted" icon={<Box size={14} />}>{check.summary}</Line>)}
         {check?.floor_fit && !check.floor_fit.ok && (
           <Line tone="warn" icon={<Layers size={14} />}>
             {check.floor_fit.reason}

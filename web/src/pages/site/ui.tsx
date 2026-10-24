@@ -1,10 +1,10 @@
 import clsx from 'clsx'
 import { Trash2 } from 'lucide-react'
-import { useEffect, useState, type ButtonHTMLAttributes, type HTMLAttributes, type ReactNode } from 'react'
+import { useEffect, useState, type ButtonHTMLAttributes, type ComponentPropsWithRef, type ReactNode } from 'react'
 
 export const glass = 'rounded-2xl border border-white/10 bg-slate-950/60 shadow-2xl shadow-black/40 backdrop-blur-xl'
 
-export function Glass({ className, ...rest }: HTMLAttributes<HTMLDivElement>) {
+export function Glass({ className, ...rest }: ComponentPropsWithRef<'div'>) {
   return <div className={clsx(glass, className)} {...rest} />
 }
 
