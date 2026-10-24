@@ -107,10 +107,10 @@ export async function exportBackup(): Promise<string> {
     }
   }
   const text = JSON.stringify({ ...records, photos })
-  const filename = `SiteTwin-backup-${new Date().toISOString().replace(/[:.]/g, '-')}.json`
+  const filename = `Dackel-backup-${new Date().toISOString().replace(/[:.]/g, '-')}.json`
   if (isNative) {
     await Filesystem.writeFile({ path: filename, directory: Directory.Documents, encoding: Encoding.UTF8, data: text })
-    return 'Backup saved. Open Files → On My iPhone → SiteTwin.'
+    return 'Backup saved. Open Files → On My iPhone → Dackel.'
   }
   const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }))
   const a = document.createElement('a'); a.href = url; a.download = filename; a.click()

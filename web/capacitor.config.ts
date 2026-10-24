@@ -6,7 +6,7 @@ const url = process.env.CAP_LIVE_RELOAD === '1' ? process.env.CAP_SERVER_URL : u
 
 const config: CapacitorConfig = {
   appId: 'com.sitetwin.app',
-  appName: 'SiteTwin',
+  appName: 'Dackel',
   webDir: 'dist',
   server: url ? { url, cleartext: url.startsWith('http://') } : undefined,
 }

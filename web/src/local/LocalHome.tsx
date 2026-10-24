@@ -19,7 +19,7 @@ export default function LocalHome() {
   return <main className="local-home h-full overflow-y-auto bg-[#070b14] px-5 text-slate-200">
     <div className="mx-auto max-w-5xl pb-10 pt-7">
       <header className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3"><span className="grid size-10 place-items-center rounded-xl bg-sky-400/15 text-sky-300"><Building2 size={23} /></span><div><h1 className="text-xl font-semibold tracking-tight text-white">SiteTwin</h1><p className="text-xs text-slate-400">Your buildings, on this phone</p></div></div>
+        <div className="flex items-center gap-3"><img src="/dackel.png" alt="" className="size-10 rounded-xl bg-white object-cover" /><div><h1 className="text-xl font-semibold tracking-tight text-white">Dackel</h1><p className="text-xs text-slate-400">Your buildings, on this phone</p></div></div>
         <span className="flex items-center gap-1.5 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2.5 py-1 text-[11px] text-emerald-200"><ShieldCheck size={13} /> Local</span>
       </header>
       <section className="mt-7 rounded-2xl border border-sky-300/15 bg-gradient-to-br from-sky-950/60 to-violet-950/30 p-5">

@@ -45,7 +45,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="SiteTwin", version="0.1", lifespan=lifespan)
+app = FastAPI(title="Dackel", version="0.1", lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 app.include_router(ws.router)
 app.include_router(voice_router)

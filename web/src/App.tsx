@@ -9,7 +9,7 @@ const LocalCapturePage = lazy(() => import('./local/LocalCapturePage'))
 
 export default function App() {
   return (
-    <Suspense fallback={<div className="grid h-full place-items-center text-sm text-sky-200">Opening SiteTwin…</div>}><Routes>
+    <Suspense fallback={<div className="grid h-full place-items-center text-sm text-sky-200">Opening Dackel…</div>}><Routes>
       <Route path="/" element={isLocalMode ? <LocalHome /> : <MapPage />} />
       <Route path="/site/:siteId" element={<SitePage />} />
       <Route path="/capture" element={isLocalMode ? <LocalCapturePage /> : <CapturePage />} />

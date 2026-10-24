@@ -438,11 +438,9 @@ export default function CapturePage() {
     <div className="min-h-dvh bg-bg bg-[radial-gradient(ellipse_at_top,rgba(56,189,248,0.14),transparent_55%),radial-gradient(ellipse_at_bottom_right,rgba(167,139,250,0.10),transparent_50%)] text-slate-200">
       <header className="sticky top-0 z-30 border-b border-white/5 bg-bg/80 px-4 pb-3 pt-[max(env(safe-area-inset-top),12px)] backdrop-blur-xl">
         <div className="mx-auto flex max-w-md items-center gap-3">
-          <div className="grid size-9 place-items-center rounded-xl bg-gradient-to-br from-sky-400 to-violet-500 text-white shadow-lg shadow-sky-500/30">
-            <Package size={18} />
-          </div>
+          <img src="/dackel.png" alt="" className="size-9 rounded-xl bg-white object-cover shadow-lg shadow-sky-500/30" />
           <div className="min-w-0 flex-1">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-sky-300/80">SiteTwin capture</div>
+            <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-sky-300/80">Dackel capture</div>
             <div className="truncate text-sm font-medium text-white">{site?.name ?? building?.building.name ?? (siteId ? siteId : 'Choose a site')}</div>
           </div>
           <a href={MARKER_PDF_URL} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-lg border border-white/10 px-2 py-1.5 text-[11px] text-slate-300 active:bg-white/10">

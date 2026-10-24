@@ -3,7 +3,7 @@ import '../dev/mockApi'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import clsx from 'clsx'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Building2, ChevronDown, Factory, GraduationCap, Layers, MapPin, Plane, Plus, Search, ShoppingBag, X } from 'lucide-react'
+import { Building2, ChevronDown, Factory, GraduationCap, MapPin, Plane, Plus, Search, ShoppingBag, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { isMockActive, onMockChange } from '../dev/mockApi'
@@ -101,11 +101,9 @@ export default function MapPage() {
         >
           <div className="p-4 pb-3">
             <div className="flex items-center gap-2.5">
-              <div className="grid size-9 place-items-center rounded-xl bg-gradient-to-br from-sky-400 to-violet-500 text-white shadow-[0_0_24px_rgba(56,189,248,0.5)]">
-                <Layers size={18} />
-              </div>
+              <img src="/dackel.png" alt="" className="size-9 rounded-xl bg-white object-cover shadow-[0_0_24px_rgba(56,189,248,0.5)]" />
               <div>
-                <div className="text-[17px] font-semibold tracking-tight text-white">SiteTwin</div>
+                <div className="text-[17px] font-semibold tracking-tight text-white">Dackel</div>
                 <div className="text-[11px] text-slate-400">Living 3D twins of every Standort</div>
               </div>
               {mock && <span className="ml-auto rounded bg-amber-400/20 px-1.5 py-0.5 text-[10px] font-semibold text-amber-200">MOCK</span>}
