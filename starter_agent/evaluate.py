@@ -91,8 +91,9 @@ def evaluate(directory: Path, limit: int | None, oracle: bool) -> None:
     results: Counter[tuple[str, bool]] = Counter()
     usage: Counter[str] = Counter()
     client = None if oracle else anthropic.Anthropic()
+    walks_cache: dict[Path, dict] = {}
     for building_directory, question in load_questions(directory, limit):
-        building_map = BuildingMap.load(building_directory)
+        building_map = BuildingMap.load_cached(building_directory, walks_cache)
         if oracle:
             reply = oracle_answer(question, building_map)
         else:

@@ -122,10 +122,14 @@ def what_if_door(bm: BuildingMap, first: str, second: str, floor_id: str) -> dic
         "synthetic": True,
     }
     bm.openings[opening["id"]] = opening
+    for space_id in (first, second):  # the starter caches walks per space: walk these two with the door
+        bm.walks.pop(space_id, None)
     try:
         after = bm.entrance_distances()
     finally:
         del bm.openings[opening["id"]]
+        for space_id in (first, second):
+            bm.walks.pop(space_id, None)
     improved = []
     for space in bm.spaces_on_floor(floor_id, ROOM_TYPE):
         old, new = before.get(space["id"], math.inf), after.get(space["id"], math.inf)

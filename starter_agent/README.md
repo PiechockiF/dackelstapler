@@ -39,11 +39,11 @@ Route images and edited buildings go to `agent_output/`.
 | `add_door` | Adds a door between neighbouring rooms and saves `building_edited.json` | 4 (start) |
 | `show_route` | Draws the last route on each floor it crosses | viewer |
 
-Route costs match the dataset's expected answers: walking distance through door positions, 12 m per floor of stairs, and a 15 m wait plus 6 m per floor for a lift.
+Routes follow the judges' rules, the same ones behind the dataset's expected answers: walking inside each space goes door to door, 15 cm off the walls and round corners; stairs cost 2 m per metre climbed; a lift costs 15 m per ride plus 1 m per metre climbed (heights from the floors' `elevation_m`); there is no shortcut round the outside of the building.
 
 ## Check how well it does
 
-These commands use the warm-up set (`questions_basic.jsonl`). The real benchmark is `questions.jsonl`, scored with `benchmark.evaluate`, and the starter agent fails it on purpose. See section 6 of [../outdated_organizer_info.md](../outdated_organizer_info.md).
+These commands use the warm-up set (`questions_basic.jsonl`). The real benchmark is `questions.jsonl`, scored with `benchmark.evaluate`, and the starter agent fails it on purpose. See section 6 of [../README.md](../README.md).
 
 ```bash
 # Free: answers every question with the tools directly. Shows the tools can reach 100%.
