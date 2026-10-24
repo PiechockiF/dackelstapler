@@ -56,6 +56,9 @@ function speechRecognitionCtor(): SpeechRecognitionCtor | null {
   return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null
 }
 
+// A short silent WAV; playing it inside a click "unlocks" the shared <audio> for later replies (Safari autoplay rule).
+const SILENT_WAV = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA='
+
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2))
 
 /** Text worth speaking: no parenthetical notes, no markdown, max ~600 chars. */
@@ -83,7 +86,8 @@ export default function ChatPanel({ siteId }: { siteId: string }) {
     }
   })
   const [voiceMode, setVoiceMode] = useState<VoiceMode>('none')
-  const [serverTts, setServerTts] = useState(false)
+  const [serverTts, setServerTts] = useState(true)
+  const [voiceNote, setVoiceNote] = useState<string | null>(null)
   const [recording, setRecording] = useState(false)
   const [transcribing, setTranscribing] = useState(false)
   const [speaking, setSpeaking] = useState(false)
@@ -111,7 +115,7 @@ export default function ChatPanel({ siteId }: { siteId: string }) {
       .catch(() => undefined)
   }, [siteId])
 
-  // Which voice backends exist?
+  // Which voice backends exist? An unreachable server is not "no voice": we keep trying it per request.
   useEffect(() => {
     let cancelled = false
     fetch('/api/health')
@@ -119,9 +123,11 @@ export default function ChatPanel({ siteId }: { siteId: string }) {
       .catch(() => ({}))
       .then((health: { voice?: boolean }) => {
         if (cancelled) return
-        const server = Boolean(health.voice) && typeof MediaRecorder !== 'undefined'
-        setServerTts(Boolean(health.voice))
-        setVoiceMode(server ? 'server' : speechRecognitionCtor() ? 'browser' : 'none')
+        const serverVoice = health.voice !== false
+        const canRecord = typeof MediaRecorder !== 'undefined' && Boolean(navigator.mediaDevices?.getUserMedia)
+        setServerTts(serverVoice)
+        setVoiceMode(serverVoice && canRecord ? 'server' : speechRecognitionCtor() ? 'browser' : 'none')
+        if (serverVoice && !canRecord && !window.isSecureContext) setVoiceNote('Mic needs https or localhost')
       })
     return () => {
       cancelled = true
@@ -141,9 +147,19 @@ export default function ChatPanel({ siteId }: { siteId: string }) {
     if (muted) stopSpeaking()
   }, [muted])
 
+  const sharedAudio = () => (audioRef.current ??= new Audio())
+
+  // Call from a click/tap so the later (async) reply is allowed to play.
+  const primeAudio = () => {
+    if (muted) return
+    const audio = sharedAudio()
+    if (!audio.paused) return
+    audio.src = SILENT_WAV
+    audio.play().catch(() => undefined)
+  }
+
   const stopSpeaking = () => {
     audioRef.current?.pause()
-    audioRef.current = null
     if ('speechSynthesis' in window) window.speechSynthesis.cancel()
     setSpeaking(false)
   }
@@ -175,18 +191,21 @@ export default function ChatPanel({ siteId }: { siteId: string }) {
           if (response.status === 501) setServerTts(false)
           if (response.ok) {
             const url = URL.createObjectURL(await response.blob())
-            const audio = new Audio(url)
-            audioRef.current = audio
+            const audio = sharedAudio()
+            audio.src = url
             audio.onended = () => {
               setSpeaking(false)
               URL.revokeObjectURL(url)
             }
             setSpeaking(true)
             await audio.play()
+            setVoiceNote(null)
             return
           }
-        } catch {
-          /* fall through to the browser voice */
+          if (response.status !== 501) setVoiceNote(`ElevenLabs voice failed (${response.status})`)
+        } catch (error) {
+          setSpeaking(false)
+          setVoiceNote((error as Error).name === 'NotAllowedError' ? 'Browser blocked audio; click the chat once' : 'ElevenLabs voice unreachable')
         }
       }
       speakWithBrowser(text)
@@ -326,7 +345,14 @@ export default function ChatPanel({ siteId }: { siteId: string }) {
             return
           }
           const body = await response.json().catch(() => ({}))
-          if (response.ok && body.text) send(body.text)
+          if (response.ok && body.text) {
+            setVoiceNote(null)
+            send(body.text)
+          } else {
+            setVoiceNote(response.ok ? "Didn't catch that" : `Transcription failed (${response.status})`)
+          }
+        } catch {
+          setVoiceNote('Transcription server unreachable')
         } finally {
           setTranscribing(false)
         }
@@ -334,8 +360,10 @@ export default function ChatPanel({ siteId }: { siteId: string }) {
       recorderRef.current = recorder
       recorder.start()
       setRecording(true)
-    } catch {
-      setVoiceMode(speechRecognitionCtor() ? 'browser' : 'none')
+    } catch (error) {
+      // Permission denied is the user's call for this attempt, not a reason to drop ElevenLabs for good.
+      const name = (error as Error).name
+      setVoiceNote(name === 'NotAllowedError' ? 'Microphone permission denied' : name === 'NotFoundError' ? 'No microphone found' : 'Microphone unavailable')
     }
   }
 
@@ -362,7 +390,13 @@ export default function ChatPanel({ siteId }: { siteId: string }) {
         <div className="min-w-0 flex-1">
           <div className="text-sm font-semibold tracking-tight">Ask the building</div>
           <div className="truncate text-[11px] text-slate-400">
-            {speaking ? 'Speaking…' : recording ? 'Listening…' : transcribing ? 'Transcribing…' : 'Voice or text · routes, deliveries, rooms'}
+            {speaking
+              ? 'Speaking…'
+              : recording
+                ? 'Listening…'
+                : transcribing
+                  ? 'Transcribing…'
+                  : voiceNote ?? `${serverTts && voiceMode === 'server' ? 'ElevenLabs voice' : 'Voice or text'} · routes, deliveries, rooms`}
           </div>
         </div>
         <button
@@ -434,7 +468,10 @@ export default function ChatPanel({ siteId }: { siteId: string }) {
             key={suggestion}
             type="button"
             disabled={busy}
-            onClick={() => send(suggestion)}
+            onClick={() => {
+              primeAudio()
+              send(suggestion)
+            }}
             className="shrink-0 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-300 transition hover:border-sky-400/50 hover:text-white disabled:opacity-40"
           >
             {suggestion}
@@ -447,6 +484,7 @@ export default function ChatPanel({ siteId }: { siteId: string }) {
         className="flex items-center gap-2 border-t border-white/10 p-3"
         onSubmit={(event) => {
           event.preventDefault()
+          primeAudio()
           send(input)
         }}
       >
@@ -455,6 +493,7 @@ export default function ChatPanel({ siteId }: { siteId: string }) {
             type="button"
             onPointerDown={(event) => {
               event.preventDefault()
+              primeAudio()
               startRecording()
             }}
             onPointerUp={stopRecording}
