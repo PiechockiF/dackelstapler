@@ -1,11 +1,8 @@
-import { MapboxOverlay } from '@deck.gl/mapbox'
-import { PathLayer, ScatterplotLayer } from '@deck.gl/layers'
-import { AttributionControl, Map as MlMap, Marker, NavigationControl, setWorkerUrl, type IControl } from 'maplibre-gl'
+import { AttributionControl, Map as MlMap, Marker, NavigationControl, setWorkerUrl } from 'maplibre-gl'
 // MapLibre 6 resolves its worker relative to its own module, which breaks under Vite's dep bundling.
 import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 import { useEffect, useImperativeHandle, useRef, type Ref } from 'react'
 import type { Site } from '../lib/types'
-import type { Flow } from './arcs'
 import './siteMap.css'
 
 export const STYLE_URL = 'https://tiles.openfreemap.org/styles/dark'
@@ -28,7 +25,6 @@ export interface SiteMapApi {
 
 export interface SiteMapProps {
   sites: Site[]
-  flows: Flow[]
   hoveredId: string | null
   activeId: string | null
   pickMode: boolean
@@ -44,15 +40,12 @@ setWorkerUrl(maplibreWorkerUrl)
 const SEEN_KEY = 'sitetwin-map-view'
 
 export default function SiteMap(props: SiteMapProps) {
-  const { sites, flows, hoveredId, activeId, pickMode, skipIntro, ref } = props
+  const { sites, hoveredId, activeId, pickMode, skipIntro, ref } = props
   const container = useRef<HTMLDivElement>(null)
   const mapRef = useRef<MlMap | null>(null)
-  const overlayRef = useRef<MapboxOverlay | null>(null)
   const markers = useRef(new Map<string, { marker: Marker; el: HTMLDivElement }>())
   const cb = useRef(props)
   cb.current = props
-  const flowsRef = useRef(flows)
-  flowsRef.current = flows
 
   // ---- map init ----
   useEffect(() => {
@@ -67,6 +60,11 @@ export default function SiteMap(props: SiteMapProps) {
       pitch: start?.pitch ?? 0,
       bearing: start?.bearing ?? 0,
       maxPitch: 78,
+      // Google Maps-style ctrl/right-drag: pivot on the screen center, horizontal drag always turns the same way.
+      dragRotate: { around: 'center', movement: 'linear' },
+      // 0.2× MapLibre's defaults (0.8 / -0.5), hand-tuned.
+      rotateSpeed: 0.16,
+      pitchSpeed: -0.1,
       attributionControl: false,
       canvasContextAttributes: { antialias: true },
     })
@@ -91,10 +89,6 @@ export default function SiteMap(props: SiteMapProps) {
     map.on('style.load', () => {
       map.setProjection({ type: 'globe' })
       styleMap(map)
-      // Overlaid (not interleaved): deck 9.4's interleaved mode reads map.transform, which MapLibre 6 no longer exposes.
-      const overlay = new MapboxOverlay({ interleaved: false, layers: [] })
-      overlayRef.current = overlay
-      map.addControl(overlay as unknown as IControl)
       if (start) return
       // Intro: a slow spin, then a cinematic flight to Munich.
       const t0 = performance.now()
@@ -121,67 +115,11 @@ export default function SiteMap(props: SiteMapProps) {
     }
     map.on('moveend', save)
 
-    // ---- animated flows (deck.gl) ----
-    let raf = 0
-    const tick = (now: number) => {
-      raf = requestAnimationFrame(tick)
-      const overlay = overlayRef.current
-      if (!overlay) return
-      const map = mapRef.current
-      // Overlaid deck draws in Mercator, so only show flows once the globe has flattened out.
-      const fl = map && map.getZoom() > 7.5 ? flowsRef.current : []
-      const t = now / 1000
-      const comets = fl.map((f) => {
-        const p = (t / 4.5 + f.phase) % 1
-        const n = f.path.length - 1
-        const head = Math.floor(p * n)
-        const tail = Math.max(0, head - Math.round(n * 0.22))
-        return { f, path: f.path.slice(tail, head + 1), head: f.path[head] }
-      })
-      overlay.setProps({
-        layers: [
-          new PathLayer<Flow>({
-            id: 'flows-base',
-            data: fl,
-            getPath: (f) => f.path,
-            getColor: (f) => [...f.color, 70],
-            getWidth: 1.5,
-            widthUnits: 'pixels',
-            capRounded: true,
-            jointRounded: true,
-          }),
-          new PathLayer<(typeof comets)[number]>({
-            id: 'flows-comet',
-            data: comets.filter((c) => c.path.length > 1),
-            getPath: (c) => c.path,
-            getColor: (c) => [...c.f.color, 235],
-            getWidth: 3.5,
-            widthUnits: 'pixels',
-            capRounded: true,
-            jointRounded: true,
-            updateTriggers: { getPath: t },
-          }),
-          new ScatterplotLayer<(typeof comets)[number]>({
-            id: 'flows-head',
-            data: comets,
-            getPosition: (c) => c.head,
-            getFillColor: [255, 255, 255, 255],
-            getRadius: 4,
-            radiusUnits: 'pixels',
-            updateTriggers: { getPosition: t },
-          }),
-        ],
-      })
-    }
-    raf = requestAnimationFrame(tick)
-
     return () => {
-      cancelAnimationFrame(raf)
       markers.current.forEach(({ marker }) => marker.remove())
       markers.current.clear()
       map.remove()
       mapRef.current = null
-      overlayRef.current = null
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -239,9 +177,14 @@ export default function SiteMap(props: SiteMapProps) {
           done = true
           resolve()
         }
+        const duration = 1900
         map.once('moveend', finish)
-        setTimeout(finish, 3400)
-        map.flyTo({ center: [site.lon, site.lat], zoom: 17.4, pitch: 64, bearing: map.getBearing() - 35, duration: 3000, curve: 1.5, essential: true })
+        // Start the fade a touch before the camera settles, so there's no dead time at the end.
+        setTimeout(finish, duration - 250)
+        map.flyTo({
+          center: [site.lon, site.lat], zoom: 17.4, pitch: 64, bearing: map.getBearing() - 35, duration, curve: 1.5, essential: true,
+          easing: (t) => (1 - Math.cos(Math.PI * t)) / 2,
+        })
       }),
     flyHome: () => mapRef.current?.flyTo({ center: MUNICH, zoom: 10.4, pitch: 52, bearing: -18, duration: 2500 }),
     flyTo: (lat, lon) => mapRef.current?.flyTo({ center: [lon, lat], zoom: 17, pitch: 0, bearing: 0, duration: 1800, essential: true }),
