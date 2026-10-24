@@ -43,7 +43,7 @@ Route costs match the dataset's expected answers: walking distance through door 
 
 ## Check how well it does
 
-These commands use the warm-up set (`questions_basic.jsonl`). The real benchmark is `questions.jsonl`, scored with `benchmark.evaluate`, and the starter agent fails it on purpose. See section 6 of [../README.md](../README.md).
+These commands use the warm-up set (`questions_basic.jsonl`). The real benchmark is `questions.jsonl`, scored with `benchmark.evaluate`, and the starter agent fails it on purpose. See section 6 of [../outdated_organizer_info.md](../outdated_organizer_info.md).
 
 ```bash
 # Free: answers every question with the tools directly. Shows the tools can reach 100%.

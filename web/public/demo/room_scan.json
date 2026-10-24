@@ -1,0 +1,89 @@
+{
+ "id": "scan-demo",
+ "site_id": "proc-factory-dev-003",
+ "space_id": "proc-factory-dev-003-F0-S020",
+ "splat_url": "/demo/room_scan.ply",
+ "transform": [
+  -0.837907,
+  0.545813,
+  0.0,
+  0.0,
+  0.0,
+  0.0,
+  1.0,
+  0.0,
+  0.545813,
+  0.837907,
+  0.0,
+  0.0,
+  1.805989,
+  7.690244,
+  1.412469,
+  1.0
+ ],
+ "deviations": [
+  {
+   "wall_index": 0,
+   "offset_m": -0.0,
+   "segment": [
+    [
+     5.0,
+     5.43
+    ],
+    [
+     5.0,
+     9.74
+    ]
+   ],
+   "direction": "east"
+  },
+  {
+   "wall_index": 1,
+   "offset_m": 0.42,
+   "segment": [
+    [
+     5.0,
+     9.74
+    ],
+    [
+     0.0,
+     9.74
+    ]
+   ],
+   "direction": "north"
+  },
+  {
+   "wall_index": 2,
+   "offset_m": 0.012,
+   "segment": [
+    [
+     0.0,
+     9.74
+    ],
+    [
+     0.0,
+     5.43
+    ]
+   ],
+   "direction": "west"
+  },
+  {
+   "wall_index": 3,
+   "offset_m": -0.0,
+   "segment": [
+    [
+     0.0,
+     5.43
+    ],
+    [
+     5.0,
+     5.43
+    ]
+   ],
+   "direction": "south"
+  }
+ ],
+ "summary": "Scan fitted into Meeting room 0.20 (demo scan). \u26a0 north wall 0.42 m outside the plan; other 3 walls within 15 cm.",
+ "floor_id": "proc-factory-dev-003-F0",
+ "source": "demo"
+}

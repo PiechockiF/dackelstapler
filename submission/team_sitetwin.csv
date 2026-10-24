@@ -1,0 +1,291 @@
+question_id,answer
+osm-way363805324-H01,"I compared the polygon areas of all 7 generic room spaces on Floor 1. The largest is Generic room 1.02 with 162.3 m². The next largest has 39.3 m².
+Answer: Generic room 1.02, 162.3 m²"
+osm-way363805324-H02,"I added up the polygon areas of the 5 generic room spaces on Ground floor: 54.77 m² in total.
+Answer: 54.77"
+osm-way363805324-H03,"The nearest office chair by walking distance is in Gemeinschaftsbüro (114) (22.2 m from Generic room 1.10). The largest generic room on Floor 1 is Generic room 1.02, another 29.7 m (stairs allowed).
+Answer: 51.92"
+osm-way363805324-H04,"Comparing outlines with the floor below, Großer Saal (E01) covers the largest part of Büchercorner (107) (57.7 m² of 58.4 m²).
+Answer: Großer Saal (E01)"
+osm-way363805324-H07,"Comparing outlines with the floor above, Generic room 1.10 covers the largest part of Kitchen 0.16 (39.2 m² of 61.3 m²).
+Answer: Generic room 1.10"
+osm-way363805324-H10,"Rooms on Basement 1 with at least 1 m of wall within 0.35 m of Generic room U20 (corridors, stairwells, lifts and outdoor spaces excluded): Musik- und Tanraum, Generic room -1.10, Generic room -1.11, Generic room -1.12, Generic room -1.13.
+Answer: 5"
+osm-way363805324-H11,"Centroid of Generic room -1.11: (-2.58, 6.22, -3.00); centroid of Büchercorner (107): (-4.42, -13.99, 3.00). The straight-line distance is 21.16 m.
+Answer: 21.16"
+osm-way43035346-H01,"I compared the polygon areas of all 16 generic room spaces on Floor 3. The largest is Generic room N3806 with 115.0 m². The next largest has 98.6 m².
+Answer: Generic room N3806, 115.0 m²"
+osm-way43035346-H02,"I added up the polygon areas of the 26 generic room spaces on Floor 1: 592.80 m² in total.
+Answer: 592.80"
+osm-way43035346-H03,"The nearest fire extinguisher by walking distance is in Stairwell N3834 (21.3 m from Generic room N3820). The largest generic room on Floor 1 is Generic room N1838, another 55.1 m (stairs allowed).
+Answer: 76.34"
+osm-way43035346-H04,"Comparing outlines with the floor above, Generic room N0806 covers the largest part of Generic room -1.14 (3.3 m² of 3.8 m²).
+Answer: Generic room N0806"
+osm-way43035346-H05,"Rooms on Basement 1 with at least 1 m of wall within 0.35 m of Generic room N-1840 (corridors, stairwells, lifts and outdoor spaces excluded): Generic room -1.07, Generic room N-1806B, Generic room N-1806A, Generic room N-1841, Generic room N-1842, Generic room -1.26.
+Answer: 6"
+osm-way43035346-H06,"Centroid of Generic room N-1828: (6.64, 3.05, -3.00); centroid of Generic room N2821: (9.45, -4.12, 6.00). The straight-line distance is 11.85 m.
+Answer: 11.85"
+osm-way43035346-H07,"With a new door at (-7.31, 12.68) between Generic room N0808 and Generic room N0809, I recomputed every room's walk to its nearest entrance: 14 rooms on Floor 3 get more than 1 m shorter.
+Answer: 14"
+osm-way50299584-H01,"I compared the polygon areas of all 34 generic room spaces on Ground floor. The largest is Generic room 0566 with 559.8 m². The next largest has 189.2 m².
+Answer: Generic room 0566, 559.8 m²"
+osm-way50299584-H02,"I added up the polygon areas of the 41 generic room spaces on Floor 3: 959.75 m² in total.
+Answer: 959.75"
+osm-way50299584-H03,"The nearest coat rack by walking distance is in Corridor -1588 (31.1 m from Generic room 1508). The largest generic room on Floor 2 is Generic room 2538, another 81.0 m (stairs allowed).
+Answer: 112.14"
+osm-way50299584-H04,"Comparing outlines with the floor above, Generic room 0583 covers the largest part of Generic room -1517 (10.9 m² of 11.1 m²).
+Answer: Generic room 0583"
+osm-way50299584-H06,"Comparing outlines with the floor below, Generic room -1530 covers the largest part of Generic room 0520 (14.7 m² of 14.7 m²).
+Answer: Generic room -1530"
+osm-way50299584-H11,"Comparing outlines with the floor above, Generic room 1530 covers the largest part of Generic room 0523 (12.7 m² of 14.3 m²).
+Answer: Generic room 1530"
+osm-way50299584-H12,"Rooms on Floor 2 with at least 1 m of wall within 0.35 m of Generic room 2522 (corridors, stairwells, lifts and outdoor spaces excluded): Generic room 2530, Generic room 2523, Generic room 2522A, Generic room 2523A.
+Answer: 4"
+osm-way50299584-H13,"Centroid of Generic room 3580.2: (-26.33, -34.05, 9.00); centroid of Generic room 1561: (13.07, 13.45, 3.00). The straight-line distance is 62.01 m.
+Answer: 62.01"
+osm-way50300147-H01,"I compared the polygon areas of all 38 generic room spaces on Ground floor. The largest is Generic room 0219 with 530.2 m². The next largest has 174.6 m².
+Answer: Generic room 0219, 530.2 m²"
+osm-way50300147-H02,"I added up the polygon areas of the 43 generic room spaces on Floor 1: 1699.55 m² in total.
+Answer: 1699.55"
+osm-way50300147-H03,"The nearest desk by walking distance is in Generic room 1211B (2.5 m from Generic room 1211D). The largest generic room on Floor 2 is Generic room 2221, another 89.0 m (stairs allowed).
+Answer: 91.51"
+osm-way50300147-H04,"Comparing outlines with the floor above, Generic room 0260 covers the largest part of Generic room -1284 (69.5 m² of 70.5 m²).
+Answer: Generic room 0260"
+osm-way50300147-H05,"Comparing outlines with the floor below, Generic room 0219 covers the largest part of Generic room 1271C (1.5 m² of 1.5 m²).
+Answer: Generic room 0219"
+osm-way50300147-H06,"Comparing outlines with the floor above, Generic room 0209 covers the largest part of Generic room -1216 (33.9 m² of 36.4 m²).
+Answer: Generic room 0209"
+osm-way50300147-H07,"Rooms on Basement 1 with at least 1 m of wall within 0.35 m of Generic room -1208 (corridors, stairwells, lifts and outdoor spaces excluded): Generic room -1247e, Generic room -1206, Generic room -1202, Generic room -1247d, Generic room -1247f, Generic room -1247c.
+Answer: 6"
+osm-way50300147-H08,"Centroid of Generic room 2231: (-2.84, -22.53, 6.00); centroid of Generic room -1248: (-12.86, 20.92, -3.00). The straight-line distance is 45.49 m.
+Answer: 45.49"
+osm-way50300147-H09,"With a new door at (-27.93, -3.93) between Corridor 0263 and Corridor 0244, I recomputed every room's walk to its nearest entrance: 47 rooms on Basement 1 get more than 1 m shorter.
+Answer: 47"
+osm-way50300147-H10,"With a new door at (-28.56, -0.75) between Lobby 0.01 and Generic room 0293, I recomputed every room's walk to its nearest entrance: 47 rooms on Basement 1 get more than 1 m shorter.
+Answer: 47"
+proc-campus-test-000-H01,"I compared the polygon areas of all 3 toilet spaces on Floor 1. The largest is Toilet 1.25 with 34.0 m². The next largest has 23.9 m².
+Answer: Toilet 1.25, 34.0 m²"
+proc-campus-test-000-H02,"I added up the polygon areas of the 4 server room spaces on Basement 1: 105.42 m² in total.
+Answer: 105.42"
+proc-campus-test-000-H03,"Keeping only step-free paths (lifts allowed, no stairs or steps) through doors at least 1 m wide, starting in Main lobby (0.14), the load reaches 21 rooms on Floor 1.
+Answer: 21"
+proc-campus-test-000-H04,"The nearest coffee machine by walking distance is in Kitchen 4.41 (62.8 m from Office 4.27). The largest meeting room on Floor 2 is Meeting room 2.09, another 93.9 m (stairs allowed).
+Answer: 156.67"
+proc-campus-test-000-H05,"Centroid of Lab 2.23: (-11.40, 18.99, 7.60); centroid of Storage 0.36: (-29.77, 55.20, 0.00). The straight-line distance is 41.31 m.
+Answer: 41.31"
+proc-campus-test-004-H01,"I compared the polygon areas of all 4 meeting room spaces on Ground floor. The largest is Meeting room 0.15 with 35.5 m². The next largest has 26.5 m².
+Answer: Meeting room 0.15, 35.5 m²"
+proc-campus-test-004-H02,"I added up the polygon areas of the 6 office spaces on Floor 1: 184.14 m² in total.
+Answer: 184.14"
+proc-campus-test-004-H03,"Keeping only step-free paths (lifts allowed, no stairs or steps) through doors at least 1 m wide, starting in Main lobby (0.14), the load reaches 13 rooms on Floor 2.
+Answer: 13"
+proc-campus-test-004-H04,"The nearest stove by walking distance is in Kitchen 0.05 (33.2 m from Storage 0.12). The largest lab on Floor 1 is Lab 1.17, another 77.7 m (stairs allowed).
+Answer: 110.95"
+proc-campus-test-004-H05,"Centroid of Lab 1.17: (11.40, -6.83, 3.80); centroid of Lab 3.19: (11.40, -19.84, 11.40). The straight-line distance is 15.06 m.
+Answer: 15.06"
+proc-campus-test-005-H01,"I compared the polygon areas of all 6 meeting room spaces on Floor 1. The largest is Meeting room 1.13 with 41.5 m². The next largest has 34.7 m².
+Answer: Meeting room 1.13, 41.5 m²"
+proc-campus-test-005-H02,"I added up the polygon areas of the 16 office spaces on Ground floor: 456.72 m² in total.
+Answer: 456.72"
+proc-campus-test-005-H03,"Keeping only step-free paths (lifts allowed, no stairs or steps) through doors at least 1 m wide, starting in Main lobby (0.15), the load reaches 18 rooms on Floor 4.
+Answer: 18"
+proc-campus-test-005-H04,"The nearest kitchen counter by walking distance is in Kitchen 2.33 (28.6 m from Seminar room 2.37). The largest storage on Floor 1 is Storage 1.27, another 119.6 m (stairs allowed).
+Answer: 148.19"
+proc-campus-test-005-H05,"Rooms on Basement 1 with at least 1 m of wall within 0.35 m of Toilet -1.31 (corridors, stairwells, lifts and outdoor spaces excluded): Storage -1.30, Locker room -1.40, Locker room -1.41.
+Answer: 3"
+proc-campus-test-005-H06,"Centroid of Lab 4.10: (-29.86, -3.00, 15.20); centroid of Office 2.41: (-66.20, -15.23, 7.60). The straight-line distance is 39.09 m.
+Answer: 39.09"
+proc-campus-test-008-H01,"I compared the polygon areas of all 8 office spaces on Floor 2. The largest is Office 2.19 with 39.7 m². The next largest has 35.9 m².
+Answer: Office 2.19, 39.7 m²"
+proc-campus-test-008-H02,"I added up the polygon areas of the 3 meeting room spaces on Floor 1: 86.40 m² in total.
+Answer: 86.40"
+proc-campus-test-008-H03,"Keeping only step-free paths (lifts allowed, no stairs or steps) through doors at least 1 m wide, starting in Main lobby (0.13), the load reaches 11 rooms on Floor 5.
+Answer: 11"
+proc-campus-test-008-H04,"The nearest plant by walking distance is in Office 3.24 (22.1 m from Seminar room 3.21). The largest meeting room on Floor 1 is Meeting room 1.07, another 79.1 m (stairs allowed).
+Answer: 101.25"
+proc-campus-test-008-H05,"Centroid of Office 1.25: (40.76, 11.40, 3.80); centroid of Technical room -1.19: (7.90, 11.40, -3.80). The straight-line distance is 33.73 m.
+Answer: 33.73"
+proc-campus-test-012-H01,"I compared the polygon areas of all 7 office spaces on Floor 1. The largest is Office 1.12 with 40.0 m². The next largest has 33.1 m².
+Answer: Office 1.12, 40.0 m²"
+proc-campus-test-012-H02,"I added up the polygon areas of the 3 toilet spaces on Floor 4: 99.18 m² in total.
+Answer: 99.18"
+proc-campus-test-012-H03,"Keeping only step-free paths (lifts allowed, no stairs or steps) through doors at least 1 m wide, starting in Main lobby (0.18), the load reaches 16 rooms on Floor 1.
+Answer: 16"
+proc-campus-test-012-H04,"The nearest plant by walking distance is in Office 3.26 (23.0 m from Seminar room 3.22). The largest lab on Floor 3 is Lab 3.13, another 28.1 m (stairs allowed).
+Answer: 51.13"
+proc-campus-test-012-H05,"Centroid of Print room 4.28: (-11.40, 52.10, 15.20); centroid of Seminar room 0.06: (-3.00, 17.79, 0.00). The straight-line distance is 38.46 m.
+Answer: 38.46"
+proc-campus-test-013-H01,"I compared the polygon areas of all 3 storage spaces on Floor 5. The largest is Storage 5.26 with 40.9 m². The next largest has 25.6 m².
+Answer: Storage 5.26, 40.9 m²"
+proc-campus-test-013-H02,"I added up the polygon areas of the 8 lab spaces on Floor 1: 200.28 m² in total.
+Answer: 200.28"
+proc-campus-test-013-H03,"Keeping only step-free paths (lifts allowed, no stairs or steps) through doors at least 1 m wide, starting in Main lobby (0.10), the load reaches 15 rooms on Floor 3.
+Answer: 15"
+proc-campus-test-013-H04,"The nearest chemical cabinet by walking distance is in Lab 4.21 (41.9 m from Office 4.29). The largest lab on Floor 1 is Lab 1.34, another 115.0 m (stairs allowed).
+Answer: 156.93"
+proc-campus-test-013-H05,"Centroid of Office 5.35: (28.55, -38.90, 19.00); centroid of Lab 1.07: (3.00, -17.96, 3.80). The straight-line distance is 36.37 m.
+Answer: 36.37"
+proc-factory-test-001-H01,"I added up the polygon areas of the 4 meeting room spaces on Ground floor: 92.10 m² in total.
+Answer: 92.10"
+proc-factory-test-001-H02,"Keeping only step-free paths (lifts allowed, no stairs or steps) through doors at least 1 m wide, starting in Logistics zone H-C1, the load reaches 9 rooms on Ground floor.
+Answer: 9"
+proc-factory-test-001-H03,"Rooms on Ground floor with at least 1 m of wall within 0.35 m of Production zone H-A2 (corridors, stairwells, lifts and outdoor spaces excluded): Assembly zone H-A1, Production zone H-A3, Office 0.22, Office 0.23, Server room 0.24, Meeting room 0.25.
+Answer: 6"
+proc-factory-test-002-H01,"I added up the polygon areas of the 5 meeting room spaces on Ground floor: 126.50 m² in total.
+Answer: 126.50"
+proc-factory-test-002-H02,"Keeping only step-free paths (lifts allowed, no stairs or steps) through doors at least 1 m wide, starting in Office corridor 0.31, the load reaches 9 rooms on Ground floor.
+Answer: 9"
+proc-factory-test-002-H03,"Rooms on Ground floor with at least 1 m of wall within 0.35 m of Office 0.38 (corridors, stairwells, lifts and outdoor spaces excluded): Warehouse zone H-A1, Production zone H-A2, Office 0.37, Office 0.39.
+Answer: 4"
+proc-factory-test-002-H04,"Centroid of Meeting room 2.20: (-9.50, -8.75, 7.00); centroid of Warehouse zone H-D6: (55.65, -99.55, 0.00). The straight-line distance is 111.98 m.
+Answer: 111.98"
+proc-factory-test-003-H01,"I compared the polygon areas of all 8 meeting room spaces on Floor 1. The largest is Meeting room 1.17 with 29.4 m². The next largest has 25.2 m².
+Answer: Meeting room 1.17, 29.4 m²"
+proc-factory-test-003-H02,"I added up the polygon areas of the 7 meeting room spaces on Floor 2: 154.20 m² in total.
+Answer: 154.20"
+proc-factory-test-003-H03,"Keeping only step-free paths (lifts allowed, no stairs or steps) through doors at least 1.1 m wide, starting in Office corridor 0.25, the load reaches 7 rooms on Ground floor.
+Answer: 7"
+proc-factory-test-003-H04,"The nearest server rack by walking distance is in Server room 1.14 (23.8 m from Meeting room 1.10). The largest kitchen on Ground floor is Kitchen 0.29, another 141.4 m (stairs allowed).
+Answer: 165.19"
+proc-factory-test-003-H05,"Rooms on Ground floor with at least 1 m of wall within 0.35 m of Office 0.33 (corridors, stairwells, lifts and outdoor spaces excluded): Warehouse zone H-A2, Office 0.32, Kitchen 0.34.
+Answer: 3"
+proc-factory-test-003-H06,"Centroid of Office 2.27: (-9.50, -25.34, 7.00); centroid of Office 0.58: (-9.50, -56.59, 0.00). The straight-line distance is 32.02 m.
+Answer: 32.02"
+proc-factory-test-006-H01,"I added up the polygon areas of the 9 office spaces on Floor 2: 203.30 m² in total.
+Answer: 203.30"
+proc-factory-test-006-H02,"Keeping only step-free paths (lifts allowed, no stairs or steps) through doors at least 1.1 m wide, starting in Main aisle H-B4, the load reaches 4 rooms on Floor 2.
+Answer: 4"
+proc-factory-test-006-H03,"Rooms on Ground floor with at least 1 m of wall within 0.35 m of Office 0.20 (corridors, stairwells, lifts and outdoor spaces excluded): Additive zone H-A2, Server room 0.19, Meeting room 0.21.
+Answer: 3"
+proc-factory-test-006-H04,"Centroid of Warehouse zone H-C4: (49.00, 46.50, 0.00); centroid of Office 2.10: (29.80, -2.50, 7.00). The straight-line distance is 53.09 m.
+Answer: 53.09"
+proc-factory-test-007-H01,"I compared the polygon areas of all 5 kitchen spaces on Floor 1. The largest is Kitchen 1.10 with 28.8 m². The next largest has 25.9 m².
+Answer: Kitchen 1.10, 28.8 m²"
+proc-factory-test-007-H02,"I added up the polygon areas of the 18 office spaces on Floor 1: 413.40 m² in total.
+Answer: 413.40"
+proc-factory-test-007-H03,"Keeping only step-free paths (lifts allowed, no stairs or steps) through doors at least 1.1 m wide, starting in Logistics zone H-D1, the load reaches 9 rooms on Ground floor.
+Answer: 9"
+proc-factory-test-007-H04,"The nearest drill press by walking distance is in Production zone H-B5 (201.9 m from Office 1.05). The largest kitchen on Floor 1 is Kitchen 1.10, another 175.3 m (stairs allowed).
+Answer: 377.18"
+proc-factory-test-007-H05,"Rooms on Ground floor with at least 1 m of wall within 0.35 m of Kitchen 0.43 (corridors, stairwells, lifts and outdoor spaces excluded): Production zone H-A4, Warehouse zone H-A5, Office 0.42, Hall access 0.44.
+Answer: 4"
+proc-factory-test-007-H06,"Centroid of Production zone H-A4: (8.40, -66.50, 0.00); centroid of Office 2.10: (-2.50, -34.20, 7.00). The straight-line distance is 34.80 m.
+Answer: 34.80"
+proc-factory-test-009-H01,"I added up the polygon areas of the 4 production zone spaces on Ground floor: 1220.16 m² in total.
+Answer: 1220.16"
+proc-factory-test-009-H02,"Keeping only step-free paths (lifts allowed, no stairs or steps) through doors at least 1 m wide, starting in Office corridor 0.21, the load reaches 12 rooms on Floor 1.
+Answer: 12"
+proc-factory-test-009-H03,"Rooms on Ground floor with at least 1 m of wall within 0.35 m of Office 0.27 (corridors, stairwells, lifts and outdoor spaces excluded): Additive zone H-A1, Warehouse zone H-A2, Meeting room 0.26, Kitchen 0.28.
+Answer: 4"
+proc-factory-test-010-H01,"I compared the polygon areas of all 5 meeting room spaces on Ground floor. The largest is Meeting room 0.40 with 29.9 m². The next largest has 23.9 m².
+Answer: Meeting room 0.40, 29.9 m²"
+proc-factory-test-010-H02,"I added up the polygon areas of the 5 meeting room spaces on Ground floor: 111.60 m² in total.
+Answer: 111.60"
+proc-factory-test-010-H03,"Keeping only step-free paths (lifts allowed, no stairs or steps) through doors at least 1 m wide, starting in Logistics zone H-E1, the load reaches 10 rooms on Floor 1.
+Answer: 10"
+proc-factory-test-010-H04,"The nearest ups unit by walking distance is in Server room 1.07 (28.2 m from Office 1.12). The largest meeting room on Ground floor is Meeting room 0.40, another 111.5 m (stairs allowed).
+Answer: 139.72"
+proc-factory-test-010-H05,"Rooms on Ground floor with at least 1 m of wall within 0.35 m of Quality lab 0.27 (corridors, stairwells, lifts and outdoor spaces excluded): Assembly zone H-A1, Assembly zone H-A2, Server room 0.26, Office 0.28.
+Answer: 4"
+proc-factory-test-011-H01,"I added up the polygon areas of the 7 production zone spaces on Ground floor: 2079.98 m² in total.
+Answer: 2079.98"
+proc-factory-test-011-H02,"Keeping only step-free paths (lifts allowed, no stairs or steps) through doors at least 1.1 m wide, starting in Logistics zone H-E3, the load reaches 7 rooms on Floor 2.
+Answer: 7"
+proc-factory-test-011-H03,"Rooms on Ground floor with at least 1 m of wall within 0.35 m of Locker room 0.41 (corridors, stairwells, lifts and outdoor spaces excluded): Assembly zone H-A3, Additive zone H-A4, Office 0.40, Office 0.42.
+Answer: 4"
+proc-factory-test-011-H04,"Centroid of Production zone H-B3: (-44.75, -24.90, 0.00); centroid of Kitchen 2.04: (-1.80, 2.50, 7.00). The straight-line distance is 51.42 m.
+Answer: 51.42"
+resplan-1153-H01,"I added up the polygon areas of the 4 bedroom spaces on Ground floor: 71.29 m² in total.
+Answer: 71.29"
+resplan-1153-H02,"Rooms on Ground floor with at least 1 m of wall within 0.35 m of Bedroom 0.03 (corridors, stairwells, lifts and outdoor spaces excluded): Living room 0.01, Bedroom 0.04, Bathroom 0.06.
+Answer: 3"
+resplan-12469-H01,"I added up the polygon areas of the 5 bedroom spaces on Ground floor: 109.70 m² in total.
+Answer: 109.70"
+resplan-12469-H02,"Keeping only step-free paths (lifts allowed, no stairs or steps) through doors at least 1 m wide, starting in Living room 0.01, the load reaches 8 rooms on Ground floor.
+Answer: 8"
+resplan-12469-H03,"Rooms on Ground floor with at least 1 m of wall within 0.35 m of Bedroom 0.05 (corridors, stairwells, lifts and outdoor spaces excluded): Living room 0.01, Bathroom 0.07, Bathroom 0.08, Bathroom 0.09, Bathroom 0.10.
+Answer: 5"
+resplan-12962-H01,"Rooms on Ground floor with at least 1 m of wall within 0.35 m of Living room 0.01 (corridors, stairwells, lifts and outdoor spaces excluded): Bedroom 0.02, Bedroom 0.03, Bathroom 0.04, Bathroom 0.05, Kitchen 0.06.
+Answer: 5"
+resplan-14307-H01,"Rooms on Ground floor with at least 1 m of wall within 0.35 m of Bedroom 0.02 (corridors, stairwells, lifts and outdoor spaces excluded): Living room 0.01, Bathroom 0.04, Kitchen 0.05.
+Answer: 3"
+resplan-3573-H01,"I compared the polygon areas of all 3 bathroom spaces on Ground floor. The largest is Bathroom 0.06 with 7.0 m². The next largest has 5.6 m².
+Answer: Bathroom 0.06, 7.0 m²"
+resplan-3573-H02,"I added up the polygon areas of the 3 bathroom spaces on Ground floor: 17.65 m² in total.
+Answer: 17.65"
+resplan-3573-H03,"Keeping only step-free paths (lifts allowed, no stairs or steps) through doors at least 1 m wide, starting in Living room 0.01, the load reaches 6 rooms on Ground floor.
+Answer: 6"
+resplan-3573-H04,"The nearest sink by walking distance is in Bathroom 0.07 (6.2 m from Living room 0.01). The largest bathroom on Ground floor is Bathroom 0.06, another 16.3 m (stairs allowed).
+Answer: 22.47"
+resplan-3573-H05,"Rooms on Ground floor with at least 1 m of wall within 0.35 m of Living room 0.01 (corridors, stairwells, lifts and outdoor spaces excluded): Bedroom 0.02, Bedroom 0.03, Bedroom 0.04, Bathroom 0.06, Bathroom 0.07, Kitchen 0.08.
+Answer: 6"
+resplan-6532-H01,"Keeping only step-free paths (lifts allowed, no stairs or steps) through doors at least 1 m wide, starting in Living room 0.01, the load reaches 3 rooms on Ground floor.
+Answer: 3"
+resplan-6532-H02,"Rooms on Ground floor with at least 1 m of wall within 0.35 m of Bedroom 0.03 (corridors, stairwells, lifts and outdoor spaces excluded): Living room 0.01, Bathroom 0.04, Kitchen 0.06.
+Answer: 3"
+resplan-8357-H01,"Keeping only step-free paths (lifts allowed, no stairs or steps) through doors at least 1.1 m wide, starting in Living room 0.01, the load reaches 4 rooms on Ground floor.
+Answer: 4"
+resplan-8357-H02,"Rooms on Ground floor with at least 1 m of wall within 0.35 m of Living room 0.01 (corridors, stairwells, lifts and outdoor spaces excluded): Bedroom 0.02, Bedroom 0.03, Bathroom 0.04, Bathroom 0.05, Kitchen 0.06.
+Answer: 5"
+resplan-9751-H01,"Rooms on Ground floor with at least 1 m of wall within 0.35 m of Living room 0.01 (corridors, stairwells, lifts and outdoor spaces excluded): Bedroom 0.02, Bedroom 0.03, Bathroom 0.04, Bathroom 0.05, Kitchen 0.06.
+Answer: 5"
+swiss-100-H01,"I compared the polygon areas of all 4 living room spaces on Floor 1. The largest is Living room 1.05 (apartment 4) with 30.2 m². The next largest has 27.2 m².
+Answer: Living room 1.05 (apartment 4), 30.2 m²"
+swiss-100-H02,"I added up the polygon areas of the 8 bathroom spaces on Floor 5: 32.47 m² in total.
+Answer: 32.47"
+swiss-100-H03,"The nearest microwave by walking distance is in Kitchen 4.03 (apartment 16) (6.9 m from Living room 4.07 (apartment 16)). The largest living room on Floor 1 is Living room 1.05 (apartment 4), another 51.4 m (stairs allowed).
+Answer: 58.29"
+swiss-1195-H01,"I added up the polygon areas of the 14 bedroom spaces on Floor 3: 207.01 m² in total.
+Answer: 207.01"
+swiss-1195-H02,"Rooms on Floor 1 with at least 1 m of wall within 0.35 m of Bedroom 1.34 (apartment 10) (corridors, stairwells, lifts and outdoor spaces excluded): Bedroom 1.11 (apartment 7), Bathroom 1.30 (apartment 10), Kitchen 1.31 (apartment 10).
+Answer: 3"
+swiss-1671-H01,"I compared the polygon areas of all 7 bedroom spaces on Ground floor. The largest is Bedroom 0.05 (apartment 1) with 19.3 m². The next largest has 17.3 m².
+Answer: Bedroom 0.05 (apartment 1), 19.3 m²"
+swiss-1671-H02,"I added up the polygon areas of the 8 bedroom spaces on Floor 2: 133.95 m² in total.
+Answer: 133.95"
+swiss-1671-H03,"The nearest kitchen counter by walking distance is in Kitchen 1.09 (apartment 4) (9.0 m from Bedroom 1.13 (apartment 4)). The largest bedroom on Ground floor is Bedroom 0.05 (apartment 1), another 29.3 m (stairs allowed).
+Answer: 38.27"
+swiss-1671-H04,"Rooms on Floor 2 with at least 1 m of wall within 0.35 m of Kitchen 2.09 (apartment 6) (corridors, stairwells, lifts and outdoor spaces excluded): Storage 2.08 (apartment 6), Bedroom 2.12 (apartment 6), Bathroom 2.14 (apartment 6).
+Answer: 3"
+swiss-17033-H01,"I added up the polygon areas of the 4 bedroom spaces on Floor 1: 50.66 m² in total.
+Answer: 50.66"
+swiss-1760-H01,"I compared the polygon areas of all 6 kitchen spaces on Ground floor. The largest is Kitchen 0.06 (apartment 1) with 6.7 m². The next largest has 6.1 m².
+Answer: Kitchen 0.06 (apartment 1), 6.7 m²"
+swiss-1760-H02,"I added up the polygon areas of the 4 living room spaces on Ground floor: 61.12 m² in total.
+Answer: 61.12"
+swiss-17736-H01,"I compared the polygon areas of all 4 bedroom spaces on Floor 3. The largest is Bedroom 3.03 (apartment 8) with 19.4 m². The next largest has 14.3 m².
+Answer: Bedroom 3.03 (apartment 8), 19.4 m²"
+swiss-17736-H02,"I added up the polygon areas of the 7 bathroom spaces on Floor 2: 34.00 m² in total.
+Answer: 34.00"
+swiss-17736-H03,"The nearest sofa by walking distance is in Living room 2.01 (apartment 5) (8.4 m from Bedroom 2.08 (apartment 5)). The largest bedroom on Floor 3 is Bedroom 3.03 (apartment 8), another 34.2 m (stairs allowed).
+Answer: 42.59"
+swiss-1825-H01,"I added up the polygon areas of the 4 bathroom spaces on Floor 3: 20.54 m² in total.
+Answer: 20.54"
+swiss-2-H01,"I added up the polygon areas of the 3 bedroom spaces on Floor 3: 42.31 m² in total.
+Answer: 42.31"
+swiss-2080-H01,"I compared the polygon areas of all 4 bathroom spaces on Floor 2. The largest is Bathroom 2.15 (apartment 8) with 4.1 m². The next largest has 3.1 m².
+Answer: Bathroom 2.15 (apartment 8), 4.1 m²"
+swiss-2080-H02,"I added up the polygon areas of the 4 bathroom spaces on Floor 3: 12.30 m² in total.
+Answer: 12.30"
+swiss-2080-H03,"The nearest dining table by walking distance is in Living room 2.08 (apartment 8) (28.8 m from Bedroom 1.22 (apartment 6)). The largest bedroom on Floor 2 is Bedroom 2.18 (apartment 9), another 16.8 m (stairs allowed).
+Answer: 45.56"
+swiss-2080-H04,"Rooms on Floor 2 with at least 1 m of wall within 0.35 m of Bedroom 2.20 (apartment 9) (corridors, stairwells, lifts and outdoor spaces excluded): Bathroom 2.01 (apartment 7), Bedroom 2.06 (apartment 7), Bedroom 2.18 (apartment 9), Bathroom 2.19 (apartment 9).
+Answer: 4"
+swiss-2873-H01,"I compared the polygon areas of all 5 storage spaces on Floor 2. The largest is Storage 2.14 (apartment 10) with 3.2 m². The next largest has 2.1 m².
+Answer: Storage 2.14 (apartment 10), 3.2 m²"
+swiss-2873-H02,"I added up the polygon areas of the 4 storage spaces on Ground floor: 12.53 m² in total.
+Answer: 12.53"
+swiss-2873-H03,"The nearest outdoor chair by walking distance is in Balcony 1.29 (apartment 8) (7.5 m from Kitchen 1.30 (apartment 8)). The largest storage on Floor 2 is Storage 2.14 (apartment 10), another 38.0 m (stairs allowed).
+Answer: 45.50"
+swiss-2873-H04,"Rooms on Floor 2 with at least 1 m of wall within 0.35 m of Bedroom 2.07 (apartment 9) (corridors, stairwells, lifts and outdoor spaces excluded): Bedroom 2.02 (apartment 9), Bedroom 2.08 (apartment 9), Living room 2.09 (apartment 9).
+Answer: 3"
+swiss-482-H01,"I compared the polygon areas of all 3 storage spaces on Floor 4. The largest is Storage 4.12 (apartment 18) with 2.3 m². The next largest has 2.1 m².
+Answer: Storage 4.12 (apartment 18), 2.3 m²"
+swiss-482-H02,"I added up the polygon areas of the 6 bathroom spaces on Floor 4: 16.07 m² in total.
+Answer: 16.07"
+swiss-482-H03,"The nearest fridge by walking distance is in Kitchen 4.26 (apartment 19) (8.0 m from Storage 4.27 (apartment 19)). The largest bedroom on Floor 9 is Bedroom 9.04 (apartment 37), another 89.1 m (stairs allowed).
+Answer: 97.16"
+swiss-482-H04,"Rooms on Floor 7 with at least 1 m of wall within 0.35 m of Bedroom 7.22 (apartment 31) (corridors, stairwells, lifts and outdoor spaces excluded): Bedroom 7.10 (apartment 30), Bedroom 7.20 (apartment 31), Storage 7.24 (apartment 31).
+Answer: 3"
+swiss-6128-H01,"I added up the polygon areas of the 4 bedroom spaces on Floor 2: 74.92 m² in total.
+Answer: 74.92"
