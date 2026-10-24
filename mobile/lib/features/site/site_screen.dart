@@ -34,7 +34,6 @@ class SiteScreen extends ConsumerStatefulWidget {
 class _SiteScreenState extends ConsumerState<SiteScreen> with WidgetsBindingObserver {
   SitePanel _panel = SitePanel.twin;
   ActivityTab _activityTab = ActivityTab.changes;
-  String? _routeDestination;
   TwinSurfaceController? _twin;
   String? _rendererError;
 
@@ -64,12 +63,19 @@ class _SiteScreenState extends ConsumerState<SiteScreen> with WidgetsBindingObse
 
   void _showOnTwin() => setState(() => _panel = SitePanel.twin);
 
-  void _routeTo(String id) {
-    setState(() {
-      _routeDestination = id;
-      _activityTab = ActivityTab.route;
-      _panel = SitePanel.activity;
-    });
+  /// Plans a route from the current position, like "Navigate here" in the web twin.
+  Future<void> _navigate(String id) async {
+    final controller = ref.read(siteSessionProvider(widget.siteId).notifier);
+    try {
+      final route = await controller.navigate(to: id);
+      if (!mounted) return;
+      if (!route.reachable) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(route.message ?? 'No route is available with these constraints.')));
+      }
+    } on ApiException catch (error) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.message)));
+    }
   }
 
   void _showNotice(SessionNotice notice) {
@@ -178,7 +184,14 @@ class _SiteScreenState extends ConsumerState<SiteScreen> with WidgetsBindingObse
                 child: _SelectionCard(
                   info: selection,
                   onClose: () => controller.select(null),
-                  onRoute: selection.routeTarget == null ? null : () => _routeTo(selection.routeTarget!),
+                  onNavigate: selection.routeTarget == null ? null : () => _navigate(selection.routeTarget!),
+                  onImHere: selection.kind == EntityKind.room
+                      ? () {
+                          controller.setOrigin(selection.id);
+                          controller.highlight([selection.id], label: 'You are here');
+                          controller.select(null);
+                        }
+                      : null,
                   onFocusFloor: selection.floorId == null ? null : () => controller.focusFloor(selection.floorId),
                   onToggleClosed: selection.closable
                       ? () async {
@@ -200,6 +213,8 @@ class _SiteScreenState extends ConsumerState<SiteScreen> with WidgetsBindingObse
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (session.highlightIds.isNotEmpty && session.highlightLabel != null)
+                    _HighlightChip(label: session.highlightLabel!, onClear: controller.clearHighlight),
                   if (session.route != null) _RouteChip(route: session.route!, onClear: controller.clearRoute),
                   TimelineBar(
                     ticks: [
@@ -234,7 +249,6 @@ class _SiteScreenState extends ConsumerState<SiteScreen> with WidgetsBindingObse
                     siteId: siteId,
                     scrollController: scrollController,
                     tab: _activityTab,
-                    routeDestination: _routeDestination,
                     onTabChanged: (tab) => setState(() => _activityTab = tab),
                     onShowOnTwin: _showOnTwin,
                     onClose: _showOnTwin,
@@ -599,6 +613,45 @@ class _Divider extends StatelessWidget {
       Container(width: 1, height: 20, margin: const EdgeInsets.symmetric(horizontal: 4), color: AppColors.border);
 }
 
+class _HighlightChip extends StatelessWidget {
+  const _HighlightChip({required this.label, required this.onClear});
+
+  final String label;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(12, 2, 2, 2),
+        decoration: BoxDecoration(
+          color: const Color(0x33FBBF24),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: const Color(0x80FCD34D)),
+          boxShadow: const [BoxShadow(color: Color(0x73FBBF24), blurRadius: 24)],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(CupertinoIcons.scope, size: 14, color: Color(0xFFFEF3C7)),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: Color(0xFFFFFBEB), fontSize: 12, fontWeight: FontWeight.w600),
+              ),
+            ),
+            AppIconButton(icon: CupertinoIcons.xmark, tooltip: 'Clear highlight', onPressed: onClear),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _RouteChip extends StatelessWidget {
   const _RouteChip({required this.route, required this.onClear});
 
@@ -641,14 +694,16 @@ class _SelectionCard extends StatelessWidget {
   const _SelectionCard({
     required this.info,
     required this.onClose,
-    this.onRoute,
+    this.onNavigate,
+    this.onImHere,
     this.onFocusFloor,
     this.onToggleClosed,
   });
 
   final EntityInfo info;
   final VoidCallback onClose;
-  final VoidCallback? onRoute;
+  final VoidCallback? onNavigate;
+  final VoidCallback? onImHere;
   final VoidCallback? onFocusFloor;
   final VoidCallback? onToggleClosed;
 
@@ -710,13 +765,14 @@ class _SelectionCard extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             children: [
-              if (onRoute != null)
+              if (onNavigate != null)
                 AppButton(
-                  label: 'Route here',
+                  label: 'Navigate here',
                   icon: CupertinoIcons.location_north_fill,
                   tone: AppButtonTone.accent,
-                  onPressed: onRoute,
+                  onPressed: onNavigate,
                 ),
+              if (onImHere != null) AppButton(label: "I'm here", icon: CupertinoIcons.scope, onPressed: onImHere),
               if (onToggleClosed != null)
                 AppButton(
                   label: info.closed ? 'Reopen' : 'Close',
@@ -725,7 +781,7 @@ class _SelectionCard extends StatelessWidget {
                   onPressed: onToggleClosed,
                 ),
               if (onFocusFloor != null)
-                AppButton(label: 'Focus floor', icon: CupertinoIcons.scope, onPressed: onFocusFloor),
+                AppButton(label: 'Focus floor', icon: CupertinoIcons.square_stack_3d_up, onPressed: onFocusFloor),
             ],
           ),
         ],

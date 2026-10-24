@@ -30,13 +30,11 @@ class ActivityPanel extends StatelessWidget {
     required this.onClose,
     required this.bottomInset,
     super.key,
-    this.routeDestination,
   });
 
   final String siteId;
   final ScrollController scrollController;
   final ActivityTab tab;
-  final String? routeDestination;
   final ValueChanged<ActivityTab> onTabChanged;
   final VoidCallback onShowOnTwin;
   final VoidCallback onClose;
@@ -82,11 +80,9 @@ class ActivityPanel extends StatelessWidget {
               onShowOnTwin: onShowOnTwin,
             ),
             ActivityTab.route => RoutePanel(
-              key: ValueKey(routeDestination),
               siteId: siteId,
               scrollController: scrollController,
               bottomInset: bottomInset,
-              initialDestination: routeDestination,
               onShowOnTwin: onShowOnTwin,
             ),
           },

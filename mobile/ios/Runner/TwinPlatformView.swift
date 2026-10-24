@@ -730,7 +730,7 @@ final class TwinPlatformView: NSObject, FlutterPlatformView {
     }
     for id in highlightIds {
       for location in building.locations(for: id, state: twinState) {
-        markerLayers[location.floorId]?.addChildNode(marker(location, color: TwinPalette.violet, emphasized: true, layout: layout))
+        markerLayers[location.floorId]?.addChildNode(marker(location, color: TwinPalette.warning, emphasized: true, layout: layout))
       }
     }
     if let selectedId, !highlightIds.contains(selectedId) {
@@ -740,28 +740,50 @@ final class TwinPlatformView: NSObject, FlutterPlatformView {
     }
   }
 
+  /// Highlight beacon (amber ring + light beam) or selection ring, sized like the web twin's adaptive beacon:
+  /// it shrinks when the camera is close and grows when far away.
   private func marker(_ location: TwinLocation, color: String, emphasized: Bool, layout: TwinLayout) -> SCNNode {
     let world = layout.toWorld(location.point)
     let node = SCNNode()
     node.position = SCNVector3(Float(world.x), Style.slabTop + 0.15, Float(world.z))
-    let ring = SCNTorus(ringRadius: CGFloat(max(0.8, location.radius)), pipeRadius: emphasized ? 0.08 : 0.06)
-    ring.materials = [glowMaterial(color, alpha: 1, intensity: 2.4)]
-    node.addChildNode(SCNNode(geometry: ring))
+    node.constraints = [adaptiveScale()]
+    let ringNode = SCNNode(geometry: {
+      let ring = SCNTorus(ringRadius: CGFloat(max(0.8, location.radius * 1.2)), pipeRadius: emphasized ? 0.1 : 0.07)
+      ring.materials = [glowMaterial(color, alpha: 1, intensity: 2.4)]
+      return ring
+    }())
+    node.addChildNode(ringNode)
     if emphasized {
-      let beam = SCNCylinder(radius: 0.05, height: 8)
-      beam.materials = [glowMaterial(color, alpha: 0.55, intensity: 1.6)]
+      let beamHeight = layout.gap * 2 + 12
+      let beam = SCNCylinder(radius: CGFloat(max(0.3, location.radius * 0.35)), height: CGFloat(beamHeight))
+      beam.radialSegmentCount = 24
+      beam.materials = [glowMaterial(color, alpha: 0.22, intensity: 1.4)]
       let beamNode = SCNNode(geometry: beam)
-      beamNode.position.y = 4
+      beamNode.position.y = Float(beamHeight / 2)
       node.addChildNode(beamNode)
       if !reduceMotion {
-        let grow = SCNAction.group([.scale(to: 1.18, duration: 0.8), .fadeOpacity(to: 0.55, duration: 0.8)])
-        let shrink = SCNAction.group([.scale(to: 1, duration: 0.8), .fadeOpacity(to: 1, duration: 0.8)])
-        grow.timingMode = .easeInEaseOut
-        shrink.timingMode = .easeInEaseOut
-        node.runAction(.repeatForever(.sequence([grow, shrink])))
+        let dim = SCNAction.fadeOpacity(to: 0.45, duration: 0.8)
+        let bright = SCNAction.fadeOpacity(to: 1, duration: 0.8)
+        dim.timingMode = .easeInEaseOut
+        bright.timingMode = .easeInEaseOut
+        ringNode.runAction(.repeatForever(.sequence([dim, bright])))
       }
     }
     return node
+  }
+
+  /// Scales a node with its distance to the camera: 0.125× when close, up to 0.6× when far.
+  private func adaptiveScale() -> SCNConstraint {
+    SCNTransformConstraint(inWorldSpace: false) { [weak self] node, transform in
+      guard let camera = self?.cameraNode.presentation else { return transform }
+      let distance = simd_distance(node.presentation.simdWorldPosition, camera.simdWorldPosition)
+      let scale = min(1.2, max(0.25, distance / 80)) * 0.5
+      var scaled = SCNMatrix4MakeScale(scale, scale, scale)
+      scaled.m41 = transform.m41
+      scaled.m42 = transform.m42
+      scaled.m43 = transform.m43
+      return scaled
+    }
   }
 
   // MARK: - Floors and camera

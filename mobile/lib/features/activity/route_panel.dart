@@ -6,7 +6,6 @@ import '../../app/theme.dart';
 import '../../app/widgets.dart';
 import '../../core/api_client.dart';
 import '../../core/models.dart';
-import '../site/entity_info.dart';
 import '../site/site_session.dart';
 
 class RoutePanel extends ConsumerStatefulWidget {
@@ -16,13 +15,11 @@ class RoutePanel extends ConsumerStatefulWidget {
     required this.bottomInset,
     required this.onShowOnTwin,
     super.key,
-    this.initialDestination,
   });
 
   final String siteId;
   final ScrollController scrollController;
   final double bottomInset;
-  final String? initialDestination;
   final VoidCallback onShowOnTwin;
 
   @override
@@ -42,14 +39,6 @@ class _RoutePanelState extends ConsumerState<RoutePanel> {
   @override
   void initState() {
     super.initState();
-    final destination = widget.initialDestination;
-    final building = ref.read(siteSessionProvider(widget.siteId)).building;
-    if (destination != null && building != null) {
-      _toId = destination;
-      _to.text =
-          describeEntity(building, ref.read(siteSessionProvider(widget.siteId)).siteState, destination)?.title ??
-          destination;
-    }
     _to.addListener(() => setState(() {}));
     _toFocus.addListener(() => setState(() {}));
   }
