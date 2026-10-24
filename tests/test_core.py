@@ -1,6 +1,8 @@
 """Core geometry/routing tests on a few dev buildings, checked against the dataset's labelled answers."""
 
 import json
+import shutil
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -227,3 +229,17 @@ def test_answer_end_to_end_on_dev_building():
         for q in questions(building_id):
             reply = answer(DATA / "dev" / building_id, q["question"])
             assert score_reply(q["answer"], reply), (q["id"], reply)
+
+
+@pytest.mark.skipif(not shutil.which("node"), reason="needs node (type stripping, v22.18+)")
+def test_web_interior_point_matches_route_anchor():
+    """The twin's markers (web/src/twin/geom.ts interiorPoint) sit on the route anchors."""
+    rows = [{"poly": s["polygon"], "rep": list(bm.anchors[s["id"]])} for b in BUILDINGS for bm in [load(b)]
+            for s in bm.spaces.values()]
+    geom = (DATA.parent / "web" / "src" / "twin" / "geom.ts").as_posix()
+    script = (f"import {{ readFileSync }} from 'node:fs'; import {{ interiorPoint }} from '{geom}';"
+              "const rows = JSON.parse(readFileSync(0, 'utf8'));"
+              "console.log(Math.max(...rows.map((r) => Math.hypot(...interiorPoint(r.poly).map((v, i) => v - r.rep[i])))))")
+    out = subprocess.run(["node", "--input-type=module", "-e", script],
+                         input=json.dumps(rows), capture_output=True, text=True, check=True)
+    assert float(out.stdout) < 1e-6

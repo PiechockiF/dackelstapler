@@ -96,6 +96,12 @@ def test_unknown_place_is_400(client):
     assert "detail" in response.json()
 
 
+def test_route_to_same_room_is_400(client):
+    response = client.post(f"/api/sites/{HERO}/route", json={"from": "Office 0.30", "to": "Office 0.30"})
+    assert response.status_code == 400
+    assert "already in" in response.json()["detail"]
+
+
 def test_closure_changes_route_and_logs_event(client):
     body = {"from": "Office 1.04", "to": "Quality lab 0.21", "step_free": True}
     assert client.post(f"/api/sites/{HERO}/route", json=body).json()["reachable"]

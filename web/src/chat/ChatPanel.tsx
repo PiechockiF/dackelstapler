@@ -205,6 +205,11 @@ export default function ChatPanel({ siteId }: { siteId: string }) {
           useTwinUi.getState().setOrigin(action.space_id)
           break
         case 'show_route':
+          // "Without stairs" in chat switches the mode the Route tab and the reach overlay use.
+          useTwinUi.setState({
+            stepFree: action.route.step_free && !action.route.min_width_m,
+            minWidth: action.route.min_width_m ? String(action.route.min_width_m) : '',
+          })
           setFocusFloor(null)
           setRoute(action.route)
           break

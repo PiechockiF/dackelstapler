@@ -761,6 +761,8 @@ def compute_route(site_id: str, start: str, destination: str, *, step_free: bool
         start_id = bm.resolve_space(start)
         destination_id = bm.resolve_space(destination)
         via_ids = [bm.resolve_space(stop) for stop in via or []]
+        if start_id == destination_id and not via_ids:
+            raise MapError(f"You are already in {bm.spaces[start_id]['name']}.")
         try:
             route = bm.find_route(start_id, destination_id, step_free=step_free, min_width_m=min_width_m, via=via_ids)
         except MapError as error:

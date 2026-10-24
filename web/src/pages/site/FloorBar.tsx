@@ -20,6 +20,7 @@ export function FloorBar({ building }: { building: Building }) {
   const minWidth = Number(useTwinUi((s) => s.minWidth)) || 0
   const reach = useReach()
   const mode = minWidth > 0 ? `step-free, doors ≥ ${minWidth} m` : stepFree ? 'step-free' : 'walking'
+  const modeTag = minWidth > 0 ? `≥ ${minWidth} m` : stepFree ? 'no stairs' : null
   const floors = sortedFloors(building).reverse()
   const pill = 'rounded-lg px-2.5 py-1 text-xs font-medium transition whitespace-nowrap'
   return (
@@ -57,6 +58,7 @@ export function FloorBar({ building }: { building: Building }) {
         >
           <Radar size={14} />
           Reach
+          {showReach && modeTag && <span className="rounded bg-emerald-400/15 px-1 text-[10px]">{modeTag}</span>}
           {reach && <span className="font-mono text-[11px] text-emerald-200/80">{reach.size}/{building.spaces.length}</span>}
         </button>
       )}

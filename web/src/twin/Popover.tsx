@@ -3,7 +3,7 @@ import { DoorClosed, DoorOpen, LocateFixed, Navigation, PackagePlus, Wrench, X }
 import { useState } from 'react'
 import type { Building } from '../lib/types'
 import { useTwin } from '../lib/store'
-import { navigate, toggleClosed } from './actions'
+import { navigate, originOf, toggleClosed } from './actions'
 import { FloorAnchor } from './FloorAnchor'
 import { indexBuilding } from './geom'
 import { useLayout } from './layout'
@@ -96,7 +96,7 @@ export function Popover({ building, siteId }: { building: Building; siteId: stri
                   >
                     <LocateFixed size={14} /> I'm here
                   </button>
-                  <button disabled={busy} className={`${btn} bg-sky-500/20 text-sky-100 hover:bg-sky-500/30`} onClick={() => run(() => navigate(siteId, pop.id))}>
+                  <button disabled={busy || pop.id === originOf(building)} className={`${btn} bg-sky-500/20 text-sky-100 hover:bg-sky-500/30`} onClick={() => run(() => navigate(siteId, pop.id))}>
                     <Navigation size={14} /> Navigate here
                   </button>
                   <button
