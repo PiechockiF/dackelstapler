@@ -269,3 +269,91 @@ def test_site_preview_does_not_save_until_confirmed(client):
     assert saved.status_code == 200
     assert len(client.get('/api/sites').json()) == len(before) + 1
     assert client.get(f"/api/sites/{saved.json()['id']}/building").status_code == 200
+
+
+@pytest.fixture()
+def fake_vision(monkeypatch):
+    """Claude vision replaced by synthetic extractions keyed by upload file name (see tests/test_stitch.py)."""
+    from server import floorplan
+    from tests.test_stitch import photo
+
+    plans = {
+        "eg.jpg": photo((0, 0, 40, 20), north_deg=0, level=0, label="Erdgeschoss"),
+        "og-a.jpg": photo((0, 0, 26, 20), north_deg=135, level=1, label="1. Obergeschoss", offset=(5, 2)),
+        "og-b.jpg": photo((10, 0, 40, 20), north_deg=45, level=1, label="1. Obergeschoss", offset=(5, 2)),
+    }
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
+    monkeypatch.setattr(floorplan, "extract_plan", lambda data, media_type, width_m=None: dict(plans[data.decode()]))
+    return plans
+
+
+def _plan_files(*names):
+    return [("files", (name, io.BytesIO(name.encode()), "image/jpeg")) for name in names]
+
+
+def test_multi_plan_preview_stitches_and_confirm_keeps_ids(client, fake_vision):
+    address = "Freddie-Mercury-Straße 5, 80797 München"
+    form = {"lat": "48.17", "lon": "11.54", "address": address, "name": "", "preview": "true"}
+    response = client.post("/api/sites", data=form, files=_plan_files("eg.jpg", "og-a.jpg", "og-b.jpg"))
+    assert response.status_code == 200, response.text
+    draft = response.json()
+    building = draft["building"]
+    assert [f["level"] for f in building["floors"]] == [0, 1]
+    assert building["vertical_connectors"] and len(draft["extractions"]) == 3
+    assert building["building"]["address"] == address
+    assert [p["level"] for p in building["building"]["plans"]] == [0, 1, 1]
+    assert draft["site_id"].startswith("user-freddie-mercury")
+
+    files = [("file", ("building.json", io.BytesIO(json.dumps(building).encode()), "application/json"))]
+    files += _plan_files("eg.jpg", "og-a.jpg", "og-b.jpg")
+    site = client.post("/api/sites", data={"lat": "48.17", "lon": "11.54", "address": address,
+                                           "site_id": draft["site_id"], "kind": "office"}, files=files).json()
+    assert site["id"] == draft["site_id"] and site["name"] == address and site["address"] == address
+    assert site["source"] == "floor_plan" and site["floors"] == 2
+    from server import db
+    plans_dir = db.storage_dir() / "sites" / site["id"] / "plans"
+    assert len(list(plans_dir.glob("*.jpg"))) == 3
+    assert len(json.loads((plans_dir / "extractions.json").read_text(encoding="utf-8"))["extractions"]) == 3
+    rebuilt = client.post(f"/api/sites/{site['id']}/rebuild")
+    assert rebuilt.status_code == 200, rebuilt.text
+    assert rebuilt.json()["floors"] == 2 and (plans_dir.parent / "building.prev.json").exists()
+    saved = client.get(f"/api/sites/{site['id']}/building").json()
+    assert saved["building"]["id"] == site["id"]
+    upper = next(s["id"] for s in saved["spaces"] if s["name"] == "EDV" and s["floor_id"].endswith("-F1"))
+    ground = next(s["id"] for s in saved["spaces"] if s["name"] == "Besprechung" and s["floor_id"].endswith("-F0"))
+    route = client.post(f"/api/sites/{site['id']}/route", json={"from": upper, "to": ground}).json()
+    assert route["reachable"] and route["connectors"]
+
+
+def test_restitch_applies_level_override_without_claude(client, fake_vision, monkeypatch):
+    form = {"lat": "48.1", "lon": "11.5", "name": "Haus", "preview": "true"}
+    draft = client.post("/api/sites", data=form, files=_plan_files("eg.jpg", "og-a.jpg")).json()
+    from server import floorplan
+    monkeypatch.setattr(floorplan, "extract_plan", lambda *a, **k: pytest.fail("restitch must not call Claude"))
+    again = client.post("/api/sites/restitch", json={
+        "extractions": draft["extractions"], "matches": draft["matches"], "level_overrides": {"1": 2},
+        "site_id": draft["site_id"], "name": "Haus"}).json()
+    assert again["site_id"] == draft["site_id"]
+    assert [f["level"] for f in again["building"]["floors"]] == [0, 2]
+
+
+def test_site_name_falls_back_to_coordinates(client):
+    building = client.get(f"/api/sites/{HERO}/building").json()
+    files = {"file": ("building.json", io.BytesIO(json.dumps(building).encode()), "application/json")}
+    site = client.post("/api/sites", data={"lat": "48.1", "lon": "11.5"}, files=files).json()
+    assert site["name"] == "Standort 48.1000, 11.5000"
+
+
+def test_geocode_proxies_photon(client, monkeypatch):
+    from server import geocode
+
+    async def fake_get(url, params):
+        assert "photon" in url and params["q"] == "Freddie-Mercury-Straße 5"
+        return {"features": [{"geometry": {"coordinates": [11.54, 48.17]}, "properties": {
+            "street": "Freddie-Mercury-Straße", "housenumber": "5", "postcode": "80797", "city": "München",
+            "countrycode": "DE"}}]}
+
+    monkeypatch.setattr(geocode, "_get", fake_get)
+    geocode._cache.clear()
+    [hit] = client.get("/api/geocode", params={"q": "Freddie-Mercury-Straße 5"}).json()
+    assert hit == {"label": "Freddie-Mercury-Straße 5, 80797 München", "lat": 48.17, "lon": 11.54}

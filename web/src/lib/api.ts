@@ -1,5 +1,5 @@
 import type {
-  BookableRoom, Booking, Building, CaptureJob, ChatAction, Route, Site, SiteEvent, SiteState,
+  BookableRoom, Booking, Building, CaptureJob, ChatAction, GeoResult, Route, Site, SiteDraft, SiteEvent, SiteState,
 } from './types'
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -21,9 +21,16 @@ export const api = {
   sites: () => request<Site[]>('/api/sites'),
   previewSite: (form: FormData) => {
     form.set('preview', 'true')
-    return request<{ building: Building; warnings: string[] }>('/api/sites', { method: 'POST', body: form })
+    return request<SiteDraft>('/api/sites', { method: 'POST', body: form })
   },
+  restitchSite: (body: {
+    extractions: unknown[]; matches?: Record<string, unknown> | null; level_overrides: Record<number, number>
+    site_id?: string; name?: string; address?: string; lat?: number; lon?: number; width_m?: number
+  }) => request<SiteDraft>('/api/sites/restitch', json(body)),
   createSite: (form: FormData) => request<Site>('/api/sites', { method: 'POST', body: form }),
+  geocode: (q: string, near?: { lat: number; lon: number }) =>
+    request<GeoResult[]>(`/api/geocode?q=${encodeURIComponent(q)}${near ? `&lat=${near.lat}&lon=${near.lon}` : ''}`),
+  reverseGeocode: (lat: number, lon: number) => request<GeoResult>(`/api/geocode/reverse?lat=${lat}&lon=${lon}`),
   building: (siteId: string) => request<Building>(`/api/sites/${siteId}/building`),
   state: (siteId: string) => request<SiteState>(`/api/sites/${siteId}/state`),
   route: (siteId: string, body: { from: string; to: string; step_free?: boolean; min_width_m?: number; via?: string[] }) =>

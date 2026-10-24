@@ -22,6 +22,8 @@ export const KIND_COLOR: Record<Site['kind'], string> = {
 export interface SiteMapApi {
   flyToSite: (site: Site) => Promise<void>
   flyHome: () => void
+  /** Top-down view of a spot, e.g. to place a new Standort precisely. */
+  flyTo: (lat: number, lon: number) => void
 }
 
 export interface SiteMapProps {
@@ -242,6 +244,7 @@ export default function SiteMap(props: SiteMapProps) {
         map.flyTo({ center: [site.lon, site.lat], zoom: 17.4, pitch: 64, bearing: map.getBearing() - 35, duration: 3000, curve: 1.5, essential: true })
       }),
     flyHome: () => mapRef.current?.flyTo({ center: MUNICH, zoom: 10.4, pitch: 52, bearing: -18, duration: 2500 }),
+    flyTo: (lat, lon) => mapRef.current?.flyTo({ center: [lon, lat], zoom: 17, pitch: 0, bearing: 0, duration: 1800, essential: true }),
   }))
 
   // MapLibre's CSS forces .maplibregl-map to position:relative, so size it through a wrapper.

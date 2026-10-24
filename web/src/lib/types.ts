@@ -13,6 +13,7 @@ export interface Site {
   floors: number
   demo_location: boolean
   kind: 'factory' | 'campus' | 'office' | 'airport' | 'mall' | 'other'
+  address?: string | null
 }
 
 export interface Floor { id: string; level: number; name: string; elevation_m: number; height_m: number }
@@ -31,8 +32,28 @@ export interface Asset {
   id: string; name: string; category: string; type: string; space_id: string; floor_id: string
   position: XY; footprint?: { width_m: number; depth_m: number; rotation_deg: number }; source?: string
 }
+/** One uploaded plan image and where it ended up (transform: normalised 0..1000 image coords -> metres). */
+export interface PlanSource {
+  index: number
+  filename: string
+  level?: number
+  detected_level?: number
+  floor_label?: string
+  has_north_arrow?: boolean
+  transform?: [number, number, number, number, number, number]
+  method?: 'reference' | 'anchors' | 'point_match' | 'side_by_side'
+  anchors?: number
+  matched_rooms?: number
+  residual_m?: number | null
+  error?: string
+}
 export interface Building {
-  building: { id: string; name: string; source: string; license: string; attribution: string; units: string; scale?: { plan_width_m: number; plan_height_m: number; user_supplied: boolean } }
+  building: {
+    id: string; name: string; source: string; license: string; attribution: string; units: string
+    scale?: { plan_width_m: number; plan_height_m: number; user_supplied: boolean }
+    address?: string
+    plans?: PlanSource[]
+  }
   floors: Floor[]
   spaces: Space[]
   openings: Opening[]
@@ -112,3 +133,13 @@ export type ChatAction =
 export type WsMessage =
   | { type: 'event'; event: SiteEvent }
   | { type: 'capture_progress'; job: CaptureJob }
+
+/** Result of POST /api/sites with preview=true, or POST /api/sites/restitch. */
+export interface SiteDraft {
+  site_id: string
+  building: Building
+  warnings: string[]
+  extractions?: unknown[] | null
+  matches?: Record<string, unknown> | null
+}
+export interface GeoResult { label: string; lat: number; lon: number }
