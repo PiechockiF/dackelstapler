@@ -4,6 +4,49 @@ The interrupted integration is now completed and checked against the real local 
 
 Quick start: `uv run uvicorn server.main:app --reload --port 8000`, then `cd web && npm run dev`. The application works without API keys using its labelled fallback paths.
 
+## iOS app (Capacitor)
+
+The app ships as a thin native shell (`web/ios/`) that loads the UI from a running server. Every `/api`, `/ws` and `/storage` call then works unchanged. You need Xcode, and the command line tools must point at it: `sudo xcode-select -s /Applications/Xcode.app/Contents/Developer`.
+
+```sh
+# Laptop: backend on :8000, then the built frontend, which proxies to it
+uv run uvicorn server.main:app --port 8000
+cd web && npm install && npm run build && npx vite preview --port 4173
+
+# Point the shell at the laptop's Wi-Fi IP, then open Xcode
+CAP_SERVER_URL=http://<LAN-IP>:4173 npx cap sync ios && npx cap open ios
+```
+
+In Xcode, select **App → Signing & Capabilities**. Pick the team's Apple developer account and change the bundle ID if `com.sitetwin.app` is taken. Then run on a device. The phone must be on the same Wi-Fi as the laptop. Rerun `cap sync` whenever `CAP_SERVER_URL` changes. Keep API keys in the backend `.env` and never add them as `VITE_` variables, because those end up in the app bundle.
+
+## What is still missing
+
+**Not yet verified**
+- The iOS build has not been compiled or run on a device yet.
+- Live external services have never been tested with real keys: Anthropic chat and vision, fal.ai image-to-3D, ElevenLabs voice and Modal GPU reconstruction. Modal also needs its worker deployed and the optional client installed.
+- Physical capture with a phone camera and the printed marker has only been tested with sample images.
+
+**Missing for iOS**
+- **No HTTPS deployment.** Over a LAN `http://` URL, iOS blocks the microphone, so voice input does not work in the app. TestFlight testers outside the Wi-Fi need a hosted HTTPS server for both the backend and the frontend.
+- **No offline mode.** The shell shows nothing if the server is unreachable.
+- **No App Store assets.** The app icon and splash screen are still Capacitor's defaults. The privacy policy and App Store listing are also missing. Apple may reject an app that only loads a remote URL, so plan for TestFlight only.
+- **No phone performance check.** Gaussian splats and post-processing have not been tested on iPhone GPUs.
+- **Speech recognition may fail.** The browser speech-recognition fallback probably does not work in the iOS WebView. Voice depends on the server `/api/voice/stt` path, which needs `ELEVENLABS_API_KEY`.
+
+**Fallbacks and limits**
+- Without keys, image-to-3D produces a generic textured crate or pallet, and room reconstruction produces a labelled procedural scan. Neither reconstructs the actual object or room.
+- One photo gives about ±8–10 cm measurement uncertainty, not ±3 cm.
+- Parsing PNG, JPEG and PDF floor plans needs an Anthropic key. The PDF review shows only the extracted geometry, without the source PDF underneath.
+- The hero site has no wider detour for oversized deliveries, so a "blocked" result there is correct.
+
+**Quality**
+- The team flagged 3D render quality as poor in commit `f4429c9`, along with one unfinished task that isn't named. Neither is resolved.
+- The train benchmark scores 515/517. The two failures are ambiguous duplicate room names.
+- Frontend lint passes, but warnings about graphics, hooks and style remain.
+- The production bundle is large (Vite warns about chunk size) and needs network access for map tiles. Preload the site before presenting.
+
+Details and verification results: [docs/INTEGRATION.md](docs/INTEGRATION.md).
+
 The original project plan follows.
 
 ## First step (housekeeping)

@@ -8,3 +8,27 @@ agent_output/
 node_modules/
 web/dist/
 .pytest_cache/
+
+# env / secrets
+.env.*
+!.env.example
+
+# python
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.ipynb_checkpoints/
+
+# editors / OS
+.idea/
+.vscode/
+*.swp
+Thumbs.db
+
+# logs
+*.log
