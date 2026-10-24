@@ -20,7 +20,7 @@ The app is self-contained, with no server, tunnel, account or API keys. It bundl
 - An Apple ID added in **Xcode → Settings → Accounts**. A free personal team is enough for your own iPhone.
 - An iPhone with iOS 15 or later, and a USB cable for the first install.
 
-These build steps were checked with Xcode 27.1 and Node 23.11 up to a simulator build. Installing on a physical iPhone has not been checked yet.
+These steps were checked with Xcode 27.1 and Node 23.11: a simulator build, and a Debug build installed and started on an iPhone with iOS 27.0.1, signed with a free personal team (terminal route below).
 
 ### 1. Build
 
@@ -48,6 +48,21 @@ To try the app in a browser first, without Xcode or a server, run `npm run dev:l
 
 The app then starts from the home screen without Xcode. Installs signed with a free personal team expire after 7 days; press **⌘R** again to renew.
 
+**From the terminal**, without changing the Xcode project: pass your team ID and your own bundle ID on the command line. Steps 1, 5 and 7 above still apply. Run this in `web/` after the build steps:
+
+```bash
+defaults read com.apple.dt.Xcode IDEProvisioningTeamByIdentifier | grep -E 'teamID|teamName'   # your team ID
+xcrun devicectl list devices                                                                  # your iPhone's identifier
+xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug \
+  -destination 'id=<identifier>' -derivedDataPath ~/Library/Developer/Xcode/DerivedData/SiteTwin-device \
+  -allowProvisioningUpdates DEVELOPMENT_TEAM=<team ID> PRODUCT_BUNDLE_IDENTIFIER=com.yourname.sitetwin build
+xcrun devicectl device install app --device <identifier> \
+  ~/Library/Developer/Xcode/DerivedData/SiteTwin-device/Build/Products/Debug-iphoneos/App.app
+xcrun devicectl device process launch --device <identifier> com.yourname.sitetwin
+```
+
+Use a bundle ID that differs from the Flutter app's (`com.sitetwin.sitetwin`); otherwise installing one app replaces the other on the phone.
+
 ### 3. TestFlight (project team only)
 
 Members of team `CV955K8T33` can share the app without a cable:
@@ -68,7 +83,7 @@ The script builds local mode, checks that the bundle contains the buildings and 
 ## What is still missing
 
 **Not yet verified**
-- The iOS Release archive compiles and its signature verifies; running it on a physical device is still unverified.
+- The iOS Release archive compiles and its signature verifies. A Debug build installs and starts on a physical iPhone (iOS 27.0.1, free personal team); the Release archive has not been run on a device yet.
 - Live external services have never been tested with real keys: Anthropic chat and vision, fal.ai image-to-3D, ElevenLabs voice and Modal GPU reconstruction. Modal also needs its worker deployed and the optional client installed.
 - Physical capture with a phone camera and the printed marker has only been tested with sample images.
 
