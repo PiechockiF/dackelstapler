@@ -80,9 +80,6 @@ export function Popover({ building, siteId }: { building: Building; siteId: stri
                 </button>
               ) : (
                 <>
-                  <button disabled={busy} className={`${btn} bg-sky-500/20 text-sky-100 hover:bg-sky-500/30`} onClick={() => run(() => navigate(siteId, pop.id))}>
-                    <Navigation size={14} /> Navigate here
-                  </button>
                   <button
                     className={`${btn} bg-white/5 text-slate-200 hover:bg-white/10`}
                     onClick={() => {
@@ -98,6 +95,9 @@ export function Popover({ building, siteId }: { building: Building; siteId: stri
                     }}
                   >
                     <LocateFixed size={14} /> I'm here
+                  </button>
+                  <button disabled={busy} className={`${btn} bg-sky-500/20 text-sky-100 hover:bg-sky-500/30`} onClick={() => run(() => navigate(siteId, pop.id))}>
+                    <Navigation size={14} /> Navigate here
                   </button>
                   <button
                     className={`${btn} bg-white/5 text-slate-200 hover:bg-white/10`}

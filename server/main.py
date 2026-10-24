@@ -350,6 +350,13 @@ def route(site_id: str, body: RouteBody) -> dict:
                               min_width_m=body.min_width_m, via=body.via)
 
 
+@app.get("/api/sites/{site_id}/reachable")
+def reachable(site_id: str, from_: str = Query(alias="from"), step_free: bool = False,
+              min_width_m: float | None = None) -> dict:
+    _ensure_seeded()
+    return twin.reachable(site_id, from_, step_free=step_free, min_width_m=min_width_m)
+
+
 class ClosureBody(BaseModel):
     element_id: str
     closed: bool = True

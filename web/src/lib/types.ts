@@ -81,6 +81,9 @@ export interface Route {
   blocking_openings?: BlockingOpening[]
 }
 
+/** GET /reachable: every space reachable from from_space_id under the route rules and live closures. */
+export interface Reachable { from_space_id: string; step_free: boolean; min_width_m: number | null; space_ids: string[] }
+
 export type EventType =
   | 'delivery' | 'delivery_updated' | 'delivery_removed'
   | 'asset_moved' | 'asset_added' | 'asset_updated' | 'asset_removed'

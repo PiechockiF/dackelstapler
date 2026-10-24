@@ -10,6 +10,7 @@ import { indexBuilding } from './geom'
 import { type FloorAnim, useLayout } from './layout'
 import { COLORS } from './palette'
 import { useTwinUi } from './uiStore'
+import { useReach } from './useReach'
 
 const tmp = new THREE.Object3D()
 
@@ -24,6 +25,20 @@ export function FloorView({ building, anim }: { building: Building; anim: FloorA
     geo.walls.dispose()
     geo.lines.dispose()
   }, [geo])
+
+  // Reachable-area overlay: rooms out of reach from "I'm here" are dimmed to a dark red.
+  const reach = useReach()
+  const baseColors = useMemo(() => (geo.fills.getAttribute('color').array as Float32Array).slice(), [geo])
+  useEffect(() => {
+    const attr = geo.fills.getAttribute('color')
+    const out = attr.array as Float32Array
+    const red = COLORS.danger.toArray()
+    geo.triSpace.forEach((si, t) => {
+      const dim = reach != null && !reach.has(geo.spaces[si].id)
+      for (let i = t * 9; i < t * 9 + 9; i++) out[i] = dim ? baseColors[i] * 0.18 + red[i % 3] * 0.07 : baseColors[i]
+    })
+    attr.needsUpdate = true
+  }, [geo, baseColors, reach])
 
   const mats = useMemo(() => {
     const fill = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.82, metalness: 0.05, transparent: true, opacity: 0.95 })

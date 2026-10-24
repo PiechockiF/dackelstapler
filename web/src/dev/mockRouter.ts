@@ -1,6 +1,6 @@
 // Dev-only router mirroring the starter cost model (space anchors + door nodes, stairs 12 m/floor,
 // lift 15 m + 6 m/floor). Used by the mock API until server/ is up.
-import type { Building, Route, RouteFloorSegment, XY } from '../lib/types'
+import type { Building, Reachable, Route, RouteFloorSegment, XY } from '../lib/types'
 import { indexBuilding } from '../twin/geom'
 
 const OUTSIDE = 'outside'
@@ -31,6 +31,7 @@ export function resolveSpace(b: Building, ref: string): string {
 
 function buildGraph(b: Building, opts: { stepFree: boolean; minWidth: number | null; closed: Set<string> }) {
   const idx = indexBuilding(b)
+  const stepFree = opts.stepFree || opts.minWidth != null // like core: a load is also step-free
   const g = new Map<string, Edge[]>()
   const add = (a: string, c: string, w: number, via: string) => {
     if (!g.has(a)) g.set(a, [])
@@ -39,7 +40,7 @@ function buildGraph(b: Building, opts: { stepFree: boolean; minWidth: number | n
     g.get(c)!.push({ to: a, w, via })
   }
   for (const o of b.openings) {
-    if (opts.closed.has(o.id) || (opts.stepFree && !o.step_free)) continue
+    if (opts.closed.has(o.id) || (stepFree && !o.step_free)) continue
     if (opts.minWidth != null && o.width_m + 1e-9 < opts.minWidth) continue
     const door = `door:${o.id}`
     for (const sid of o.space_ids) {
@@ -53,10 +54,10 @@ function buildGraph(b: Building, opts: { stepFree: boolean; minWidth: number | n
   }
   const levels = new Map(b.floors.map((f) => [f.id, f.level]))
   for (const c of b.vertical_connectors) {
-    if (opts.closed.has(c.id) || (opts.stepFree && !c.step_free)) continue
-    if (opts.minWidth != null && c.kind === 'stairs') continue
+    if (opts.closed.has(c.id) || (stepFree && !c.step_free)) continue
     const stops = c.floor_ids.map((f, i) => [f, c.space_ids[i]] as const).sort((x, y) => levels.get(x[0])! - levels.get(y[0])!)
     for (let i = 0; i + 1 < stops.length; i++) {
+      if (opts.closed.has(stops[i][1]) || opts.closed.has(stops[i + 1][1])) continue
       const span = Math.abs(levels.get(stops[i + 1][0])! - levels.get(stops[i][0])!)
       const cost = c.kind === 'lift' ? 15 + 6 * span : 12 * span
       add(stops[i][1], stops[i + 1][1], cost, c.id)
@@ -146,5 +147,22 @@ export function mockRoute(
   return {
     reachable: true, length_m: Math.round(length * 100) / 100, step_free: !!body.step_free, min_width_m: body.min_width_m ?? null,
     space_path: spacePath, steps, floors, connectors,
+  }
+}
+
+/** Mirrors core.reachability.reachable_spaces (GET /reachable). */
+export function mockReachable(
+  b: Building,
+  body: { from: string; step_free?: boolean; min_width_m?: number },
+  closed: Set<string>,
+): Reachable {
+  const from = resolveSpace(b, body.from)
+  const g = buildGraph(b, { stepFree: !!body.step_free, minWidth: body.min_width_m ?? null, closed })
+  const seen = new Set(closed.has(from) ? [] : [from])
+  for (const node of seen) for (const e of g.get(node) ?? []) seen.add(e.to)
+  const spaces = indexBuilding(b).spaces
+  return {
+    from_space_id: from, step_free: !!body.step_free || body.min_width_m != null, min_width_m: body.min_width_m ?? null,
+    space_ids: [...seen].filter((id) => spaces.has(id)).sort(),
   }
 }
