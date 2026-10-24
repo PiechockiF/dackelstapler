@@ -11,6 +11,15 @@ export interface Popover {
   point: XY
 }
 
+/** The manual-entry dialog. Equipment: a room's equipment list; assetId 'new' or an id opens the add/edit
+ *  form directly. Delivery: log one (optionally for a preselected room), or edit deliveryId. */
+export interface ManualEntry {
+  mode: 'equipment' | 'delivery'
+  spaceId: string | null
+  assetId?: string
+  deliveryId?: string
+}
+
 interface TwinUi {
   roomGlow: Record<string, RoomGlow>
   popover: Popover | null
@@ -22,12 +31,14 @@ interface TwinUi {
   frameAllTick: number
   /** Bumped when the user asks for a route, so the HUD can show its directions. */
   directionsTick: number
+  manualEntry: ManualEntry | null
   setRoomGlow: (g: Record<string, RoomGlow>) => void
   setPopover: (p: Popover | null) => void
   setOrigin: (id: string | null) => void
   flash: (ids: string[]) => void
   frameAll: () => void
   showDirections: () => void
+  openManualEntry: (entry: ManualEntry | null) => void
 }
 
 export const useTwinUi = create<TwinUi>((set) => ({
@@ -37,10 +48,12 @@ export const useTwinUi = create<TwinUi>((set) => ({
   flashIds: [],
   frameAllTick: 0,
   directionsTick: 0,
+  manualEntry: null,
   setRoomGlow: (roomGlow) => set({ roomGlow }),
   setPopover: (popover) => set({ popover }),
   setOrigin: (originId) => set({ originId }),
   flash: (flashIds) => set({ flashIds }),
   frameAll: () => set((s) => ({ frameAllTick: s.frameAllTick + 1 })),
   showDirections: () => set((s) => ({ directionsTick: s.directionsTick + 1 })),
+  openManualEntry: (manualEntry) => set({ manualEntry }),
 }))

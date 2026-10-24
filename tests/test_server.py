@@ -124,6 +124,133 @@ def test_move_asset(client):
     assert client.get(f"/api/sites/{HERO}/events").json()[0]["type"] == "asset_moved"
 
 
+def test_add_asset_by_hand(client):
+    response = client.post(f"/api/sites/{HERO}/assets", json={"type": "Coffee machine", "space_id": "Office 1.04"})
+    assert response.status_code == 200
+    asset = response.json()
+    assert asset["type"] == "coffee_machine" and asset["category"] == "equipment"
+    assert asset["name"] == "Coffee machine 1.04"
+    assert asset["footprint"]["width_m"] == 0.4 and asset["source"] == "manual"
+    assert asset["space_id"] == f"{HERO}-F1-S004"
+    # A second one gets a unique name (move_asset/locate resolve by exact name).
+    second = client.post(f"/api/sites/{HERO}/assets", json={"type": "coffee_machine", "space_id": "Office 1.04"}).json()
+    assert second["name"] == "Coffee machine 1.04 2"
+    event = client.get(f"/api/sites/{HERO}/events").json()[0]
+    assert event["type"] == "asset_added" and event["payload"]["asset_id"] == second["id"]
+
+    from server import twin
+
+    twin.invalidate()  # persisted: survives a cache reload / server restart
+    building = client.get(f"/api/sites/{HERO}/building").json()
+    assert {asset["id"], second["id"]} <= {a["id"] for a in building["assets"]}
+    assert client.post(f"/api/sites/{HERO}/assets", json={"type": "desk", "space_id": "Nowhere 9.99"}).status_code == 400
+    assert client.post(f"/api/sites/{HERO}/assets", json={"type": "desk", "space_id": "Office 1.04",
+                                                           "category": "spaceship"}).status_code == 400
+    assert any(t["type"] == "cnc_mill" for t in client.get("/api/equipment-types").json())
+
+
+def test_log_delivery_by_hand(client):
+    response = client.post(f"/api/sites/{HERO}/deliveries", json={"label": "Steel sheets", "space_id": "Quality lab 0.21"})
+    assert response.status_code == 200
+    delivery = response.json()
+    assert delivery["space_id"] == f"{HERO}-F0-S021"  # stays where it was logged
+    assert delivery["dims_m"] == {"w": 1.2, "d": 0.8, "h": 1.0}  # Euro pallet assumed
+    assert delivery["status"] == "ok" and "assumed a Euro pallet" in delivery["check"]["summary"]
+    events = client.get(f"/api/sites/{HERO}/events").json()
+    assert events[0]["type"] == "delivery" and events[0]["payload"]["id"] == delivery["id"]
+    assert any(d["id"] == delivery["id"] for d in client.get(f"/api/sites/{HERO}/state").json()["deliveries"])
+
+    # Too wide for the office wing: logged where it is, flagged as blocked for its destination.
+    crate = client.post(f"/api/sites/{HERO}/deliveries", json={
+        "label": "Machine crate", "space_id": "Quality lab 0.21", "dims_m": {"w": 2.2, "d": 1.6, "h": 1.8},
+        "target_space_id": "Office 1.04"}).json()
+    assert crate["status"] == "blocked" and crate["space_id"] == f"{HERO}-F0-S021"
+    assert crate["target_space_id"] == f"{HERO}-F1-S004"
+    assert crate["check"]["route_fit"]["blocking_openings"]
+    bad = client.post(f"/api/sites/{HERO}/deliveries", json={"label": "x", "space_id": "Office 1.04",
+                                                             "dims_m": {"w": 0, "d": 1, "h": 1}})
+    assert bad.status_code == 400
+
+
+def test_edit_and_delete_assets(client):
+    from server import twin
+
+    added = client.post(f"/api/sites/{HERO}/assets", json={"type": "coffee machine", "space_id": "Office 1.04"}).json()
+    edited = client.patch(f"/api/sites/{HERO}/assets/{added['id']}", json={"name": "Espresso bar", "width_m": 0.6}).json()
+    assert edited["name"] == "Espresso bar" and edited["footprint"]["width_m"] == 0.6
+    moved = client.patch(f"/api/sites/{HERO}/assets/{added['id']}", json={"space_id": "Kitchen 1.27"}).json()
+    assert moved["space_id"] == f"{HERO}-F1-S027"
+    assert client.get(f"/api/sites/{HERO}/state").json()["asset_overrides"][added["id"]]["space_id"] == f"{HERO}-F1-S027"
+    # Assets from building.json can be edited and deleted too.
+    client.patch(f"/api/sites/{HERO}/assets/{HERO}-A00001", json={"name": "CNC mill Big Bertha"})
+    assert client.delete(f"/api/sites/{HERO}/assets/{HERO}-A00002").status_code == 200
+    assert client.delete(f"/api/sites/{HERO}/assets/{added['id']}").status_code == 200
+    types = [event["type"] for event in client.get(f"/api/sites/{HERO}/events").json()[:6]]
+    assert types[:4] == ["asset_removed", "asset_removed", "asset_updated", "asset_moved"]
+
+    twin.invalidate()
+    assets = {asset["id"]: asset for asset in client.get(f"/api/sites/{HERO}/building").json()["assets"]}
+    assert assets[f"{HERO}-A00001"]["name"] == "CNC mill Big Bertha"
+    assert f"{HERO}-A00002" not in assets and added["id"] not in assets
+    assert added["id"] not in client.get(f"/api/sites/{HERO}/state").json()["asset_overrides"]
+    assert client.delete(f"/api/sites/{HERO}/assets/nonexistent").status_code == 404
+    assert client.patch(f"/api/sites/{HERO}/assets/{HERO}-A00001", json={"category": "spaceship"}).status_code == 400
+
+
+def test_edit_and_delete_deliveries(client):
+    delivery = client.post(f"/api/sites/{HERO}/deliveries", json={
+        "label": "Steel", "space_id": "Quality lab 0.21", "target_space_id": "Office 1.04"}).json()
+    path = f"/api/sites/{HERO}/deliveries/{delivery['id']}"
+    renamed = client.patch(path, json={"label": "Steel sheets", "note": "PO 1"}).json()
+    assert renamed["label"] == "Steel sheets" and renamed["note"] == "PO 1" and renamed["check"] == delivery["check"]
+    wide = client.patch(path, json={"dims_m": {"w": 2.2, "d": 1.6, "h": 1.8}}).json()
+    assert wide["status"] == "blocked" and wide["target_space_id"] == f"{HERO}-F1-S004"
+    cleared = client.patch(path, json={"target_space_id": None}).json()
+    assert cleared["status"] == "ok" and "target_space_id" not in cleared
+    assert client.get(f"/api/sites/{HERO}/events").json()[0]["type"] == "delivery_updated"
+    assert client.delete(path).status_code == 200
+    assert not client.get(f"/api/sites/{HERO}/state").json()["deliveries"]
+    assert client.delete(path).status_code == 404
+    assert client.patch(f"/api/sites/{HERO}/deliveries/nope", json={"label": "x"}).status_code == 404
+
+
+def test_delete_captured_delivery(client):
+    from capture import store
+
+    captured = {"id": "dl-cap1", "site_id": HERO, "ts": "2026-10-24T08:00:00Z", "label": "Crate",
+                "dims_m": {"w": 1.0, "d": 0.8, "h": 1.0}, "tolerance_m": 0.08, "floor_id": f"{HERO}-F0",
+                "space_id": f"{HERO}-F0-S021", "position": [0.0, 0.0], "rotation_deg": 0.0, "status": "ok",
+                "check": {"declared": None, "route_fit": None, "floor_fit": None, "summary": "ok"}}
+    store.save_job({"id": "cap-del-test", "kind": "delivery", "site_id": HERO, "status": "done", "progress": 1.0,
+                    "message": "", "created_at": "2026-10-24T08:00:00Z", "result": captured})
+    assert [d["id"] for d in client.get(f"/api/sites/{HERO}/state").json()["deliveries"]] == ["dl-cap1"]
+    assert client.patch(f"/api/sites/{HERO}/deliveries/dl-cap1", json={"label": "Big crate"}).json()["label"] == "Big crate"
+    assert client.get(f"/api/sites/{HERO}/state").json()["deliveries"][0]["label"] == "Big crate"
+    assert client.delete(f"/api/sites/{HERO}/deliveries/dl-cap1").status_code == 200
+    assert not client.get(f"/api/sites/{HERO}/state").json()["deliveries"]
+
+
+def test_chat_tools_add_equipment_and_log_delivery(client):
+    from agent.tools import TwinTools
+
+    actions = []
+    tools = TwinTools(HERO, actions.append)
+    added = tools.add_equipment("cnc mill", "Production zone H-A4")
+    assert added["added"]["name"] == "CNC mill H-A4" and added["added"]["category"] == "machine"
+    logged = tools.log_delivery("Oil drums", "here", 0.6, 0.6, 0.9, note="PO 4711")
+    assert logged["where"].startswith("Office 1.04") and logged["note"] == "PO 4711"
+    assert [a["type"] for a in actions].count("state_changed") == 2
+    assert {"highlight", "understood", "focus_floor"} <= {a["type"] for a in actions}
+
+    assert tools.update_equipment("CNC mill H-A4", name="Mill 7")["updated"]["name"] == "Mill 7"
+    assert tools.remove_equipment("Mill 7")["removed"]["name"] == "Mill 7"
+    edited = tools.update_delivery("oil drums", space="Quality lab 0.21", note="PO 4712")
+    assert edited["where"].startswith("Quality lab 0.21") and edited["note"] == "PO 4712"
+    assert tools.remove_delivery("oil drums")["removed"]["label"] == "Oil drums"
+    with pytest.raises(Exception, match="No delivery matches"):
+        tools.remove_delivery("oil drums")
+
+
 def test_bookable_rooms_and_bookings(client):
     window = "start=2030-01-07T14:00:00&end=2030-01-07T15:00:00"
     rooms = client.get(f"/api/sites/{HERO}/rooms/bookable?{window}&people=6").json()

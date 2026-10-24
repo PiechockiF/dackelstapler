@@ -24,6 +24,7 @@ export function Assets({ building, anim }: { building: Building; anim: FloorAnim
     const regular: Placed[] = []
     const hero: Placed[] = []
     for (const a of building.assets) {
+      if (snap.notYetAdded.has(a.id)) continue
       const o = snap.overrides[a.id]
       const fid = o?.floor_id ?? a.floor_id
       if (fid !== floorId) continue
@@ -39,7 +40,7 @@ export function Assets({ building, anim }: { building: Building; anim: FloorAnim
       ;(isHero(a) ? hero : regular).push(p)
     }
     return { regular, hero, vehicles: hero.filter((p) => isVehicle(p.a)) }
-  }, [building, snap.overrides, floorId, layout])
+  }, [building, snap.overrides, snap.notYetAdded, floorId, layout])
 
   const geos = useMemo(() => {
     const box = new THREE.BoxGeometry(1, 1, 1).translate(0, 0.5, 0)

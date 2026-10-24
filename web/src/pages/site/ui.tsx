@@ -1,5 +1,6 @@
 import clsx from 'clsx'
-import type { ButtonHTMLAttributes, HTMLAttributes, ReactNode } from 'react'
+import { Trash2 } from 'lucide-react'
+import { useEffect, useState, type ButtonHTMLAttributes, type HTMLAttributes, type ReactNode } from 'react'
 
 export const glass = 'rounded-2xl border border-white/10 bg-slate-950/60 shadow-2xl shadow-black/40 backdrop-blur-xl'
 
@@ -27,12 +28,40 @@ export function Btn({ className, tone = 'default', ...rest }: ButtonHTMLAttribut
   )
 }
 
-export function Field({ label, children, className }: { label: string; children: ReactNode; className?: string }) {
+/** Caption + control. Use as="div" when the control holds buttons (a <label> would click the first one). */
+/** Two-step delete: the first click arms it ("Delete?"), a second click within 3 s confirms. */
+export function DeleteButton({ onConfirm, label, disabled }: { onConfirm: () => void; label?: string; disabled?: boolean }) {
+  const [armed, setArmed] = useState(false)
+  useEffect(() => {
+    if (!armed) return
+    const timer = window.setTimeout(() => setArmed(false), 3000)
+    return () => window.clearTimeout(timer)
+  }, [armed])
   return (
-    <label className={clsx('flex flex-col gap-1 text-[11px] font-medium uppercase tracking-wide text-slate-400', className)}>
+    <Btn
+      type="button"
+      tone={armed ? 'danger' : 'ghost'}
+      title={armed ? 'Click again to delete' : 'Delete'}
+      disabled={disabled}
+      onClick={(e) => {
+        e.stopPropagation()
+        if (!armed) return setArmed(true)
+        setArmed(false)
+        onConfirm()
+      }}
+    >
+      <Trash2 size={13} />
+      {armed ? 'Delete?' : label}
+    </Btn>
+  )
+}
+
+export function Field({ label, children, className, as: Tag = 'label' }: { label: string; children: ReactNode; className?: string; as?: 'label' | 'div' }) {
+  return (
+    <Tag className={clsx('flex flex-col gap-1 text-[11px] font-medium uppercase tracking-wide text-slate-400', className)}>
       {label}
       {children}
-    </label>
+    </Tag>
   )
 }
 

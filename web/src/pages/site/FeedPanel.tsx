@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { Box, Calendar, Camera, DoorClosed, DoorOpen, MoveRight, PackageCheck } from 'lucide-react'
+import { Box, Calendar, Camera, DoorClosed, DoorOpen, MoveRight, PackageCheck, PackageX, Pencil, SquarePlus, Trash2 } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useTwin } from '../../lib/store'
 import type { Building, EventType, SiteEvent } from '../../lib/types'
@@ -9,7 +9,12 @@ import { timeAgo } from './ui'
 
 const ICON: Record<EventType, ReactNode> = {
   delivery: <PackageCheck size={15} />,
+  delivery_updated: <Pencil size={15} />,
+  delivery_removed: <PackageX size={15} />,
   asset_moved: <MoveRight size={15} />,
+  asset_added: <SquarePlus size={15} />,
+  asset_updated: <Pencil size={15} />,
+  asset_removed: <Trash2 size={15} />,
   closure: <DoorClosed size={15} />,
   booking: <Calendar size={15} />,
   door_added: <DoorOpen size={15} />,
@@ -17,7 +22,12 @@ const ICON: Record<EventType, ReactNode> = {
 }
 const TONE: Record<EventType, string> = {
   delivery: 'text-amber-300 bg-amber-400/10',
+  delivery_updated: 'text-amber-300 bg-amber-400/10',
+  delivery_removed: 'text-slate-400 bg-white/5',
   asset_moved: 'text-sky-300 bg-sky-400/10',
+  asset_added: 'text-teal-300 bg-teal-400/10',
+  asset_updated: 'text-teal-300 bg-teal-400/10',
+  asset_removed: 'text-slate-400 bg-white/5',
   closure: 'text-rose-300 bg-rose-400/10',
   booking: 'text-blue-300 bg-blue-400/10',
   door_added: 'text-emerald-300 bg-emerald-400/10',
@@ -27,6 +37,8 @@ const TONE: Record<EventType, string> = {
 /** Ids an event is about, most specific first. */
 export function eventTargets(e: SiteEvent): string[] {
   const p = e.payload ?? {}
+  if (e.type === 'asset_removed' || e.type === 'delivery_removed') return typeof p.space_id === 'string' ? [p.space_id] : []
+  if (e.type === 'delivery_updated' && typeof p.delivery_id === 'string') return [p.delivery_id, p.space_id].filter(Boolean)
   const ids = [p.id && e.type === 'delivery' ? p.id : null, p.element_id, p.asset_id, p.space_id, p.opening_id, p.result?.space_id, p.result?.id]
   return ids.filter((x): x is string => typeof x === 'string')
 }

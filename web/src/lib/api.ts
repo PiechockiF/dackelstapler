@@ -1,5 +1,6 @@
 import type {
-  BookableRoom, Booking, Building, CaptureJob, ChatAction, Route, Site, SiteEvent, SiteState,
+  Asset, BookableRoom, Booking, Building, CaptureJob, ChatAction, Delivery, Dims, EquipmentType, Route, Site, SiteEvent,
+  SiteState,
 } from './types'
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -11,8 +12,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>
 }
 
-const json = (body: unknown): RequestInit => ({
-  method: 'POST',
+const json = (body: unknown, method = 'POST'): RequestInit => ({
+  method,
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify(body),
 })
@@ -32,6 +33,20 @@ export const api = {
     request<SiteState>(`/api/sites/${siteId}/closures`, json({ element_id, closed })),
   moveAsset: (siteId: string, assetId: string, space_id: string, position?: [number, number]) =>
     request<SiteState>(`/api/sites/${siteId}/assets/${assetId}/move`, json({ space_id, position })),
+  equipmentTypes: () => request<EquipmentType[]>('/api/equipment-types'),
+  addAsset: (siteId: string, body: { type: string; space_id: string; name?: string; width_m?: number; depth_m?: number }) =>
+    request<Asset>(`/api/sites/${siteId}/assets`, json(body)),
+  updateAsset: (siteId: string, assetId: string, body: { type?: string; space_id?: string; name?: string; width_m?: number; depth_m?: number }) =>
+    request<Asset>(`/api/sites/${siteId}/assets/${assetId}`, json(body, 'PATCH')),
+  deleteAsset: (siteId: string, assetId: string) =>
+    request<{ ok: boolean }>(`/api/sites/${siteId}/assets/${assetId}`, { method: 'DELETE' }),
+  logDelivery: (siteId: string, body: { label: string; space_id: string; dims_m?: Dims; target_space_id?: string; note?: string }) =>
+    request<Delivery>(`/api/sites/${siteId}/deliveries`, json(body)),
+  /** target_space_id: null clears the destination; leave it out to keep it. */
+  updateDelivery: (siteId: string, deliveryId: string, body: { label?: string; space_id?: string; dims_m?: Dims; target_space_id?: string | null; note?: string }) =>
+    request<Delivery>(`/api/sites/${siteId}/deliveries/${deliveryId}`, json(body, 'PATCH')),
+  deleteDelivery: (siteId: string, deliveryId: string) =>
+    request<{ ok: boolean }>(`/api/sites/${siteId}/deliveries/${deliveryId}`, { method: 'DELETE' }),
   events: (siteId: string, since?: string, limit = 200) =>
     request<SiteEvent[]>(`/api/sites/${siteId}/events?limit=${limit}${since ? `&since=${encodeURIComponent(since)}` : ''}`),
   bookableRooms: (siteId: string, start: string, end: string, people = 1) =>

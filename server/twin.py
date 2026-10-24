@@ -17,8 +17,10 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from server import db
+from server import equipment
 from server.db import (
-    AddedDoorRow, AssetMoveRow, BookingRow, ClosureRow, DeliveryRow, EventRow, SiteRow, select,
+    AddedAssetRow, AddedDoorRow, AssetEditRow, AssetMoveRow, BookingRow, ClosureRow, DeliveryRow, EventRow,
+    RemovedDeliveryRow, SiteRow, select,
 )
 from server.directions import landmark_steps
 from server.ws import publish
@@ -172,12 +174,31 @@ def _added_openings(site_id: str) -> list[dict]:
     return [json.loads(row.opening_json) for row in rows]
 
 
+def _added_assets(site_id: str) -> list[dict]:
+    with db.session() as session:
+        rows = session.exec(select(AddedAssetRow).where(AddedAssetRow.site_id == site_id).order_by(AddedAssetRow.ts)).all()
+    return [json.loads(row.asset_json) for row in rows]
+
+
+def _asset_edits(site_id: str) -> dict[str, dict | None]:
+    """asset_id → edited Asset, or None when it was deleted."""
+    with db.session() as session:
+        rows = session.exec(select(AssetEditRow).where(AssetEditRow.site_id == site_id)).all()
+    return {row.asset_id: None if row.removed else json.loads(row.asset_json or "{}") for row in rows}
+
+
 def raw_building(site_id: str) -> dict:
-    """The site's building.json with added doors (assets at their original places; moves are in /state)."""
+    """The site's building.json with added doors, added assets and asset edits/deletions applied (assets at
+    the places they were added; moves are in /state)."""
     with lock(site_id):
         data = copy.deepcopy(_original(site_id))
         known = {opening["id"] for opening in data["openings"]}
         data["openings"].extend(opening for opening in _added_openings(site_id) if opening["id"] not in known)
+        edits = _asset_edits(site_id)
+        data["assets"] = [edits.get(asset["id"], asset) for asset in data["assets"]]
+        data["assets"] = [asset for asset in data["assets"] if asset is not None]
+        known = {asset["id"] for asset in data["assets"]}
+        data["assets"].extend(asset for asset in _added_assets(site_id) if asset["id"] not in known)
         return data
 
 
@@ -258,13 +279,24 @@ def _capture_deliveries(site_id: str) -> list[dict]:
 
 
 def list_deliveries(site_id: str) -> list[dict]:
+    """Deliveries from the DB (seeded, logged by hand, captured, edited) and the capture store, minus deleted
+    ones. The DB copy wins, so an edit of a captured delivery sticks."""
     with db.session() as session:
         rows = session.exec(select(DeliveryRow).where(DeliveryRow.site_id == site_id)).all()
-    deliveries = {row.id: json.loads(row.payload_json) for row in rows}
+        removed = set(session.exec(select(RemovedDeliveryRow.delivery_id).where(RemovedDeliveryRow.site_id == site_id)).all())
+    deliveries = {}
     for delivery in _capture_deliveries(site_id):
         if isinstance(delivery, dict) and delivery.get("id"):
             deliveries[delivery["id"]] = delivery
-    return sorted(deliveries.values(), key=lambda item: item.get("ts", ""), reverse=True)
+    deliveries.update({row.id: json.loads(row.payload_json) for row in rows})
+    return sorted((d for d in deliveries.values() if d["id"] not in removed), key=lambda item: item.get("ts", ""), reverse=True)
+
+
+def get_delivery(site_id: str, delivery_id: str) -> dict:
+    for delivery in list_deliveries(site_id):
+        if delivery["id"] == delivery_id:
+            return delivery
+    raise NotFound(f"Unknown delivery '{delivery_id}'.")
 
 
 def add_delivery(delivery: dict, broadcast: bool = True, title: str | None = None) -> dict:
@@ -287,6 +319,295 @@ def add_delivery(delivery: dict, broadcast: bool = True, title: str | None = Non
     record_event(site_id, "delivery", title, delivery, ts=delivery["ts"], broadcast=broadcast,
                  event_id=f"ev-{delivery['id']}")
     return delivery
+
+
+EURO_PALLET_M = {"w": 1.2, "d": 0.8, "h": 1.0}
+
+
+def _dims(dims: dict | None) -> dict:
+    values = {}
+    for key in ("w", "d", "h"):
+        try:
+            value = float((dims or {})[key])
+        except (KeyError, TypeError, ValueError) as error:
+            raise ValueError("Give width, depth and height in metres.") from error
+        if not 0.05 <= value <= 40:
+            raise ValueError(f"Size {key.upper()} must be between 0.05 and 40 m.")
+        values[key] = round(value, 3)
+    return values
+
+
+def log_delivery(site_id: str, label: str, space: str, dims: dict | None = None, target_space: str | None = None,
+                 note: str | None = None, ts: str | None = None, broadcast: bool = True) -> dict:
+    """Record a delivery typed in by hand (no photo): it stands in `space`; when `target_space` is given the
+    door/route check runs from there. Without dims a Euro pallet is assumed."""
+    from capture.dimension_check import check_delivery
+
+    label = (label or "").strip() or "Delivery"
+    assumed = not dims
+    size = dict(EURO_PALLET_M) if assumed else _dims(dims)
+    with lock(site_id):
+        bm = get_map(site_id)
+        space_id = bm.resolve_space(space)
+        target_id = bm.resolve_space(target_space) if target_space and target_space.strip() else None
+        if target_id == space_id:
+            target_id = None
+        checked = check_delivery(bm, size, 0.0, None, target_id, list_deliveries(site_id), at_space=space_id)
+    check = checked["check"]
+    if assumed:
+        check["summary"] = "Size not given, assumed a Euro pallet. " + check["summary"]
+    delivery = {
+        "id": db.new_id("dl"), "site_id": site_id, "ts": ts or db.now_iso(), "label": label,
+        "dims_m": size, "tolerance_m": 0.0,
+        "floor_id": checked["floor_id"], "space_id": checked["space_id"],
+        "position": checked["position"], "rotation_deg": checked["rotation_deg"],
+        "status": checked["status"], "check": check,
+        "measure": {"method": "manual", "message": "Entered by hand", "dims_assumed": assumed},
+    }
+    if target_id:
+        delivery["target_space_id"] = target_id
+    if note and note.strip():
+        delivery["note"] = note.strip()
+    where = bm.spaces[space_id]["name"]
+    title = f"{label} delivered to {where}"
+    if target_id and checked["status"] == "blocked":
+        title = f"{label} at {where}: can't reach {bm.spaces[target_id]['name']}"
+    return add_delivery(delivery, broadcast, title)
+
+
+UNCHANGED = object()  # "keep the current value" for optional fields that may also be cleared
+
+
+def update_delivery(site_id: str, delivery_id: str, label: str | None = None, space: str | None = None,
+                    dims: dict | None = None, target_space=UNCHANGED, note: str | None = None,
+                    broadcast: bool = True) -> dict:
+    """Edit a delivery. Changing where it is, its size or its destination re-runs the door/route/floor check.
+    target_space: a place, None/"" to clear it, or leave it out to keep the current one."""
+    from capture.dimension_check import check_delivery
+
+    current = get_delivery(site_id, delivery_id)
+    delivery = copy.deepcopy(current)
+    if label is not None:
+        if not label.strip():
+            raise ValueError("Say what was delivered.")
+        delivery["label"] = label.strip()
+    if note is not None:
+        if note.strip():
+            delivery["note"] = note.strip()
+        else:
+            delivery.pop("note", None)
+    with lock(site_id):
+        bm = get_map(site_id)
+        space_id = bm.resolve_space(space) if space else current["space_id"]
+        if target_space is UNCHANGED:
+            target_id = current.get("target_space_id")
+        else:
+            target_id = bm.resolve_space(target_space) if target_space and str(target_space).strip() else None
+        if target_id == space_id:
+            target_id = None
+        size = _dims(dims) if dims else current["dims_m"]
+        recheck = space_id != current["space_id"] or size != current["dims_m"] or target_id != current.get("target_space_id")
+        if recheck:
+            tolerance = 0.0 if size != current["dims_m"] else float(current.get("tolerance_m") or 0.0)
+            others = [d for d in list_deliveries(site_id) if d["id"] != delivery_id]
+            checked = check_delivery(bm, size, tolerance, current.get("declared_dims_m"), target_id, others,
+                                     at_space=space_id)
+            delivery.update(dims_m=size, tolerance_m=tolerance, floor_id=checked["floor_id"],
+                            space_id=checked["space_id"], position=checked["position"],
+                            rotation_deg=checked["rotation_deg"], status=checked["status"], check=checked["check"])
+            if target_id:
+                delivery["target_space_id"] = target_id
+            else:
+                delivery.pop("target_space_id", None)
+            if size != current["dims_m"]:
+                delivery["measure"] = {**(current.get("measure") or {}), "method": "manual",
+                                       "message": "Size entered by hand", "dims_assumed": False}
+        where = bm.spaces[delivery["space_id"]]["name"]
+    if delivery == current:
+        return current
+    with db.session() as session:
+        session.merge(DeliveryRow(id=delivery_id, site_id=site_id, ts=delivery["ts"],
+                                  payload_json=json.dumps(delivery, ensure_ascii=False)))
+        session.commit()
+    moved = delivery["space_id"] != current["space_id"]
+    title = f"{delivery['label']} moved to {where}" if moved else f"{delivery['label']} edited"
+    record_event(site_id, "delivery_updated", title, {"delivery_id": delivery_id, "space_id": delivery["space_id"],
+                                                      "before": current, "after": delivery}, broadcast=broadcast)
+    return delivery
+
+
+def remove_delivery(site_id: str, delivery_id: str, broadcast: bool = True) -> dict:
+    delivery = get_delivery(site_id, delivery_id)
+    with db.session() as session:
+        row = session.get(DeliveryRow, delivery_id)
+        if row is not None:
+            session.delete(row)
+        session.merge(RemovedDeliveryRow(site_id=site_id, delivery_id=delivery_id))
+        session.commit()
+    where = ""
+    try:
+        where = f" from {get_map(site_id).spaces[delivery['space_id']]['name']}"
+    except Exception:  # noqa: BLE001
+        pass
+    record_event(site_id, "delivery_removed", f"{delivery.get('label', 'Delivery')} removed{where}",
+                 {"delivery_id": delivery_id, "space_id": delivery.get("space_id"), "delivery": delivery},
+                 broadcast=broadcast)
+    return delivery
+
+
+# ---------------------------------------------------------------- added assets
+
+def _unique_asset_name(bm, name: str, exclude: str | None = None) -> str:
+    taken = {asset["name"].lower() for asset in bm.assets.values() if asset["id"] != exclude}
+    if name.lower() not in taken:
+        return name
+    number = 2
+    while f"{name} {number}".lower() in taken:
+        number += 1
+    return f"{name} {number}"
+
+
+def add_asset(site_id: str, type_: str, space: str, name: str | None = None, category: str | None = None,
+              width_m: float | None = None, depth_m: float | None = None, rotation_deg: float | None = None,
+              position: list[float] | None = None, ts: str | None = None, broadcast: bool = True) -> dict:
+    """Add a machine / piece of equipment / furniture to a room. Size and category default from the
+    equipment catalog; without a position it goes to a free spot in the room."""
+    from core.geometry import footprint_fits
+
+    type_ = equipment.slug(type_ or name or "")
+    if not type_:
+        raise ValueError("Say what kind of equipment it is, e.g. 'coffee machine' or 'cnc mill'.")
+    default_category, default_w, default_d = equipment.defaults(type_)
+    category = (category or default_category).strip().lower()
+    if category not in equipment.CATEGORIES:
+        raise ValueError(f"Category must be one of: {', '.join(equipment.CATEGORIES)}.")
+    width = float(width_m or default_w)
+    depth = float(depth_m or default_d)
+    if not (0.05 <= width <= 40 and 0.05 <= depth <= 40):
+        raise ValueError("Width and depth must be between 0.05 and 40 m.")
+    with lock(site_id):
+        bm = get_map(site_id)
+        space_id = bm.resolve_space(space)
+        record = bm.spaces[space_id]
+        if position is not None:
+            point = [round(float(position[0]), 3), round(float(position[1]), 3)]
+            rotation = float(rotation_deg or 0.0)
+        else:
+            placement = footprint_fits(bm, space_id, width, depth, clearance_m=0.15)
+            if not placement["ok"]:
+                placement = footprint_fits(bm, space_id, width, depth)
+            if placement["ok"]:
+                point, rotation = placement["position"], float(placement["rotation_deg"])
+            else:
+                point, rotation = [round(value, 3) for value in bm.anchor(space_id)], 0.0
+            if rotation_deg is not None:
+                rotation = float(rotation_deg)
+        base = (name or "").strip() or f"{equipment.label(type_)} {record.get('ref') or record['name']}"
+        asset = {
+            "id": f"{site_id}-A-new-{db.new_id('a')[2:]}", "name": _unique_asset_name(bm, base),
+            "category": category, "type": type_, "space_id": space_id, "floor_id": record["floor_id"],
+            "position": [round(float(point[0]), 3), round(float(point[1]), 3)],
+            "footprint": {"width_m": round(width, 3), "depth_m": round(depth, 3), "rotation_deg": round(rotation, 1)},
+            "source": "manual",
+        }
+        bm.assets[asset["id"]] = asset
+        with db.session() as session:
+            session.add(AddedAssetRow(id=asset["id"], site_id=site_id, asset_json=json.dumps(asset, ensure_ascii=False)))
+            session.commit()
+    title = f"{asset['name']} added to {record['name']}"
+    event = record_event(site_id, "asset_added", title,
+                         {"asset_id": asset["id"], "name": asset["name"], "space_id": space_id, "asset": asset},
+                         ts=ts, broadcast=broadcast)
+    return {"asset": asset, "event": event}
+
+
+def _store_asset(site_id: str, asset: dict) -> None:
+    """Persist an edited asset: added-by-hand ones in their own row, building.json ones as an edit."""
+    with db.session() as session:
+        added = session.get(AddedAssetRow, asset["id"])
+        if added is not None:
+            added.asset_json = json.dumps(asset, ensure_ascii=False)
+            session.add(added)
+        else:
+            session.merge(AssetEditRow(site_id=site_id, asset_id=asset["id"], asset_json=json.dumps(asset, ensure_ascii=False)))
+        session.commit()
+
+
+def update_asset(site_id: str, asset_ref: str, name: str | None = None, type_: str | None = None,
+                 category: str | None = None, width_m: float | None = None, depth_m: float | None = None,
+                 rotation_deg: float | None = None, space: str | None = None, broadcast: bool = True) -> dict:
+    """Edit name/type/category/size of any asset; a new room moves it to a free spot there (asset_moved)."""
+    from core.geometry import footprint_fits
+
+    with lock(site_id):
+        bm = get_map(site_id)
+        asset_id = resolve_asset(bm, asset_ref)
+        current = copy.deepcopy(bm.assets[asset_id])
+        asset = copy.deepcopy(current)
+        if type_ is not None:
+            asset["type"] = equipment.slug(type_)
+            if not asset["type"]:
+                raise ValueError("Say what kind of equipment it is.")
+        if category is not None:
+            if category.strip().lower() not in equipment.CATEGORIES:
+                raise ValueError(f"Category must be one of: {', '.join(equipment.CATEGORIES)}.")
+            asset["category"] = category.strip().lower()
+        if name is not None:
+            if not name.strip():
+                raise ValueError("The name can't be empty.")
+            asset["name"] = _unique_asset_name(bm, name.strip(), exclude=asset_id)
+        footprint = dict(asset.get("footprint") or {"width_m": 0.5, "depth_m": 0.5, "rotation_deg": 0.0})
+        for key, value in (("width_m", width_m), ("depth_m", depth_m)):
+            if value is not None:
+                if not 0.05 <= float(value) <= 40:
+                    raise ValueError("Width and depth must be between 0.05 and 40 m.")
+                footprint[key] = round(float(value), 3)
+        if rotation_deg is not None:
+            footprint["rotation_deg"] = round(float(rotation_deg) % 360, 1)
+        asset["footprint"] = footprint
+        space_id = bm.resolve_space(space) if space else asset["space_id"]
+        position = None
+        if space_id != asset["space_id"]:
+            placement = footprint_fits(bm, space_id, footprint["width_m"], footprint["depth_m"], clearance_m=0.15,
+                                       ignore_asset_ids={asset_id})
+            position = placement["position"] if placement["ok"] else list(bm.anchor(space_id))
+        edited = asset != current
+        if edited:
+            bm.assets[asset_id] = asset
+            _store_asset(site_id, asset)
+    if edited:
+        changes = [label for key, label in (("name", "name"), ("type", "type"), ("category", "category"),
+                                            ("footprint", "size")) if asset.get(key) != current.get(key)]
+        title = (f"{current['name']} renamed to {asset['name']}" if changes == ["name"]
+                 else f"{asset['name']} edited: {', '.join(changes)}")
+        record_event(site_id, "asset_updated", title, {"asset_id": asset_id, "name": asset["name"],
+                                                       "space_id": asset["space_id"], "before": current, "after": asset},
+                     broadcast=broadcast)
+    if position is not None:
+        move_asset(site_id, asset_id, space_id, position, broadcast=broadcast)
+    return copy.deepcopy(get_map(site_id).assets[asset_id])
+
+
+def remove_asset(site_id: str, asset_ref: str, broadcast: bool = True) -> dict:
+    with lock(site_id):
+        bm = get_map(site_id)
+        asset_id = resolve_asset(bm, asset_ref)
+        asset = bm.assets.pop(asset_id)
+        with db.session() as session:
+            added = session.get(AddedAssetRow, asset_id)
+            if added is not None:
+                session.delete(added)
+            else:
+                session.merge(AssetEditRow(site_id=site_id, asset_id=asset_id, asset_json=None, removed=True))
+            move = session.get(AssetMoveRow, (site_id, asset_id))
+            if move is not None:
+                session.delete(move)
+            session.commit()
+        where = bm.spaces[asset["space_id"]]["name"] if asset["space_id"] in bm.spaces else asset["space_id"]
+    record_event(site_id, "asset_removed", f"{asset['name']} removed from {where}",
+                 {"asset_id": asset_id, "name": asset["name"], "space_id": asset["space_id"], "asset": asset},
+                 broadcast=broadcast)
+    return asset
 
 
 # ---------------------------------------------------------------- state

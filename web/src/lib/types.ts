@@ -31,6 +31,8 @@ export interface Asset {
   id: string; name: string; category: string; type: string; space_id: string; floor_id: string
   position: XY; footprint?: { width_m: number; depth_m: number; rotation_deg: number }; source?: string
 }
+/** GET /api/equipment-types: known equipment with its typical footprint (extra, not in contract v1). */
+export interface EquipmentType { type: string; label: string; category: string; width_m: number; depth_m: number }
 export interface Building {
   building: { id: string; name: string; source: string; license: string; attribution: string; units: string; scale?: { plan_width_m: number; plan_height_m: number; user_supplied: boolean } }
   floors: Floor[]
@@ -58,7 +60,10 @@ export interface Route {
   blocking_openings?: BlockingOpening[]
 }
 
-export type EventType = 'delivery' | 'asset_moved' | 'closure' | 'booking' | 'door_added' | 'capture'
+export type EventType =
+  | 'delivery' | 'delivery_updated' | 'delivery_removed'
+  | 'asset_moved' | 'asset_added' | 'asset_updated' | 'asset_removed'
+  | 'closure' | 'booking' | 'door_added' | 'capture'
 export interface SiteEvent { id: string; ts: string; site_id: string; type: EventType; title: string; payload: any }
 
 export interface Dims { w: number; d: number; h: number }
