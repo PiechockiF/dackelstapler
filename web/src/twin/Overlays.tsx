@@ -13,6 +13,8 @@ import { COLORS } from './palette'
 import { type RoomGlow, useTwinUi } from './uiStore'
 import { useSnapshot } from './useSnapshot'
 
+const _v = new THREE.Vector3()
+
 /** Pulse rings + light beams for useTwin.highlight (chat "where is…", feed clicks). */
 export function Highlights({ building }: { building: Building }) {
   const highlight = useTwin((s) => s.highlight)
@@ -31,23 +33,46 @@ export function Highlights({ building }: { building: Building }) {
   const beamH = layout.gap * 2 + 12
   return (
     <>
-      {spots.map((s, i) => {
-        const [x, z] = layout.toXZ(s.point)
-        return (
-          <FloorAnchor key={`${s.id}-${i}`} floorId={s.floor_id}>
-            <PulseRing x={x} z={z} radius={s.radius * 1.8} color={COLORS.warn} />
-            <Beam x={x} z={z} radius={Math.max(0.4, s.radius * 0.5)} height={beamH} color={COLORS.warn} />
-            {i === 0 && highlight?.label && (
-              <Html position={[x, 3.2, z]} center zIndexRange={[30, 0]} style={{ pointerEvents: 'none' }}>
-                <div className="whitespace-nowrap rounded-full border border-amber-300/50 bg-amber-400/20 px-3 py-1 text-xs font-medium text-amber-50 shadow-[0_0_24px_rgba(251,191,36,0.45)] backdrop-blur">
-                  {highlight.label}
-                </div>
-              </Html>
-            )}
-          </FloorAnchor>
-        )
-      })}
+      {spots.map((s, i) => (
+        <FloorAnchor key={`${s.id}-${i}`} floorId={s.floor_id}>
+          <AdaptiveBeacon
+            x={layout.toXZ(s.point)[0]}
+            z={layout.toXZ(s.point)[1]}
+            radius={s.radius}
+            beamH={beamH}
+            label={i === 0 ? highlight?.label : undefined}
+          />
+        </FloorAnchor>
+      ))}
     </>
+  )
+}
+
+/** Beacon that scales with camera distance and room size. */
+function AdaptiveBeacon({ x, z, radius, beamH, label }: { x: number; z: number; radius: number; beamH: number; label?: string }) {
+  const groupRef = useRef<THREE.Group>(null)
+  useFrame(({ camera }) => {
+    if (!groupRef.current) return
+    // World position of the beacon group (accounts for FloorAnchor parent transforms).
+    groupRef.current.getWorldPosition(_v)
+    const dist = camera.position.distanceTo(_v)
+    // Camera-adaptive: scale down when close, scale up when far.
+    // At dist ~10 → factor ~0.25, at dist ~80 → factor ~1.0, at dist ~200+ → clamp at 1.2.
+    const s = THREE.MathUtils.clamp(dist / 80, 0.25, 1.2) * 0.5
+    groupRef.current.scale.lerp(_v.set(s, s, s), 0.12)
+  })
+  return (
+    <group ref={groupRef} position={[x, 0, z]}>
+      <PulseRing x={0} z={0} radius={radius * 1.2} color={COLORS.warn} />
+      <Beam x={0} z={0} radius={Math.max(0.3, radius * 0.35)} height={beamH} color={COLORS.warn} />
+      {label && (
+        <Html position={[0, 3.2, 0]} center zIndexRange={[30, 0]} style={{ pointerEvents: 'none' }}>
+          <div className="whitespace-nowrap rounded-full border border-amber-300/50 bg-amber-400/20 px-3 py-1 text-xs font-medium text-amber-50 shadow-[0_0_24px_rgba(251,191,36,0.45)] backdrop-blur">
+            {label}
+          </div>
+        </Html>
+      )}
+    </group>
   )
 }
 
