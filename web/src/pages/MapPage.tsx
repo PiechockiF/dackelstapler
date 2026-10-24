@@ -1,4 +1,4 @@
-// Owner: agent B (map + 3D twin). Globe with all Standorte.
+// Owner: agent B (map + 3D twin). Globe with all locations.
 import '../dev/mockApi'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import clsx from 'clsx'
@@ -33,7 +33,7 @@ export default function MapPage() {
   const [hovered, setHovered] = useState<string | null>(null)
   const [active, setActive] = useState<string | null>(null)
   const [pickMode, setPickMode] = useState(false)
-  // The Add-Standort dialog stays mounted while the user picks a spot on the map (picking=true).
+  // The Add-Location dialog stays mounted while the user picks a spot on the map (picking=true).
   const [dialog, setDialog] = useState<{ lat: number | null; lon: number | null; seq: number; picking: boolean } | null>(null)
   const [leaving, setLeaving] = useState(false)
   const [mock, setMock] = useState(isMockActive())
@@ -104,7 +104,7 @@ export default function MapPage() {
               <img src="/dackel.png" alt="" className="size-9 rounded-xl bg-white object-cover shadow-[0_0_24px_rgba(56,189,248,0.5)]" />
               <div>
                 <div className="text-[17px] font-semibold tracking-tight text-white">Dackel</div>
-                <div className="text-[11px] text-slate-400">Living 3D twins of every Standort</div>
+                <div className="text-[11px] text-slate-400">forklift certified</div>
               </div>
               {mock && <span className="ml-auto rounded bg-amber-400/20 px-1.5 py-0.5 text-[10px] font-semibold text-amber-200">MOCK</span>}
             </div>
@@ -117,7 +117,7 @@ export default function MapPage() {
                   setOpen((o) => o || 'search')
                 }}
                 onKeyDown={(e) => e.key === 'Enter' && filtered[0] && enter(filtered[0])}
-                placeholder="Search Standorte…"
+                placeholder="Search locations…"
                 className="min-w-0 flex-1 bg-transparent text-sm text-slate-100 outline-none placeholder:text-slate-500"
               />
               {query && (
@@ -173,7 +173,7 @@ export default function MapPage() {
                 </button>
               </li>
             ))}
-            {!sites.isLoading && !filtered.length && !sites.isError && <li className="px-3 py-6 text-center text-sm text-slate-500">No Standort matches.</li>}
+            {!sites.isLoading && !filtered.length && !sites.isError && <li className="px-3 py-6 text-center text-sm text-slate-500">No location matches.</li>}
           </ul>
           <div className="border-t border-white/5 p-3">
             <button
@@ -183,13 +183,13 @@ export default function MapPage() {
               }}
               className="flex w-full items-center justify-center gap-2 rounded-xl border border-sky-400/30 bg-sky-500/15 px-3 py-2 text-sm font-medium text-sky-100 transition hover:bg-sky-500/25"
             >
-              <Plus size={15} /> Add Standort
+              <Plus size={15} /> Add Location
             </button>
             <div className="mt-1.5 text-center text-[10px] text-slate-500">by address, or right-click anywhere on the map</div>
           </div>
           <button
             onClick={() => setOpen(!open)}
-            aria-label={open ? 'Collapse Standorte' : 'Expand Standorte'}
+            aria-label={open ? 'Collapse locations' : 'Expand locations'}
             className="mx-auto mb-1.5 grid h-5 w-10 place-items-center rounded-full text-slate-500 transition hover:bg-white/10 hover:text-slate-200"
           >
             <ChevronDown size={16} className={clsx('transition-transform', open && 'rotate-180')} />

@@ -493,7 +493,7 @@ def test_site_name_falls_back_to_coordinates(client):
     building = client.get(f"/api/sites/{HERO}/building").json()
     files = {"file": ("building.json", io.BytesIO(json.dumps(building).encode()), "application/json")}
     site = client.post("/api/sites", data={"lat": "48.1", "lon": "11.5"}, files=files).json()
-    assert site["name"] == "Standort 48.1000, 11.5000"
+    assert site["name"] == "Location 48.1000, 11.5000"
 
 
 def test_geocode_proxies_photon(client, monkeypatch):

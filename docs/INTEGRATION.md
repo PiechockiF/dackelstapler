@@ -56,7 +56,7 @@ Open the URL printed by Vite. For a phone, use Vite's network URL on the same Wi
 4. Select **Rooms**, search availability and book a room while a second tab displays the same search.
 5. Open the capture page, choose **Use a sample photo**, then **Measure & check**. The textured fallback model appears in the twin; the UI reports the actual measured tolerance.
 6. In **Room scan**, choose Meeting room 0.20 and submit without a file. The labelled demo scan deliberately differs from the north wall by about 0.4 m. The capture event focuses the room when selected in Changes.
-7. Use **Add Standort**, upload a building JSON, review the floor layout, then confirm. PNG/JPEG/PDF parsing needs an Anthropic key.
+7. Use **Add Location**, upload a building JSON, review the floor layout, then confirm. PNG/JPEG/PDF parsing needs an Anthropic key.
 
 For a week of demo events, `uv run python scripts/seed_demo_events.py` seeds sites without events. The `--reset` option replaces existing hero-site event history, so use it only when intentionally resetting the demo. Bookings use dates relative to the machine's current date.
 
