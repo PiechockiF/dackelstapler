@@ -37,7 +37,7 @@ For example: `uv run run_benchmark data/test/swiss-2`. This example works on eve
 |---|---|
 | `<building_dir>` | Folder containing `building.json` (kit format) |
 | `[questions.json]` | Optional. JSON list, one entry per question: `{"id": "Q1", "text": "...", "constraints": {...}}`. `constraints` is optional (e.g. `step_free`, `closed`, `forklift`, `min_width_m`) and is passed to the agent with the question. JSON lines and CSV work too. If omitted, `questions.json`, `.jsonl` or `.csv` next to the building is used; a bare file name is also looked up there |
-| `[answers.json]` | Optional, default `answers.json`. Written as a JSON list, one entry per question id, in input order |
+| `[answers.json]` | Optional, default `SUBMISSION/answers.json` (next to this file). Written as a JSON list, one entry per question id, in input order |
 
 Each entry in `answers.json` has:
 
@@ -67,7 +67,7 @@ run_benchmark <building_dir> [questions.json] [answers.json]
 
 ## How it answers
 
-Each question gets its own Claude Opus 5.5 run with tool use ([agent/answer.py](agent/answer.py)). There are no question templates: the agent reads the text, chooses the tools, and fills in their parameters.
+Each question gets its own Claude Opus 5.5 run with tool use ([agent/answer.py](../agent/answer.py)). There are no question templates: the agent reads the text, chooses the tools, and fills in their parameters.
 
 | Tool | What it does |
 |---|---|
@@ -79,7 +79,7 @@ Each question gets its own Claude Opus 5.5 run with tool use ([agent/answer.py](
 | `straight_line_distance`, `calculate` | 3D distance between room centres; exact arithmetic |
 | `submit_answer` | Commits the `Answer:` value, the room and item, and the route (by reference, so the ids in `answers.json` come from the router, not from model text) |
 
-The tools run on the deterministic core in [core/](core/), which also powers the app. They follow the judges' rules (kit 1.1.0):
+The tools run on the deterministic core in [core/](../core/), which also powers the app. They follow the judges' rules (kit 1.1.0):
 - walking is door to door, 15 cm off the walls
 - stairs cost 2 m per metre climbed; a lift costs 15 m plus 1 m per metre
 - there is no way round the outside, and closed elements are never used
@@ -104,9 +104,9 @@ With the ids from the kit's answers, the tools themselves reproduce every train 
 ## Kit test set (CSV submission)
 
 ```
-uv run --env-file .env python -m benchmark.evaluate data/test --agent agent.answer:answer --submission-csv submission/team_sitetwin.csv
+uv run --env-file .env python -m benchmark.evaluate data/test --agent agent.answer:answer --submission-csv results/team_sitetwin.csv
 ```
 
-This writes `submission/team_sitetwin.csv` (145 rows). Run the same command on `data/dev` without `--submission-csv` to score the replies.
+This writes `results/team_sitetwin.csv` (145 rows). Run the same command on `data/dev` without `--submission-csv` to score the replies.
 
 Tests (no API calls): `uv run pytest tests -q`.

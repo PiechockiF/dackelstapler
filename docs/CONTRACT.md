@@ -8,7 +8,7 @@ Coordinates are always the building's local metres (x right, y up) from `buildin
 
 | Area | Owner | Directories |
 |---|---|---|
-| Core geometry, routing, benchmark | A | `core/`, `agent/answer.py`, `tests/`, `BENCHMARK.md` |
+| Core geometry, routing, benchmark | A | `core/`, `agent/answer.py`, `tests/`, `SUBMISSION/BENCHMARK.md` |
 | Map + 3D twin | B | `web/src/map/`, `web/src/twin/`, `web/src/pages/` |
 | Capture (phone → 3D → checks) | C | `capture/`, `web/src/capture/`, `scripts/print_marker.py` |
 | Server, chat agent, voice, seed data | D | `server/`, `agent/tools.py`, `agent/prompts.py`, `agent/chat.py`, `scripts/geocode_sites.py`, `scripts/seed_demo_events.py`, `web/src/chat/`, `web/src/sites/` |

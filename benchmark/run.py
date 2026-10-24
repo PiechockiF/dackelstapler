@@ -4,12 +4,13 @@
   uv run python -m benchmark.run <building_dir> [questions.json] [answers.json]     (same thing)
 
 Without a questions file it uses the questions.json/.jsonl/.csv next to the building; a questions file name
-that isn't found where you run the command is also looked up there. Answers default to ./answers.json.
+that isn't found where you run the command is also looked up there. Answers default to SUBMISSION/answers.json,
+the file the organizers grade.
 
 A Claude agent (agent/answer.py) answers every question with tools over the building; questions run in
 parallel. One entry per question id, in the input's order: the kind, the full reply (`answer`, ending in an
 'Answer:' line), the located item or room id, for routes the ordered space ids, the opening/stair/lift ids
-and the length in metres, and the agent's tool calls. BENCHMARK.md lists every output field.
+and the length in metres, and the agent's tool calls. SUBMISSION/BENCHMARK.md lists every output field.
 Needs ANTHROPIC_API_KEY, from the environment or a .env file in the repository root."""
 
 from __future__ import annotations
@@ -34,6 +35,7 @@ LIST_KEYS = ("questions", "items", "data", "entries")
 WORKERS = 8  # questions answered at once
 REPO = Path(__file__).resolve().parent.parent
 QUESTION_FILES = ("questions.json", "questions.jsonl", "questions.csv")
+DEFAULT_ANSWERS = REPO / "SUBMISSION" / "answers.json"  # graded file: SUBMISSION/ holds BENCHMARK.md and this
 
 
 def find_building(path: Path) -> Path:
@@ -98,7 +100,7 @@ def load_questions(path: Path) -> tuple[list[dict], str | None]:
 def run(building_dir: Path, questions_path: Path | None = None, answers_path: Path | None = None) -> list[dict]:
     building = find_building(building_dir)
     questions_path = find_questions(building_dir, building, questions_path)
-    answers_path = answers_path or Path("answers.json")
+    answers_path = answers_path or DEFAULT_ANSWERS
     print(f"[run_benchmark] {building.name}: questions from {questions_path}", flush=True)
     entries, shape = load_questions(questions_path)
 
@@ -140,7 +142,7 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("building_dir", type=Path, help="folder with building.json (or the building.json itself)")
     parser.add_argument("questions", type=Path, nargs="?", default=None,
                         help="questions file (JSON, JSON lines or CSV); default: the one in the building folder")
-    parser.add_argument("answers", type=Path, nargs="?", default=None, help="where to write answers (default: answers.json)")
+    parser.add_argument("answers", type=Path, nargs="?", default=None, help="where to write answers (default: SUBMISSION/answers.json)")
     arguments = parser.parse_args(argv)
     load_dotenv(REPO / ".env")
     if not os.environ.get("ANTHROPIC_API_KEY"):

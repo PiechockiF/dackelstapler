@@ -190,7 +190,7 @@ server/      main.py, routes/{sites,buildings,route,events,bookings,capture,chat
 capture/     aruco.py, image_to_3d.py (fal), splat_job.py (Modal), dimension_check.py, align.py
 scripts/     geocode_sites.py, seed_demo_events.py, print_marker.py
 web/         Vite app: routes /, /site/:id, /capture; components Map/, Twin3D/, Chat/, Timeline/, Booking/
-BENCHMARK.md
+SUBMISSION/  BENCHMARK.md + answers.json (graded benchmark submission)
 ```
 
 ---
