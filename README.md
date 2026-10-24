@@ -6,6 +6,8 @@ Quick start: `uv run uvicorn server.main:app --reload --port 8000`, then `cd web
 
 ## iOS app (Capacitor)
 
+The signed iOS Release archive has been built and verified. See [TestFlight build and release steps](docs/TESTFLIGHT.md) for repeatable archive commands and deployment requirements.
+
 The app ships as a thin native shell (`web/ios/`) that loads the UI from a running server. Every `/api`, `/ws` and `/storage` call then works unchanged. You need Xcode, and the command line tools must point at it: `sudo xcode-select -s /Applications/Xcode.app/Contents/Developer`.
 
 ```sh
@@ -22,7 +24,7 @@ In Xcode, select **App → Signing & Capabilities**. Pick the team's Apple devel
 ## What is still missing
 
 **Not yet verified**
-- The iOS build has not been compiled or run on a device yet.
+- The iOS Release archive compiles and its signature verifies; running it on a physical device is still unverified.
 - Live external services have never been tested with real keys: Anthropic chat and vision, fal.ai image-to-3D, ElevenLabs voice and Modal GPU reconstruction. Modal also needs its worker deployed and the optional client installed.
 - Physical capture with a phone camera and the printed marker has only been tested with sample images.
 

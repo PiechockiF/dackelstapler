@@ -1,6 +1,9 @@
 import type {
   BookableRoom, Booking, Building, CaptureJob, ChatAction, Route, Site, SiteEvent, SiteState,
 } from './types'
+import { isLocalMode } from './mode'
+import { localProvider } from '../local/provider'
+import type { SiteTwinDataProvider } from './provider'
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, init)
@@ -17,7 +20,7 @@ const json = (body: unknown): RequestInit => ({
   body: JSON.stringify(body),
 })
 
-export const api = {
+const remoteApi: SiteTwinDataProvider = {
   sites: () => request<Site[]>('/api/sites'),
   previewSite: (form: FormData) => {
     form.set('preview', 'true')
@@ -34,14 +37,18 @@ export const api = {
     request<SiteState>(`/api/sites/${siteId}/assets/${assetId}/move`, json({ space_id, position })),
   events: (siteId: string, since?: string, limit = 200) =>
     request<SiteEvent[]>(`/api/sites/${siteId}/events?limit=${limit}${since ? `&since=${encodeURIComponent(since)}` : ''}`),
-  bookableRooms: (siteId: string, start: string, end: string, people = 1) =>
-    request<BookableRoom[]>(`/api/sites/${siteId}/rooms/bookable?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&people=${people}`),
+  bookableRooms: (siteId: string, start: string, end: string, people = 1, near?: string | null) =>
+    request<BookableRoom[]>(`/api/sites/${siteId}/rooms/bookable?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&people=${people}${near ? `&near=${encodeURIComponent(near)}` : ''}`),
   bookings: (siteId: string) => request<Booking[]>(`/api/sites/${siteId}/bookings`),
   book: (siteId: string, body: Omit<Booking, 'id' | 'site_id'>) => request<Booking>(`/api/sites/${siteId}/bookings`, json(body)),
   captureDelivery: (form: FormData) => request<CaptureJob>('/api/capture/delivery', { method: 'POST', body: form }),
   captureRoom: (form: FormData) => request<CaptureJob>('/api/capture/room', { method: 'POST', body: form }),
   captureJob: (jobId: string) => request<CaptureJob>(`/api/capture/jobs/${jobId}`),
+  roomScans: (id: string) => request<import('./types').RoomScan[]>(`/api/capture/rooms?site_id=${encodeURIComponent(id)}`),
+  health: () => request<{ ok?: boolean; voice?: boolean; llm?: boolean }>('/api/health'),
+  captureHost: () => request<{ lan_ip: string | null }>('/api/capture/host'),
 }
+export const api: SiteTwinDataProvider = isLocalMode ? localProvider : remoteApi
 
 /** POST /api/sites/{id}/chat and parse the SSE stream. */
 export async function streamChat(

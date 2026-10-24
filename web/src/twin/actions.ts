@@ -27,6 +27,7 @@ export async function navigate(
   to: string,
   opts: { from?: string; step_free?: boolean; min_width_m?: number } = {},
 ) {
+  const version = ++refreshVersion
   const b = useTwin.getState().building
   const from = opts.from || (b ? originOf(b) : null)
   if (!from) throw new Error('No start point')
@@ -34,7 +35,7 @@ export async function navigate(
   if (opts.step_free) body.step_free = true
   if (opts.min_width_m) body.min_width_m = opts.min_width_m
   const route = await api.route(siteId, body)
-  if (useTwin.getState().siteId === siteId) {
+  if (version === refreshVersion && useTwin.getState().siteId === siteId) {
     useTwin.getState().setRoute(route)
     useTwin.getState().setFocusFloor(null)
   }
@@ -54,7 +55,7 @@ export async function refreshRoute(siteId: string) {
   const version = ++refreshVersion
   const store = useTwin.getState()
   const route = store.route
-  if (store.siteId !== siteId || !route || route.space_path.length < 2) return
+  if (store.siteId !== siteId || !route || (!route.from_space_id && route.space_path.length < 2)) return
   const next = await api.route(siteId, {
     from: route.from_space_id ?? route.space_path[0],
     to: route.to_space_id ?? route.space_path[route.space_path.length - 1],

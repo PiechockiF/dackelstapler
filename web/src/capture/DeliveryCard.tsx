@@ -25,6 +25,7 @@ const toneBadge: Record<Tone, string> = {
 function badgeFor(delivery: Delivery): { tone: Tone; text: string } {
   const fit = delivery.check?.route_fit
   if (delivery.status === 'blocked') return { tone: 'danger', text: 'Blocked' }
+  if (delivery.status === 'unassessed') return { tone: 'warn', text: 'Width checked only' }
   if (delivery.status === 'mismatch') return { tone: 'warn', text: 'PO mismatch' }
   if (fit && !fit.ok && fit.alternative) return { tone: 'warn', text: 'Reroute' }
   return { tone: 'ok', text: 'Cleared' }
@@ -128,7 +129,7 @@ export default function DeliveryCard({ delivery }: { delivery: Delivery }) {
 
         {fit && fit.ok && (
           <Line tone="ok" icon={<CircleCheck size={14} />}>
-            Fits every door{target ? <> to <b className="font-medium text-slate-100">{target}</b></> : null}
+            {delivery.measurement_source === 'manual' ? 'Doorway widths pass' : 'Fits every door'}{target ? <> to <b className="font-medium text-slate-100">{target}</b></> : null}
             {fit.route ? <span className="text-slate-500"> · {Math.round(fit.route.length_m)} m</span> : null}
           </Line>
         )}
@@ -142,7 +143,7 @@ export default function DeliveryCard({ delivery }: { delivery: Delivery }) {
                   {door.reason !== 'steps' && (
                     <span className="tabular-nums text-slate-400">
                       {' '}
-                      ({door.width_m.toFixed(2)} m &lt; {m2(Math.min(dims.w, dims.d))} m)
+                      ({door.width_m.toFixed(2)} m &lt; {m2(delivery.measurement_source === 'manual' ? dims.w : Math.min(dims.w, dims.d))} m)
                     </span>
                   )}
                 </Line>
@@ -164,6 +165,7 @@ export default function DeliveryCard({ delivery }: { delivery: Delivery }) {
             )}
           </>
         )}
+        {delivery.measurement_source === 'manual' && <Line tone="warn" icon={<TriangleAlert size={14} />}>{check.summary}</Line>}
         {check?.floor_fit && !check.floor_fit.ok && (
           <Line tone="warn" icon={<Layers size={14} />}>
             {check.floor_fit.reason}

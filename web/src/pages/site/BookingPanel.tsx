@@ -32,9 +32,7 @@ export function BookingPanel({ siteId }: { siteId: string }) {
     enabled: search !== null,
     queryFn: async (): Promise<Room[]> => {
       const { s, e, people, near } = search!
-      const r = await fetch(`/api/sites/${siteId}/rooms/bookable?start=${encodeURIComponent(s)}&end=${encodeURIComponent(e)}&people=${people}${near ? `&near=${encodeURIComponent(near)}` : ''}`)
-      if (!r.ok) throw new Error((await r.json()).detail ?? 'Could not load rooms')
-      return r.json()
+      return api.bookableRooms(siteId, s, e, people, near)
     },
   })
   const currentSearch = search && search.people === people && Date.parse(start) === Date.parse(search.s) && Date.parse(search.e) - Date.parse(search.s) === minutes * 60_000

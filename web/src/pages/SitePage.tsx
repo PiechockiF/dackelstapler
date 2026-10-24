@@ -1,16 +1,16 @@
 // Owner: agent B. 3D twin of one site with HUD panels; embeds <ChatPanel siteId=... /> from ../chat (agent D).
-import '../dev/mockApi'
 import { useQuery } from '@tanstack/react-query'
 import clsx from 'clsx'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ArrowLeft, CalendarDays, ChevronRight, MessageSquare, Navigation, PackageOpen, Radio } from 'lucide-react'
+import { ArrowLeft, CalendarDays, ChevronRight, MessageSquare, Navigation, PackageOpen, Radio, Box, X } from 'lucide-react'
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import ChatPanel from '../chat/ChatPanel'
-import { isMockActive, onMockChange } from '../dev/mockApi'
+import { isLocalMode } from '../lib/mode'
+import { useViewport } from '../lib/useViewport'
 import { api } from '../lib/api'
 import { useTwin } from '../lib/store'
-import type { Delivery, SiteEvent, WsMessage } from '../lib/types'
+import type { Delivery, WsMessage } from '../lib/types'
 import { useLive } from '../lib/ws'
 import { refreshRoute } from '../twin/actions'
 import { TwinLayout } from '../twin/layout'
@@ -40,13 +40,15 @@ const CHAT_W = 380
 export default function SitePage() {
   const { siteId = '' } = useParams()
   const nav = useNavigate()
+  const { width, height } = useViewport()
+  const compact = width < 760
+  const [mobilePanel, setMobilePanel] = useState<Tab | 'chat' | null>(null)
+  const [showDemoScan, setShowDemoScan] = useState(false)
   const building = useTwin((s) => (s.siteId === siteId ? s.building : null))
   const [error, setError] = useState<string | null>(null)
   const [tab, setTab] = useState<Tab>('feed')
-  const [chatOpen, setChatOpen] = useState(true)
+  const [chatOpen, setChatOpen] = useState(() => window.innerWidth >= 760)
   const [toast, setToast] = useState<{ text: string; tone: 'info' | 'ok' | 'warn' } | null>(null)
-  const [mock, setMock] = useState(isMockActive())
-  useEffect(() => onMockChange(setMock), [])
   const sites = useQuery({ queryKey: ['sites'], queryFn: api.sites, staleTime: 60_000 })
   const site = sites.data?.find((s) => s.id === siteId)
 
@@ -61,7 +63,7 @@ export default function SitePage() {
       .then(async (b) => {
         if (cancelled) return
         useTwin.getState().setSite(siteId, b)
-        const [st, ev] = await Promise.all([api.state(siteId).catch(() => null), api.events(siteId).catch(() => [] as SiteEvent[])])
+        const [st, ev] = await Promise.all([api.state(siteId), api.events(siteId)])
         if (cancelled) return
         if (st) useTwin.getState().setState(st)
         useTwin.getState().setEvents(ev)
@@ -119,10 +121,10 @@ export default function SitePage() {
   )
   useLive(onLive)
 
-  const layout = useMemo(() => (building ? new TwinLayout(building) : null), [building])
+  const layout = useMemo(() => (building ? new TwinLayout(building, isLocalMode) : null), [building])
   const insets = useMemo(
-    () => ({ left: LEFT_W + 24, right: chatOpen ? CHAT_W + 24 : 0, top: 72, bottom: 84 }),
-    [chatOpen],
+    () => compact ? { left: 8, right: 8, top: 130, bottom: mobilePanel ? Math.round(height * 0.5) + 70 : 145 } : { left: LEFT_W + 24, right: chatOpen ? CHAT_W + 24 : 0, top: 72, bottom: 84 },
+    [chatOpen, compact, mobilePanel, height],
   )
 
   return (
@@ -131,13 +133,13 @@ export default function SitePage() {
         <Suspense fallback={null}>
           {/* isolate: keeps drei <Html> labels (z-index) below the HUD panels */}
           <div className="absolute inset-0 isolate">
-            <TwinScene key={siteId} building={building} siteId={siteId} layout={layout} insets={insets} />
+            <TwinScene key={siteId} building={building} siteId={siteId} layout={layout} insets={insets} showScans={!isLocalMode || showDemoScan} />
           </div>
         </Suspense>
       )}
 
       {/* header */}
-      <div className="pointer-events-none absolute left-4 top-4 flex items-start gap-3" style={{ width: LEFT_W }}>
+      <div className="pointer-events-none absolute left-4 top-4 flex items-start gap-3" style={{ width: compact ? 'calc(100% - 32px)' : LEFT_W }}>
         <Glass className="pointer-events-auto flex w-full items-center gap-3 px-3 py-2.5">
           <button onClick={() => nav('/')} className="grid size-8 shrink-0 place-items-center rounded-lg bg-white/5 text-slate-300 transition hover:bg-white/10 hover:text-white" title="Back to map">
             <ArrowLeft size={16} />
@@ -146,21 +148,21 @@ export default function SitePage() {
             <div className="truncate text-[15px] font-semibold text-white">{site?.name ?? building?.building.name ?? siteId}</div>
             <div className="truncate text-[11px] text-slate-400">
               {building ? `${building.floors.length} floors · ${building.spaces.length} spaces · ${building.assets.length} assets` : 'Loading…'}
-              {mock && <span className="ml-1.5 rounded bg-amber-400/20 px-1 text-[10px] font-semibold text-amber-200">MOCK</span>}
+              {isLocalMode && <span className="ml-1.5 rounded bg-emerald-400/15 px-1 text-[10px] font-semibold text-emerald-200">LOCAL</span>}
             </div>
           </div>
         </Glass>
       </div>
 
       {/* left panel */}
-      {building && (
-        <div className="pointer-events-none absolute bottom-24 left-4 top-[84px] flex flex-col" style={{ width: LEFT_W }}>
+      {building && (!compact || mobilePanel && mobilePanel !== 'chat') && (
+        <div className="pointer-events-none absolute left-4 flex flex-col" style={{ width: compact ? 'calc(100% - 32px)' : LEFT_W, bottom: compact ? 70 : 96, top: compact ? '48%' : 84 }}>
           <Glass className="pointer-events-auto flex max-h-full min-h-0 flex-col">
             <div className="flex gap-1 border-b border-white/5 p-1.5">
               {TABS.map((t) => (
                 <button
                   key={t.id}
-                  onClick={() => setTab(t.id)}
+                  onClick={() => { setTab(t.id); if (compact) setMobilePanel(t.id) }}
                   className={clsx(
                     'flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium transition',
                     tab === t.id ? 'bg-sky-500/20 text-sky-50' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200',
@@ -170,6 +172,7 @@ export default function SitePage() {
                   {t.label}
                 </button>
               ))}
+              {compact && <button aria-label="Close panel" className="px-2 text-slate-400" onClick={() => setMobilePanel(null)}><X size={15} /></button>}
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto p-2.5 [scrollbar-width:thin]">
               {tab === 'feed' && <FeedPanel building={building} />}
@@ -183,8 +186,8 @@ export default function SitePage() {
 
       {/* floor switcher */}
       {building && (
-        <div className="pointer-events-none absolute top-4 flex justify-center" style={{ left: LEFT_W + 32, right: chatOpen ? CHAT_W + 32 : 16 }}>
-          <div className="pointer-events-auto">
+        <div className="pointer-events-none absolute flex justify-center" style={{ top: compact ? 84 : 16, left: compact ? 8 : LEFT_W + 32, right: compact ? 8 : chatOpen ? CHAT_W + 32 : 16 }}>
+          <div className="pointer-events-auto max-w-full overflow-x-auto">
             <FloorBar building={building} />
           </div>
         </div>
@@ -192,24 +195,24 @@ export default function SitePage() {
 
       {/* chat */}
       <AnimatePresence initial={false}>
-        {chatOpen ? (
+        {(compact ? mobilePanel === 'chat' : chatOpen) ? (
           <motion.div
             key="chat"
             initial={{ x: CHAT_W + 40, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: CHAT_W + 40, opacity: 0 }}
             transition={{ type: 'spring', stiffness: 260, damping: 30 }}
-            className="absolute bottom-4 right-4 top-4 flex flex-col"
-            style={{ width: CHAT_W }}
+            className="absolute right-4 flex flex-col"
+            style={{ width: compact ? 'calc(100% - 32px)' : CHAT_W, bottom: compact ? 70 : 16, top: compact ? '43%' : 16 }}
           >
             <Glass className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
-              <button onClick={() => setChatOpen(false)} className="absolute -left-3 top-1/2 z-10 grid size-6 -translate-y-1/2 place-items-center rounded-full border border-white/10 bg-slate-900 text-slate-400 hover:text-white" title="Hide chat">
+              <button onClick={() => { setChatOpen(false); setMobilePanel(null) }} className="absolute right-2 top-2 z-10 grid size-6 place-items-center rounded-full border border-white/10 bg-slate-900 text-slate-400 hover:text-white" title="Hide chat">
                 <ChevronRight size={14} />
               </button>
               <div className="min-h-0 flex-1 overflow-hidden">{siteId && <ChatPanel key={siteId} siteId={siteId} />}</div>
             </Glass>
           </motion.div>
-        ) : (
+        ) : !compact ? (
           <motion.button
             key="chat-btn"
             initial={{ opacity: 0, scale: 0.8 }}
@@ -221,18 +224,18 @@ export default function SitePage() {
           >
             <MessageSquare size={18} />
           </motion.button>
-        )}
+        ) : null}
       </AnimatePresence>
 
       {/* timeline */}
-      {building && (
-        <div className="absolute bottom-4" style={{ left: LEFT_W + 32, right: chatOpen ? CHAT_W + 32 : 16 }}>
+      {building && (!compact || !mobilePanel) && (
+        <div className="absolute" style={{ bottom: compact ? 72 : 16, left: compact ? 16 : LEFT_W + 32, right: !compact && chatOpen ? CHAT_W + 32 : 16 }}>
           <Timeline />
         </div>
       )}
 
       {/* legend + attribution */}
-      {building && (
+      {building && !compact && (
         <div className="pointer-events-none absolute bottom-4 left-4 flex flex-col gap-1.5" style={{ width: LEFT_W }}>
           <div className="flex flex-wrap gap-x-2.5 gap-y-1 px-1">
             {ROOM_LEGEND.map(([label, color]) => (
@@ -256,7 +259,7 @@ export default function SitePage() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -12 }}
             className="absolute top-20 z-40 -translate-x-1/2"
-            style={{ left: `calc(50% + ${(LEFT_W - (chatOpen ? CHAT_W : 0)) / 2}px)` }}
+            style={{ left: compact ? '50%' : `calc(50% + ${(LEFT_W - (chatOpen ? CHAT_W : 0)) / 2}px)`, width: compact ? '90%' : undefined }}
           >
             <div
               className={clsx(
@@ -271,6 +274,14 @@ export default function SitePage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {building && compact && <nav aria-label="Building panels" className="absolute inset-x-0 bottom-0 z-30 flex h-16 items-center border-t border-white/10 bg-slate-950/95 px-1 backdrop-blur-xl">
+        <button className={`flex flex-1 flex-col items-center gap-1 py-2 text-[9px] ${!mobilePanel ? 'text-sky-300' : 'text-slate-400'}`} onClick={() => setMobilePanel(null)}><Box size={18} /> 3D view</button>
+        {TABS.map((t) => <button key={t.id} className={`flex flex-1 flex-col items-center gap-1 py-2 text-[9px] ${mobilePanel === t.id ? 'text-sky-300' : 'text-slate-400'}`} onClick={() => { setTab(t.id); setMobilePanel(mobilePanel === t.id ? null : t.id) }}>{t.icon}{t.label}</button>)}
+        <button className={`flex flex-1 flex-col items-center gap-1 py-2 text-[9px] ${mobilePanel === 'chat' ? 'text-sky-300' : 'text-slate-400'}`} onClick={() => setMobilePanel(mobilePanel === 'chat' ? null : 'chat')}><MessageSquare size={17} /> Assistant</button>
+      </nav>}
+      {building && compact && !mobilePanel && <p className="pointer-events-none absolute bottom-[147px] left-4 max-w-[90%] truncate text-[9px] text-slate-500">{building.building.attribution}</p>}
+      {isLocalMode && building?.building.id === 'proc-factory-dev-003' && <button className="absolute right-4 top-[132px] rounded-lg border border-white/10 bg-slate-950/80 px-2 py-1.5 text-[10px] text-slate-400" onClick={() => setShowDemoScan(!showDemoScan)}>{showDemoScan ? 'Hide example scan' : 'Show example scan'}</button>}
 
       {error && (
         <div className="absolute inset-0 grid place-items-center">

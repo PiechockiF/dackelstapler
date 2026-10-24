@@ -5,8 +5,9 @@ import { BrowserRouter } from 'react-router-dom'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import './index.css'
 import App from './App.tsx'
+import { isLocalMode } from './lib/mode'
 
-const queryClient = new QueryClient()
+const queryClient = new QueryClient({ defaultOptions: { queries: { retry: isLocalMode ? false : 2, refetchOnWindowFocus: !isLocalMode } } })
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

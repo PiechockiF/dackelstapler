@@ -1,6 +1,8 @@
 import { QrCode, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
+import { isLocalMode } from '../../lib/mode'
 import CaptureQR from '../../capture/CaptureQR'
 import DeliveryCard from '../../capture/DeliveryCard'
 import { useTwin } from '../../lib/store'
@@ -25,9 +27,9 @@ export function DeliveryPanel({ siteId }: { siteId: string }) {
   const list = [...snap.deliveries].sort((a, b) => b.ts.localeCompare(a.ts))
   return (
     <div className="flex flex-col gap-3">
-      <Btn tone="accent" onClick={() => setQr(true)}>
+      {isLocalMode ? <Link to={`/capture?site=${encodeURIComponent(siteId)}`} className="rounded-xl border border-sky-400/30 bg-sky-500/15 px-3 py-2 text-center text-sm text-sky-100">Add delivery on this phone</Link> : <Btn tone="accent" onClick={() => setQr(true)}>
         <QrCode size={14} /> Capture with phone
-      </Btn>
+      </Btn>}
       {!list.length && <Empty>No deliveries yet.</Empty>}
       {list.map((d) => (
         <div key={d.id} onClick={() => focusDelivery(d)} className="cursor-pointer rounded-xl transition hover:ring-1 hover:ring-sky-400/40">

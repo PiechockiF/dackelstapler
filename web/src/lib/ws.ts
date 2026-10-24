@@ -1,5 +1,7 @@
 import { useEffect } from 'react'
 import type { WsMessage } from './types'
+import { isLocalMode } from './mode'
+import { subscribeLocal } from '../local/events'
 
 type Listener = (message: WsMessage) => void
 
@@ -22,6 +24,7 @@ function connect() {
 /** Subscribe to server pushes (events, capture progress) for the lifetime of a component. */
 export function useLive(listener: Listener) {
   useEffect(() => {
+    if (isLocalMode) return subscribeLocal(listener)
     listeners.add(listener)
     if (!socket) connect()
     return () => {

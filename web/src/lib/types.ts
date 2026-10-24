@@ -73,7 +73,9 @@ export interface Delivery {
   dims_m: Dims; tolerance_m: number; declared_dims_m?: Dims
   floor_id: string; space_id: string; position: XY; rotation_deg: number
   target_space_id?: string; photo_url?: string; model_url?: string
-  status: 'ok' | 'mismatch' | 'blocked'; check: DimensionCheck
+  status: 'ok' | 'mismatch' | 'blocked' | 'unassessed'; check: DimensionCheck
+  photo_id?: string
+  measurement_source?: 'manual'
 }
 
 export interface SiteState {

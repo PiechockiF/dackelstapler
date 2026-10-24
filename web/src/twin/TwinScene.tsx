@@ -2,7 +2,7 @@ import { Bvh, CameraControls, ContactShadows, Environment, Grid, Lightformer } f
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Bloom, EffectComposer, N8AO, ToneMapping, Vignette } from '@react-three/postprocessing'
 import { ToneMappingMode } from 'postprocessing'
-import { useEffect, useMemo, useRef } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import type { Building } from '../lib/types'
 import { useTwin } from '../lib/store'
@@ -14,7 +14,8 @@ import { LayoutContext, type TwinLayout, useLayout } from './layout'
 import { Highlights, OpeningAlerts, RoomGlows } from './Overlays'
 import { COLORS } from './palette'
 import { Popover } from './Popover'
-import { RoomScans } from './RoomScans'
+import { mobileGraphics } from '../lib/mode'
+const RoomScans = lazy(() => import('./RoomScans').then((module) => ({ default: module.RoomScans })))
 import { buildParts, RouteView } from './RouteView'
 import { makeSkyMaterial } from './shaders'
 import { useTwinUi } from './uiStore'
@@ -27,15 +28,23 @@ export interface TwinSceneProps {
   insets?: { left: number; right: number; top: number; bottom: number }
   /** Heavy effects off (AO, contact shadows) for very large buildings or slow GPUs. */
   lite?: boolean
+  showScans?: boolean
 }
 
-export default function TwinScene({ building, siteId, layout, insets, lite }: TwinSceneProps) {
+export default function TwinScene({ building, siteId, layout, insets, lite, showScans = true }: TwinSceneProps) {
+  const [visible, setVisible] = useState(!document.hidden)
+  useEffect(() => {
+    const change = () => setVisible(!document.hidden)
+    document.addEventListener('visibilitychange', change)
+    return () => document.removeEventListener('visibilitychange', change)
+  }, [])
   const big = building.spaces.length > 600 || building.assets.length > 2500
-  const lowFx = lite ?? false
+  const lowFx = lite ?? mobileGraphics
   const far = Math.max(2000, layout.extent * 30)
   return (
     <Canvas
-      dpr={[1, big ? 1.5 : 2]}
+      dpr={[1, lowFx ? (big ? 1 : 1.5) : big ? 1.5 : 2]}
+      frameloop={!visible ? 'never' : mobileGraphics && !showScans ? 'demand' : 'always'}
       gl={{ antialias: false, powerPreference: 'high-performance', stencil: false }}
       camera={{ fov: 38, near: 0.3, far, position: [layout.extent * 1.4, layout.extent * 1.6, layout.extent * 1.8] }}
       onPointerMissed={() => {
@@ -68,18 +77,18 @@ export default function TwinScene({ building, siteId, layout, insets, lite }: Tw
         <Highlights building={building} />
         <Deliveries />
         <RouteView />
-        <RoomScans siteId={siteId} />
+        {showScans && <Suspense fallback={null}><RoomScans siteId={siteId} /></Suspense>}
         <Popover building={building} siteId={siteId} />
 
         <Ground lowFx={lowFx || big} />
         <CameraDirector building={building} insets={insets} />
 
-        <EffectComposer multisampling={big ? 0 : 4} enableNormalPass={false}>
-          {lowFx ? <></> : <N8AO halfRes quality="performance" aoRadius={Math.min(4, layout.extent * 0.04 + 1)} distanceFalloff={1} intensity={2.2} color="#000000" />}
+        {!lowFx && <EffectComposer multisampling={big ? 0 : 4} enableNormalPass={false}>
+          <N8AO halfRes quality="performance" aoRadius={Math.min(4, layout.extent * 0.04 + 1)} distanceFalloff={1} intensity={2.2} color="#000000" />
           <Bloom mipmapBlur luminanceThreshold={0.95} luminanceSmoothing={0.15} intensity={1.15} radius={0.72} />
           <ToneMapping mode={ToneMappingMode.AGX} />
           <Vignette offset={0.25} darkness={0.7} />
-        </EffectComposer>
+        </EffectComposer>}
       </LayoutContext.Provider>
     </Canvas>
   )
@@ -87,11 +96,15 @@ export default function TwinScene({ building, siteId, layout, insets, lite }: Tw
 
 function LayoutDriver() {
   const layout = useLayout()
+  const invalidate = useThree((s) => s.invalidate)
+  const twin = useTwin(), ui = useTwinUi()
+  useEffect(() => { invalidate() }, [twin, ui, invalidate, layout])
   const route = useTwin((s) => s.route)
   const routeFloors = useMemo(() => (route?.reachable ? new Set(route.floors.map((f) => f.floor_id)) : null), [route])
   useFrame((_, dt) => {
     const s = useTwin.getState()
     layout.update(dt, s.exploded, s.focusFloorId, routeFloors)
+    if (mobileGraphics && (!layout.introDone || Math.abs(layout.explode - layout.explodeTarget) > 0.001 || Math.abs(layout.explodeV) > 0.001 || layout.floors.some((f) => Math.abs(f.dim - f.dimTarget) > 0.002))) invalidate()
   }, -10)
   return null
 }

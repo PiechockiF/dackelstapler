@@ -1,5 +1,6 @@
 import { Html } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
+import { mobileGraphics } from '../lib/mode'
 import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import type { Building, XY } from '../lib/types'
@@ -90,7 +91,7 @@ function AlertMarker({ point, width, mode, angle, label }: { point: XY; width: n
   useEffect(() => () => mat.dispose(), [mat])
   useFrame(({ clock }) => {
     const t = clock.elapsedTime
-    const k = mode === 'blocking' ? (Math.sin(t * 12) > 0 ? 1 : 0.15) : 0.5 + 0.5 * Math.sin(t * 4)
+    const k = mobileGraphics ? 0.8 : mode === 'blocking' ? (Math.sin(t * 12) > 0 ? 1 : 0.15) : 0.5 + 0.5 * Math.sin(t * 4)
     mat.color.copy(COLORS.danger).multiplyScalar(1.5 + 4 * k)
     mat.opacity = 0.35 + 0.65 * k
   })
@@ -151,7 +152,7 @@ function RoomGlowMesh({ poly, color }: { poly: XY[]; color: THREE.Color }) {
     wallTop.dispose()
   }, [fill, outline, wallTop])
   useFrame(({ clock }) => {
-    const k = 0.5 + 0.5 * Math.sin(clock.elapsedTime * 3)
+    const k = mobileGraphics ? 0.7 : 0.5 + 0.5 * Math.sin(clock.elapsedTime * 3)
     fillMat.current.color.copy(color).multiplyScalar(0.5 + 0.5 * k)
     fillMat.current.opacity = 0.55
     lineMat.current.color.copy(color).multiplyScalar(2.5 + 2 * k)

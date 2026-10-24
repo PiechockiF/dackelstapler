@@ -9,8 +9,9 @@ import { FloorAnchor } from './FloorAnchor'
 import { useLayout } from './layout'
 import { COLORS } from './palette'
 import { useSnapshot } from './useSnapshot'
+import { mobileGraphics } from '../lib/mode'
 
-const STATUS: Record<Delivery['status'], THREE.Color> = { ok: COLORS.ok, mismatch: COLORS.warn, blocked: COLORS.danger }
+const STATUS: Record<Delivery['status'], THREE.Color> = { ok: COLORS.ok, mismatch: COLORS.warn, blocked: COLORS.danger, unassessed: COLORS.warn }
 
 export function Deliveries() {
   const snap = useSnapshot()
@@ -50,8 +51,8 @@ function DeliveryItem({ delivery, delay }: { delivery: Delivery; delay: number }
       return
     }
     if (start.current == null) start.current = clock.elapsedTime + delay
-    const t = Math.max(0, (clock.elapsedTime - start.current) / 1.1)
-    g.visible = clock.elapsedTime >= start.current
+    const t = mobileGraphics ? 1 : Math.max(0, (clock.elapsedTime - start.current) / 1.1)
+    g.visible = mobileGraphics || clock.elapsedTime >= start.current
     if (g.visible && !shown) setShown(true)
     const y = t >= 1 ? 0 : 14 * (1 - bounce(t))
     g.position.y = y

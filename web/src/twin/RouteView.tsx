@@ -1,5 +1,6 @@
 import { Html } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
+import { mobileGraphics } from '../lib/mode'
 import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import type { Route, XY } from '../lib/types'
@@ -107,12 +108,12 @@ function RouteBody({ route, parts, total }: { route: Route; parts: Part[]; total
   useFrame(({ clock }) => {
     if (born.current == null) born.current = clock.elapsedTime
     const age = clock.elapsedTime - born.current
-    const reveal = Math.min(total + 1, (age / 1.8) * total * 1.05)
+    const reveal = mobileGraphics ? total + 1 : Math.min(total + 1, (age / 1.8) * total * 1.05)
     const cycle = total / SPEED + 1.2
     const s = age < 1.8 ? reveal : Math.min(total, ((age - 1.8) % cycle) * SPEED)
     head.current = s
     for (const m of mats) {
-      m.uniforms.uTime.value = clock.elapsedTime
+      m.uniforms.uTime.value = mobileGraphics ? 1 : clock.elapsedTime
       m.uniforms.uReveal.value = reveal
       m.uniforms.uHead.value = s
     }
@@ -155,7 +156,7 @@ function RouteBody({ route, parts, total }: { route: Route; parts: Part[]; total
           </div>
         </Html>
       </FloorAnchor>
-      <group ref={avatar}>
+      <group ref={avatar} visible={!mobileGraphics}>
         <mesh>
           <sphereGeometry args={[0.32, 24, 24]} />
           <meshBasicMaterial color={new THREE.Color('#ffffff').multiplyScalar(4)} toneMapped={false} />

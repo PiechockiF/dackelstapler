@@ -12,3 +12,7 @@
 }
 
 html, body, #root { height: 100%; margin: 0; background: var(--color-bg); color: #e2e8f0; }
+#root { height: 100dvh; box-sizing: border-box; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); overflow: hidden; }
+.local-home { -webkit-overflow-scrolling: touch; }
+button, a, input, select, textarea { touch-action: manipulation; }
+@media (max-width: 759px) { input, select, textarea { font-size: 16px !important; } }

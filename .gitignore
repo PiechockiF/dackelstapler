@@ -22,6 +22,8 @@ dist/
 .ruff_cache/
 .coverage
 htmlcov/
+web/public/offline/
+web/tests/fixtures/routes.json
 .ipynb_checkpoints/
 
 # editors / OS
