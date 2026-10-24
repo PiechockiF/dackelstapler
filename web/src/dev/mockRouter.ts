@@ -43,8 +43,9 @@ function buildGraph(b: Building, opts: { stepFree: boolean; minWidth: number | n
     if (opts.minWidth != null && o.width_m + 1e-9 < opts.minWidth) continue
     const door = `door:${o.id}`
     for (const sid of o.space_ids) {
-      if (sid === OUTSIDE) add(OUTSIDE, door, 0, o.id)
-      else if (idx.anchors.has(sid) && !opts.closed.has(sid)) {
+      if (sid === OUTSIDE) {
+        if (opts.minWidth != null) add(OUTSIDE, door, 0, o.id) // pedestrians stay inside; only loads go round
+      } else if (idx.anchors.has(sid) && !opts.closed.has(sid)) {
         const a = idx.anchors.get(sid)!
         add(sid, door, Math.hypot(a[0] - o.position[0], a[1] - o.position[1]), o.id)
       }

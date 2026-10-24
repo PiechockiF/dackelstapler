@@ -137,12 +137,12 @@ def route_fit(bm, start: str, target: str, width: float) -> dict:
     """Contract route_fit + internal keys (_alt_via, _direct_len)."""
     direct = None
     try:
-        direct = bm.find_route(start, target, step_free=True)
+        direct = bm.find_route(start, target, step_free=True, outside=True)  # a load's natural route
     except MapError:
         direct = None
     if direct is None:
         try:  # no step-free route at all: show the unconstrained one so the steps/stairs are visible
-            direct = bm.find_route(start, target)
+            direct = bm.find_route(start, target, outside=True)
         except MapError:
             direct = None
     blocking = _narrow_openings(bm, direct, width) if direct is not None else []
