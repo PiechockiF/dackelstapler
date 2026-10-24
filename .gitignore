@@ -1,4 +1,9 @@
+# The Flutter iOS app lives on feat/flutter-ios; ignore its build leftovers in mobile/ on main.
+mobile/
+
 .env
+.env.*
+!.env.example
 .venv/
 __pycache__/
 *.pyc
@@ -9,3 +14,8 @@ node_modules/
 web/dist/
 .pytest_cache/
 web/ios/DerivedData/
+.tooling/
+*.log
+.idea/
+*.iml
+.vscode/
