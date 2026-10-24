@@ -1,8 +1,9 @@
 """SiteTwin building map: the starter BuildingMap plus areas, constrained routing and route payloads.
 
-The route cost model is the starter's, unchanged (representative-point anchors, door nodes, 12 m per
-stair floor, 15 m + 6 m per lift floor, one zero-cost "outside" node joining all entrances), so route
-lengths reproduce the dataset's expected answers to the centimetre. Width and step-free constraints only
+The route cost model is the starter's (representative-point anchors, door nodes, 12 m per stair floor,
+15 m + 6 m per lift floor, one zero-cost "outside" node joining all entrances), so route lengths reproduce
+the dataset's expected answers to the centimetre. One exception: pedestrians never leave the building and
+come back in (see graph()), so kit routes that do are not reproduced. Width and step-free constraints only
 remove edges from that graph."""
 
 from __future__ import annotations
@@ -100,11 +101,16 @@ class BuildingMap(StarterBuildingMap):
         step_free: bool,
         min_width_m: float | None = None,
         closed: set[str] | frozenset[str] | None = None,
+        outside: bool = False,
     ) -> nx.MultiGraph:
         """The starter graph, optionally without openings narrower than min_width_m (loads also imply
-        step-free) and with extra closed element ids on top of self.closed."""
+        step-free) and with extra closed element ids on top of self.closed.
+        Pedestrians stay inside: the zero-cost "outside" node joining all entrances is only added for loads
+        (min_width_m set), which may drive round the building, or with outside=True for searches that start
+        outside (entrance distances, reachability from the street)."""
         if min_width_m is not None:
             step_free = True
+        outside = outside or min_width_m is not None
         blocked = set(self.closed) | set(closed or ())
         graph = nx.MultiGraph()
         anchors = {space_id: point for space_id, point in self.anchors.items() if space_id not in blocked}
@@ -117,7 +123,8 @@ class BuildingMap(StarterBuildingMap):
             door = DOOR_PREFIX + opening["id"]
             for space_id in opening["space_ids"]:
                 if space_id == OUTSIDE:
-                    graph.add_edge(OUTSIDE, door, weight=0.0, via=opening["id"])
+                    if outside:
+                        graph.add_edge(OUTSIDE, door, weight=0.0, via=opening["id"])
                 elif space_id in anchors:
                     distance = math.dist(anchors[space_id], opening["position"])
                     graph.add_edge(space_id, door, weight=distance, via=opening["id"])
@@ -150,15 +157,17 @@ class BuildingMap(StarterBuildingMap):
         min_width_m: float | None = None,
         via: list[str] | None = None,
         closed: set[str] | None = None,
+        outside: bool = False,
     ) -> SiteRoute:
-        """Shortest route under constraints. Raises MapError when there is none."""
+        """Shortest route under constraints. Raises MapError when there is none.
+        outside=True lets the route leave and re-enter the building (loads always may, see graph())."""
         stops = [
             self.resolve_space(start),
             *[self.resolve_space(stop) for stop in via or []],
             self.resolve_space(destination),
         ]
         step_free = step_free or min_width_m is not None
-        graph = self.graph(step_free, min_width_m, closed)
+        graph = self.graph(step_free, min_width_m, closed, outside)
         nodes: list[str] = []
         length = 0.0
         for leg_start, leg_end in itertools.pairwise(stops):
@@ -208,7 +217,7 @@ class BuildingMap(StarterBuildingMap):
         graph: nx.MultiGraph | None = None,
     ) -> dict[str, float]:
         """Route-model distance from one space (or 'outside') to every reachable space."""
-        graph = graph if graph is not None else self.graph(step_free, min_width_m, closed)
+        graph = graph if graph is not None else self.graph(step_free, min_width_m, closed, outside=source == OUTSIDE)
         if source not in graph:
             return {}
         lengths = nx.single_source_dijkstra_path_length(graph, source, weight="weight")
@@ -216,7 +225,7 @@ class BuildingMap(StarterBuildingMap):
 
     def entrance_distances(self, graph: nx.MultiGraph | None = None, step_free: bool = False) -> dict[str, float]:
         """Distance from every space to its nearest entrance (via the shared 'outside' node)."""
-        graph = graph if graph is not None else self.graph(step_free)
+        graph = graph if graph is not None else self.graph(step_free, outside=True)
         return self.distances_from(OUTSIDE, graph=graph)
 
     # ---------- route payload for the frontend ----------

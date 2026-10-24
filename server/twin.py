@@ -50,9 +50,10 @@ DOOR_NODE_PREFIX = "door:"
 
 
 class AppBuildingMap(BuildingMap):
-    """The app's map: identical to the benchmark model except that walking outside between two entrances
+    """The app's map: identical to the benchmark model except that going outside between two entrances
     costs the straight-line distance between them (the benchmark joins all entrances at zero cost, which
-    would draw routes that teleport across the yard)."""
+    would draw routes that teleport across the yard). Only loads go outside; pedestrian graphs have no
+    outside node (core BuildingMap.graph)."""
 
     def graph(self, step_free, *args, **kwargs):  # type: ignore[override]
         graph = super().graph(step_free, *args, **kwargs)
