@@ -44,13 +44,14 @@ class SiteRow(SQLModel, table=True):
     demo_location: bool = True
     kind: str = "other"
     user_created: bool = False
+    address: str | None = None
     created_at: str = Field(default_factory=now_iso)
 
     def to_site(self) -> dict:
         return {
             "id": self.id, "name": self.name, "lat": self.lat, "lon": self.lon, "source": self.source,
             "building_id": self.building_id, "data_path": self.data_path, "floors": self.floors,
-            "demo_location": self.demo_location, "kind": self.kind,
+            "demo_location": self.demo_location, "kind": self.kind, "address": self.address,
         }
 
 
@@ -129,7 +130,18 @@ def engine():
         _engine = create_engine(f"sqlite:///{path}", connect_args={"check_same_thread": False})
         _engine_path = path
         SQLModel.metadata.create_all(_engine)
+        _add_missing_columns(_engine)
     return _engine
+
+
+def _add_missing_columns(eng) -> None:
+    """create_all never alters existing tables; add columns introduced after a database was created."""
+    from sqlalchemy import text
+
+    with eng.begin() as conn:
+        columns = {row[1] for row in conn.execute(text("PRAGMA table_info(sites)"))}
+        if "address" not in columns:
+            conn.execute(text("ALTER TABLE sites ADD COLUMN address VARCHAR"))
 
 
 def session() -> Session:

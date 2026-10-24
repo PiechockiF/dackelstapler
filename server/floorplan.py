@@ -1,6 +1,7 @@
-"""New sites from uploads: validate a building.json, or turn a floor-plan image/PDF into one with
-Claude vision, then sanity-check that every room is reachable from an entrance (adding doors where a
-room has none) before saving to storage/sites/<site_id>/building.json."""
+"""New sites from uploads: validate a building.json, or turn floor-plan images/PDFs into one with Claude
+vision (one call per image, then server/stitch.py stitches storeys and stacks them), then sanity-check that
+every room is reachable from an entrance (adding doors where a room has none) before saving to
+storage/sites/<site_id>/building.json."""
 
 from __future__ import annotations
 
@@ -112,7 +113,9 @@ def sanity_fix(data: dict) -> tuple[dict, list[str]]:
     warnings: list[str] = []
     bm = BuildingMap(data)
     if not any("outside" in opening["space_ids"] for opening in bm.openings.values()):
-        candidates = sorted(bm.spaces.values(), key=lambda s: (s.get("type") not in ("corridor", "hall"),
+        lowest = min(bm.floors.values(), key=lambda floor: floor["level"])["id"]
+        candidates = sorted(bm.spaces.values(), key=lambda s: (s["floor_id"] != lowest,
+                                                               s.get("type") not in ("corridor", "hall"),
                                                                -Polygon(s["polygon"]).area))
         space = candidates[0]
         polygon = Polygon(space["polygon"])
@@ -160,11 +163,20 @@ def _point_schema() -> dict:
     return {"type": "array", "items": {"type": "number"}}
 
 
+def _polygon_schema() -> dict:
+    return {"type": "array", "items": _point_schema()}
+
+
 PLAN_SCHEMA = {
     "type": "object",
     "additionalProperties": False,
-    "required": ["plan_width_m", "plan_height_m", "spaces", "openings"],
+    "required": ["floor_label", "level", "has_north_arrow", "north_deg", "plan_width_m", "plan_height_m",
+                 "spaces", "landmarks", "openings"],
     "properties": {
+        "floor_label": {"type": "string", "description": "Storey as written on the plan, e.g. '3. Obergeschoss'"},
+        "level": {"type": "integer", "description": "Storey number: 0 ground floor, 1 first upper floor, -1 basement"},
+        "has_north_arrow": {"type": "boolean"},
+        "north_deg": {"type": "number", "description": "Direction the north arrow points, degrees clockwise from image-up"},
         "plan_width_m": {"type": "number", "description": "Real-world width covered by the whole image, metres"},
         "plan_height_m": {"type": "number", "description": "Real-world height covered by the whole image, metres"},
         "spaces": {"type": "array", "items": {
@@ -175,8 +187,12 @@ PLAN_SCHEMA = {
                 "name": {"type": "string"},
                 "type": {"type": "string", "enum": SPACE_TYPES},
                 "room_type": {"type": "string", "enum": ROOM_TYPES},
-                "polygon": {"type": "array", "items": _point_schema()},
+                "polygon": _polygon_schema(),
             }}},
+        "landmarks": {"type": "array", "items": {
+            "type": "object", "additionalProperties": False,
+            "required": ["key", "name", "polygon"],
+            "properties": {"key": {"type": "string"}, "name": {"type": "string"}, "polygon": _polygon_schema()}}},
         "openings": {"type": "array", "items": {
             "type": "object", "additionalProperties": False,
             "required": ["from_key", "to_key", "kind", "x", "y", "width_m", "step_free"],
@@ -191,21 +207,65 @@ PLAN_SCHEMA = {
     },
 }
 
-VISION_PROMPT = """This is an architectural floor plan. Extract it for an indoor navigation graph.
+VISION_PROMPT = """This is a photo or scan of an architectural floor plan, often a German escape plan \
+("Flucht- und Rettungsplan") photographed on a wall. Extract it for an indoor navigation graph. Other \
+photos of the same building will be stitched to this one, so labels and positions matter.
 
-Coordinates: use a normalised frame where the image's top-left is (0, 0) and bottom-right is \
-(1000, 1000), x to the right, y down, regardless of the image's aspect ratio.
+Coordinates: use a normalised frame where the whole image's top-left is (0, 0) and bottom-right is \
+(1000, 1000), x to the right, y down, regardless of the image's aspect ratio or how much of it the plan fills.
+
+Only the main floor plan counts. Ignore the title bar, the legend, behaviour instructions ("Verhalten im \
+Brandfall", "Verhalten bei Unfällen"), the small site overview map ("Übersichtsplan"), the planner's title \
+block and anything outside the building drawing.
 
 Return:
+- floor_label: the storey as written on the plan ("3. Obergeschoss", "Erdgeschoss", "UG"), or "" if none.
+- level: that storey as an integer. Ground floor (EG, Erdgeschoss) is 0, the n-th upper floor (n. OG, \
+Obergeschoss) is n, the first basement (UG, KG, Untergeschoss) is -1. If no storey is written, use a plan \
+number such as "OG3.06" (= 3), otherwise 0.
+- has_north_arrow / north_deg: whether the plan has a north arrow or compass rose, and the direction its \
+north ("N") points in degrees clockwise from straight up in the image (0 = up, 90 = right, 180 = down, \
+270 = left). Use 0 when there is none.
 - plan_width_m / plan_height_m: your best estimate of the real-world size the whole image covers, in metres. \
-{scale_hint} Doors are typically 0.9 m wide, corridors 1.5-2.5 m.
-- spaces: every room, corridor, stairwell and lift as a polygon outline (clockwise, not closed, 4+ points \
-for rectangles). Give each a short unique key (S1, S2, ...), a name using the label on the plan if any \
-("Office 2.03", "WC") and the best room_type.
-- openings: every door or open passage between two spaces (from_key/to_key) at the door's centre, with \
-its width in metres. Doors to the outside are kind "entrance" with to_key "outside". If a room has no \
-visible door, add the most plausible one to the corridor it borders.
-Be complete: every space must have at least one opening."""
+{scale_hint} Doors are typically 0.9-1.0 m wide, corridors 1.5-2.5 m, offices 3-5 m deep, stair flights \
+about 1.2 m wide.
+- spaces: every walkable room, corridor, hall, stairwell, lift and terrace as a polygon outline (clockwise, \
+not closed, 4+ points for rectangles). Give each a short unique key (S1, S2, ...), its label on the plan if \
+any ("Büro", "Küche", "WC", "Besprechung", "Think Tank"), otherwise a descriptive name ("Flur", \
+"Treppenhaus", "Aufzug"), and the best room_type. Green escape-route areas (Fluchtweg) are corridors or \
+halls; drawn stair flights are stair spaces; terraces and balconies are "outdoor"; a large open-plan area \
+("offener Bürobereich") is one room.
+- landmarks: labelled areas you cannot walk in that help line plans up, such as voids/atria ("Luftraum") or \
+shafts, as polygons with their label. Do not repeat them as spaces.
+- openings: every door or open passage between two spaces (from_key/to_key) at the door's centre, with its \
+width in metres. Doors leading out of the building are kind "entrance" with to_key "outside". Emergency-exit \
+signs ("Notausgang") usually mark the door into a staircase: include that staircase and the door to it. If \
+a room has no visible door, add the most plausible one to the corridor it borders.
+If the plan is cut off at the image edge, extract only what is visible. Be complete: every space must have \
+at least one opening."""
+
+MATCH_SCHEMA = {
+    "type": "object",
+    "additionalProperties": False,
+    "required": ["overlap", "pairs"],
+    "properties": {
+        "overlap": {"type": "boolean"},
+        "pairs": {"type": "array", "items": {
+            "type": "object", "additionalProperties": False,
+            "required": ["what", "a", "b"],
+            "properties": {"what": {"type": "string"}, "a": _point_schema(), "b": _point_schema()}}},
+    },
+}
+
+MATCH_PROMPT = """Image A and image B are two plans of the same storey of one building; each shows part \
+of it and they may be rotated or scaled against each other. Rooms read from A: {rooms_a}. Rooms read from B: \
+{rooms_b}.
+
+Find 4-8 points that are the same physical spot in both images: corners of the same room, the centre of the \
+same door, stair corners, columns. Give each point in each image's own normalised frame (top-left (0, 0), \
+bottom-right (1000, 1000), y down), "a" for image A and "b" for image B, and say briefly what it is. Prefer \
+points that are far apart. If the images do not show any common part of the building, set overlap to false \
+and return no pairs."""
 
 
 def _media(data: bytes, media_type: str) -> tuple[dict, float]:
@@ -214,92 +274,165 @@ def _media(data: bytes, media_type: str) -> tuple[dict, float]:
         block = {"type": "document", "source": {"type": "base64", "media_type": "application/pdf",
                                                 "data": base64.standard_b64encode(data).decode()}}
         return block, 1 / 1.414  # A-series landscape is the common case
-    from PIL import Image
+    from PIL import Image, ImageOps
 
     image = Image.open(io.BytesIO(data))
+    upright = ImageOps.exif_transpose(image)  # phone photos: honour the EXIF orientation
+    rotated = upright is not image
+    image = upright
     aspect = image.height / max(1, image.width)
-    if image.width > 2400 or image.height > 2400 or media_type not in ("image/png", "image/jpeg", "image/webp", "image/gif"):
+    if rotated or image.width > 2400 or image.height > 2400 or media_type not in ("image/png", "image/jpeg", "image/webp", "image/gif"):
         image.thumbnail((2400, 2400))
         buffer = io.BytesIO()
-        image.convert("RGB").save(buffer, format="PNG")
-        data, media_type = buffer.getvalue(), "image/png"
+        image.convert("RGB").save(buffer, format="JPEG", quality=90)
+        data, media_type = buffer.getvalue(), "image/jpeg"
     block = {"type": "image", "source": {"type": "base64", "media_type": media_type,
                                          "data": base64.standard_b64encode(data).decode()}}
     return block, aspect
 
 
-def parse_plan_with_claude(data: bytes, media_type: str, site_id: str, name: str,
-                           width_m: float | None = None) -> dict:
+def _require_key() -> None:
     if not (os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN")):
         raise NoVisionKey("Floor-plan parsing needs ANTHROPIC_API_KEY. Upload a building.json instead, "
                           "or set the key in .env and restart the server.")
+
+
+def _ask_json(content: list[dict], schema: dict, max_tokens: int = 48000, effort: str = "medium") -> dict:
     import anthropic
 
-    block, aspect = _media(data, media_type)
-    hint = (f"The user says the whole image is {width_m:g} m wide." if width_m else
-            "Estimate the scale from door widths, furniture and any dimension labels or scale bar.")
     client = anthropic.Anthropic()
     with client.messages.stream(
         model=VISION_MODEL,
-        max_tokens=48000,
-        output_config={"effort": "medium", "format": {"type": "json_schema", "schema": PLAN_SCHEMA}},
-        messages=[{"role": "user", "content": [block, {"type": "text", "text": VISION_PROMPT.format(scale_hint=hint)}]}],
+        max_tokens=max_tokens,
+        output_config={"effort": effort, "format": {"type": "json_schema", "schema": schema}},
+        messages=[{"role": "user", "content": content}],
     ) as stream:
         message = stream.get_final_message()
     if message.stop_reason == "refusal":
         raise PlanError("The plan could not be parsed (the model declined).")
+    if message.stop_reason == "max_tokens":
+        raise PlanError("The plan was too detailed to read in one go. Try a tighter crop.")
     text = next((b.text for b in message.content if b.type == "text"), "")
     try:
-        plan = json.loads(text)
+        return json.loads(text)
     except json.JSONDecodeError as error:
         raise PlanError(f"Could not read the parsed plan: {error}") from error
-    return plan_to_building(plan, site_id, name, width_m, aspect)
+
+
+def extract_plan(data: bytes, media_type: str, width_m: float | None = None) -> dict:
+    """One image -> raw extraction (normalised coordinates) plus its aspect ratio. One Claude call."""
+    _require_key()
+    block, aspect = _media(data, media_type)
+    hint = (f"The user says the building is about {width_m:g} m along its longest side." if width_m else
+            "There is usually no scale bar: estimate the scale from door widths, stairs and furniture.")
+    content = [block, {"type": "text", "text": VISION_PROMPT.format(scale_hint=hint)}]
+    plan = _ask_json(content, PLAN_SCHEMA)
+    if _plan_quality(plan) < MIN_PLAN_QUALITY:
+        # Occasionally a read comes back degenerate (a few repeated slivers, no doors): read it again harder.
+        log.info("plan extraction looked degenerate (%d distinct rooms); retrying at high effort", _plan_quality(plan))
+        retry = _ask_json(content, PLAN_SCHEMA, effort="high")
+        if _plan_quality(retry) > _plan_quality(plan):
+            plan = retry
+    plan["aspect"] = aspect
+    return plan
+
+
+MIN_PLAN_QUALITY = 4
+
+
+def _plan_quality(plan: dict) -> int:
+    """Distinct, plausibly sized spaces (normalised units); 0 when no door was found at all."""
+    if not plan.get("openings"):
+        return 0
+    seen = set()
+    for space in plan.get("spaces") or []:
+        points = [p[:2] for p in space.get("polygon") or [] if len(p) >= 2]
+        if len(points) < 3:
+            continue
+        polygon = Polygon(points)
+        if not polygon.is_valid or polygon.area < 100:  # 100 = 0.01 % of the image
+            continue
+        seen.add(tuple(round(v, -1) for v in polygon.bounds))
+    return len(seen)
+
+
+def match_points(first: tuple[bytes, str], second: tuple[bytes, str], plan_a: dict, plan_b: dict) -> list:
+    """Corresponding points between two plans of one storey (fallback when they share too few labels)."""
+    _require_key()
+    block_a, _ = _media(*first)
+    block_b, _ = _media(*second)
+
+    def rooms(plan: dict) -> str:
+        names = [s.get("name") for s in (plan.get("spaces") or []) + (plan.get("landmarks") or []) if s.get("name")]
+        return ", ".join(names[:60]) or "none"
+
+    prompt = MATCH_PROMPT.format(rooms_a=rooms(plan_a), rooms_b=rooms(plan_b))
+    result = _ask_json([{"type": "text", "text": "Image A:"}, block_a, {"type": "text", "text": "Image B:"}, block_b,
+                        {"type": "text", "text": prompt}], MATCH_SCHEMA, max_tokens=16000)
+    if not result.get("overlap"):
+        return []
+    return [[p["a"][:2], p["b"][:2]] for p in result.get("pairs", [])
+            if len(p.get("a", [])) >= 2 and len(p.get("b", [])) >= 2]
+
+
+def parse_plans_with_claude(uploads: list[tuple[bytes, str, str]], site_id: str, name: str,
+                            width_m: float | None = None,
+                            address: str | None = None) -> tuple[dict, list[str], list[dict], dict]:
+    """Floor-plan images (bytes, media type, filename) -> (building, warnings, extractions, matches).
+
+    Every image is read in parallel; images of the same storey are stitched and storeys stacked."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    from server.stitch import StitchError, build_from_extractions
+
+    _require_key()
+
+    def read(upload: tuple[bytes, str, str]) -> dict:
+        data, media_type, filename = upload
+        try:
+            plan = extract_plan(data, media_type, width_m)
+        except PlanError as error:
+            return {"filename": filename, "error": str(error)}
+        return {**plan, "filename": filename}
+
+    with ThreadPoolExecutor(max_workers=min(4, len(uploads))) as pool:
+        extractions = list(pool.map(read, uploads))
+    if all(e.get("error") for e in extractions):
+        raise PlanError("; ".join(f"{e['filename']}: {e['error']}" for e in extractions))
+
+    def matcher(a: int, b: int) -> list:
+        return match_points(uploads[a][:2], uploads[b][:2], extractions[a], extractions[b])
+
+    try:
+        building, warnings, matches = build_from_extractions(
+            extractions, site_id, name, width_m=width_m, address=address, matcher=matcher)
+    except StitchError as error:
+        raise PlanError(str(error)) from error
+    return building, warnings, extractions, matches
+
+
+def restitch(extractions: list[dict], site_id: str, name: str, *, width_m: float | None = None,
+             address: str | None = None, matches: dict | None = None,
+             level_overrides: dict[int, int] | None = None) -> tuple[dict, list[str], dict]:
+    """Re-run stitching on earlier extractions (e.g. after the user corrected a storey). No Claude call."""
+    from server.stitch import StitchError, build_from_extractions
+
+    try:
+        return build_from_extractions(extractions, site_id, name, width_m=width_m, address=address,
+                                      matches=matches, level_overrides=level_overrides)
+    except StitchError as error:
+        raise PlanError(str(error)) from error
+
+
+def parse_plan_with_claude(data: bytes, media_type: str, site_id: str, name: str,
+                           width_m: float | None = None) -> dict:
+    """Single image (kept for callers of the old API)."""
+    building, _, _, _ = parse_plans_with_claude([(data, media_type, "plan")], site_id, name, width_m)
+    return building
 
 
 def plan_to_building(plan: dict, site_id: str, name: str, width_m: float | None = None,
                      aspect: float | None = None) -> dict:
-    """Normalised (0..1000, y down) plan → building.json in metres (y up)."""
-    plan_w = float(width_m or plan.get("plan_width_m") or 30.0)
-    plan_h = float(plan.get("plan_height_m") or plan_w * (aspect or 1.0))
-    if width_m and plan.get("plan_width_m"):
-        plan_h = plan_h * float(width_m) / float(plan["plan_width_m"])
-
-    def to_m(x: float, y: float) -> list[float]:
-        return [round(float(x) / 1000 * plan_w, 3), round((1000 - float(y)) / 1000 * plan_h, 3)]
-
-    floor_id = f"{site_id}-F0"
-    spaces, keys = [], {}
-    for index, item in enumerate(plan.get("spaces", []), start=1):
-        polygon = [to_m(*point[:2]) for point in item.get("polygon", []) if len(point) >= 2]
-        if len(polygon) < 3 or Polygon(polygon).area < 0.5:
-            continue
-        if not Polygon(polygon).is_valid:
-            polygon = [list(map(lambda v: round(v, 3), xy)) for xy in Polygon(polygon).buffer(0).exterior.coords[:-1]]
-        space_id = f"{floor_id}-S{index:03d}"
-        keys[item["key"]] = space_id
-        ref_match = re.search(r"\d+(?:\.\d+)?", item.get("name", ""))
-        spaces.append({"id": space_id, "floor_id": floor_id, "type": item.get("type", "room"),
-                       "room_type": item.get("room_type", "generic_room"), "name": item.get("name") or space_id,
-                       "ref": ref_match.group(0) if ref_match else None, "polygon": polygon, "synthetic": False})
-    openings = []
-    for index, item in enumerate(plan.get("openings", []), start=1):
-        first = keys.get(item.get("from_key"))
-        second = "outside" if item.get("to_key") == "outside" else keys.get(item.get("to_key"))
-        if not first or not second or first == second:
-            continue
-        openings.append({"id": f"{floor_id}-O{index:04d}", "floor_id": floor_id, "space_ids": [first, second],
-                         "kind": "entrance" if second == "outside" else item.get("kind", "door"),
-                         "position": to_m(item["x"], item["y"]), "width_m": round(float(item.get("width_m") or 0.9), 2),
-                         "step_free": bool(item.get("step_free", True)), "synthetic": False})
-    if not spaces:
-        raise PlanError("No rooms were recognised on this plan. Try a cleaner image or a building.json.")
-    return {
-        "building": {"id": site_id, "name": name, "source": "floor_plan_upload", "license": "user",
-                     "attribution": "Parsed from an uploaded floor plan with Claude vision", "units": "m",
-                     "scale": {"plan_width_m": plan_w, "plan_height_m": plan_h, "user_supplied": bool(width_m)}},
-        "floors": [{"id": floor_id, "level": 0, "name": "Ground floor", "elevation_m": 0.0, "height_m": 3.0}],
-        "spaces": spaces,
-        "openings": openings,
-        "vertical_connectors": [],
-        "assets": [],
-    }
+    """One normalised (0..1000, y down) extraction -> building.json in metres (y up)."""
+    building, _, _ = restitch([{**plan, "aspect": aspect or plan.get("aspect")}], site_id, name, width_m=width_m)
+    return building

@@ -32,7 +32,8 @@ export default function MapPage() {
   const [hovered, setHovered] = useState<string | null>(null)
   const [active, setActive] = useState<string | null>(null)
   const [pickMode, setPickMode] = useState(false)
-  const [dialog, setDialog] = useState<{ lat: number; lon: number } | null>(null)
+  // The Add-Standort dialog stays mounted while the user picks a spot on the map (picking=true).
+  const [dialog, setDialog] = useState<{ lat: number | null; lon: number | null; seq: number; picking: boolean } | null>(null)
   const [leaving, setLeaving] = useState(false)
   const [flows, setFlows] = useState<Flow[]>([])
   const [mock, setMock] = useState(isMockActive())
@@ -90,7 +91,7 @@ export default function MapPage() {
         onSiteHover={setHovered}
         onPick={(lat, lon) => {
           setPickMode(false)
-          setDialog({ lat, lon })
+          setDialog((d) => ({ lat, lon, seq: (d?.seq ?? 0) + 1, picking: false }))
         }}
       />
 
@@ -182,15 +183,15 @@ export default function MapPage() {
           </ul>
           <div className="border-t border-white/5 p-3">
             <button
-              onClick={() => setPickMode((p) => !p)}
-              className={clsx(
-                'flex w-full items-center justify-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium transition',
-                pickMode ? 'border-amber-300/40 bg-amber-400/15 text-amber-100' : 'border-sky-400/30 bg-sky-500/15 text-sky-100 hover:bg-sky-500/25',
-              )}
+              onClick={() => {
+                setPickMode(false)
+                setDialog({ lat: null, lon: null, seq: 0, picking: false })
+              }}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-sky-400/30 bg-sky-500/15 px-3 py-2 text-sm font-medium text-sky-100 transition hover:bg-sky-500/25"
             >
-              <Plus size={15} /> {pickMode ? 'Click on the map to place it…' : 'Add Standort'}
+              <Plus size={15} /> Add Standort
             </button>
-            <div className="mt-1.5 text-center text-[10px] text-slate-500">or right-click anywhere on the map</div>
+            <div className="mt-1.5 text-center text-[10px] text-slate-500">by address, or right-click anywhere on the map</div>
           </div>
         </div>
       </motion.div>
@@ -204,11 +205,25 @@ export default function MapPage() {
       )}
 
       {dialog && (
-        <div className="absolute inset-0 z-40">
+        <div className={clsx('absolute inset-0 z-40', dialog.picking && 'pointer-events-none')}>
           <AddSiteDialog
             lat={dialog.lat}
             lon={dialog.lon}
-            onClose={() => setDialog(null)}
+            pickSeq={dialog.seq}
+            picking={dialog.picking}
+            onPickOnMap={(current) => {
+              setDialog((d) => d && { ...d, picking: true })
+              setPickMode(true)
+              if (current) mapApi.current?.flyTo(current.lat, current.lon)
+            }}
+            onCancelPick={() => {
+              setPickMode(false)
+              setDialog((d) => d && { ...d, picking: false })
+            }}
+            onClose={() => {
+              setPickMode(false)
+              setDialog(null)
+            }}
             onCreated={(site) => {
               setDialog(null)
               qc.setQueryData<Site[]>(['sites'], (old) => [...(old ?? []).filter((s) => s.id !== site.id), site])
