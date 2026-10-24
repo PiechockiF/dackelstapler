@@ -68,7 +68,9 @@ void main() {
     await tester.testTextInput.receiveAction(TextInputAction.go);
     await _pumpUntil(tester, find.text('STEP-FREE'));
 
+    await tester.pump(const Duration(seconds: 1));
     await tester.ensureVisible(find.text('Show on twin'));
+    await tester.pump(const Duration(milliseconds: 400));
     await tester.tap(find.text('Show on twin'));
     final reachable = find.byIcon(CupertinoIcons.location_fill);
     final blocked = find.byIcon(CupertinoIcons.nosign);

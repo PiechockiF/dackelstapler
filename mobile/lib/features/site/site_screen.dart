@@ -96,7 +96,8 @@ class _SiteScreenState extends ConsumerState<SiteScreen> with WidgetsBindingObse
           ],
         ),
         duration: const Duration(seconds: 4),
-        margin: EdgeInsets.fromLTRB(16, 0, 16, _panel == SitePanel.twin ? 168 : 96),
+        // Above the timeline and the route/highlight chips on the twin, above the nav bar elsewhere.
+        margin: EdgeInsets.fromLTRB(16, 0, 16, _panel == SitePanel.twin ? 250 : 96),
       ),
     );
   }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -31,6 +33,7 @@ class _RoutePanelState extends ConsumerState<RoutePanel> {
   final _to = TextEditingController();
   final _minWidth = TextEditingController();
   final _toFocus = FocusNode();
+  final _summaryKey = GlobalKey();
   String? _toId;
   bool _stepFree = false;
   bool _busy = false;
@@ -83,6 +86,13 @@ class _RoutePanelState extends ConsumerState<RoutePanel> {
             stepFree: _stepFree,
             minWidthM: minWidth != null && minWidth > 0 ? minWidth : null,
           );
+      // The summary appears below the form; bring it into view once the keyboard has gone.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final context = _summaryKey.currentContext;
+        if (context != null && context.mounted) {
+          unawaited(Scrollable.ensureVisible(context, duration: const Duration(milliseconds: 300)));
+        }
+      });
     } on ApiException catch (error) {
       if (mounted) setState(() => _error = error.message);
     } finally {
@@ -197,7 +207,7 @@ class _RoutePanelState extends ConsumerState<RoutePanel> {
         if (_error != null) ...[const SizedBox(height: 12), InlineMessage(_error!)],
         if (route != null) ...[
           const SizedBox(height: 14),
-          _RouteSummary(route: route, onShowOnTwin: widget.onShowOnTwin),
+          _RouteSummary(key: _summaryKey, route: route, onShowOnTwin: widget.onShowOnTwin),
         ],
       ],
     );
@@ -205,7 +215,7 @@ class _RoutePanelState extends ConsumerState<RoutePanel> {
 }
 
 class _RouteSummary extends StatelessWidget {
-  const _RouteSummary({required this.route, required this.onShowOnTwin});
+  const _RouteSummary({required this.route, required this.onShowOnTwin, super.key});
 
   final RouteModel route;
   final VoidCallback onShowOnTwin;
