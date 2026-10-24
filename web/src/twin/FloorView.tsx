@@ -109,7 +109,8 @@ export function FloorView({ building, anim }: { building: Building; anim: FloorA
 
   const select = useTwin((s) => s.select)
   const setPopover = useTwinUi((s) => s.setPopover)
-  const interactive = () => anim.dim > 0.5
+  // Floors hidden behind a focused floor (dim 0.12) ignore clicks; floors off the current route (dim 0.3) stay pickable.
+  const interactive = () => anim.dim > 0.2
   const onFillClick = (e: ThreeEvent<MouseEvent>) => {
     if (!interactive() || e.delta > 4) return
     const a = e.face?.a

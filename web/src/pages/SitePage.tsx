@@ -49,6 +49,13 @@ export default function SitePage() {
   const [error, setError] = useState<string | null>(null)
   const [tab, setTab] = useState<Tab>('feed')
   const [chatOpen, setChatOpen] = useState(() => window.innerWidth >= 760)
+  const [leaving, setLeaving] = useState(false)
+  // Fade to dark, then the map fades in and flies back out (mirror of entering).
+  const back = useCallback(() => {
+    if (leaving) return
+    setLeaving(true)
+    window.setTimeout(() => nav('/'), 300)
+  }, [leaving, nav])
   const [toast, setToast] = useState<{ text: string; tone: 'info' | 'ok' | 'warn' } | null>(null)
   const sites = useQuery({ queryKey: ['sites'], queryFn: api.sites, staleTime: 60_000 })
   const site = sites.data?.find((s) => s.id === siteId)
@@ -92,6 +99,16 @@ export default function SitePage() {
   }, [siteId])
 
   useEffect(() => () => window.clearTimeout(refetchTimer.current), [siteId])
+
+  // Esc goes back to the map, unless a dialog or text field has it. Capture phase runs before the dialog's own Esc handler clears manualEntry.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || useTwinUi.getState().manualEntry || (e.target as HTMLElement).closest?.('input, textarea, select, [contenteditable]')) return
+      back()
+    }
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
+  }, [back])
 
   // A route requested anywhere (map popover, Rooms, Route tab) opens the Route tab with its directions.
   useEffect(() => useTwinUi.subscribe((s, prev) => {
@@ -147,7 +164,7 @@ export default function SitePage() {
       {/* header */}
       <div className="pointer-events-none absolute left-4 top-4 flex items-start gap-3" style={{ width: compact ? 'calc(100% - 32px)' : LEFT_W }}>
         <Glass className="pointer-events-auto flex w-full items-center gap-3 px-3 py-2.5">
-          <button onClick={() => nav('/')} className="grid size-8 shrink-0 place-items-center rounded-lg bg-white/5 text-slate-300 transition hover:bg-white/10 hover:text-white" title="Back to map">
+          <button onClick={back} className="grid size-8 shrink-0 place-items-center rounded-lg bg-white/5 text-slate-300 transition hover:bg-white/10 hover:text-white" title="Back to map">
             <ArrowLeft size={16} />
           </button>
           <div className="min-w-0 flex-1">
@@ -308,17 +325,17 @@ export default function SitePage() {
           <Glass className="max-w-md p-6 text-center">
             <div className="text-lg font-semibold text-white">Could not load this site</div>
             <div className="mt-1 text-sm text-slate-400">{error}</div>
-            <button onClick={() => nav('/')} className="mt-4 rounded-lg bg-sky-500/20 px-3 py-1.5 text-sm text-sky-100 hover:bg-sky-500/30">Back to map</button>
+            <button onClick={back} className="mt-4 rounded-lg bg-sky-500/20 px-3 py-1.5 text-sm text-sky-100 hover:bg-sky-500/30">Back to map</button>
           </Glass>
         </div>
       )}
 
-      {/* entry crossfade from the map */}
+      {/* crossfade from the map on entry, back to dark on exit */}
       <motion.div
-        className="pointer-events-none absolute inset-0 bg-[#05070d]"
+        className="pointer-events-none absolute inset-0 z-[60] bg-[#05070d]"
         initial={{ opacity: 1 }}
-        animate={{ opacity: building || error ? 0 : 1 }}
-        transition={{ duration: 1.1, ease: 'easeOut' }}
+        animate={{ opacity: !leaving && (building || error) ? 0 : 1 }}
+        transition={leaving ? { duration: 0.3, ease: 'easeIn' } : { duration: 1.1, ease: 'easeOut' }}
       >
         {!building && !error && (
           <div className="grid h-full place-items-center">

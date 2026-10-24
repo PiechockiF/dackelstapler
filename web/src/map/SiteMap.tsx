@@ -1,7 +1,7 @@
 import { AttributionControl, Map as MlMap, Marker, NavigationControl, setWorkerUrl } from 'maplibre-gl'
 // MapLibre 6 resolves its worker relative to its own module, which breaks under Vite's dep bundling.
 import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
-import { useEffect, useImperativeHandle, useRef, type Ref } from 'react'
+import { useEffect, useImperativeHandle, useRef, useState, type Ref } from 'react'
 import type { Site } from '../lib/types'
 import './siteMap.css'
 
@@ -38,6 +38,14 @@ export interface SiteMapProps {
 setWorkerUrl(maplibreWorkerUrl)
 
 const SEEN_KEY = 'sitetwin-map-view'
+// Set when flying into a site: the close-up we ended on and the view we came from, so returning plays the flight in reverse.
+const RETURN_KEY = 'sitetwin-map-return'
+const FLY_MS = 1900
+const easeInOut = (t: number) => (1 - Math.cos(Math.PI * t)) / 2
+const viewOf = (map: MlMap) => {
+  const c = map.getCenter()
+  return { center: [c.lng, c.lat] as [number, number], zoom: map.getZoom(), pitch: map.getPitch(), bearing: map.getBearing() }
+}
 
 export default function SiteMap(props: SiteMapProps) {
   const { sites, hoveredId, activeId, pickMode, skipIntro, ref } = props
@@ -46,12 +54,15 @@ export default function SiteMap(props: SiteMapProps) {
   const markers = useRef(new Map<string, { marker: Marker; el: HTMLDivElement }>())
   const cb = useRef(props)
   cb.current = props
+  // Read once in an initializer so StrictMode's double effect run still sees it after the effect clears the key.
+  const [back] = useState(() => JSON.parse(sessionStorage.getItem(RETURN_KEY) ?? 'null'))
 
   // ---- map init ----
   useEffect(() => {
     if (!container.current) return
     const saved = sessionStorage.getItem(SEEN_KEY)
-    const start = skipIntro && saved ? JSON.parse(saved) : null
+    sessionStorage.removeItem(RETURN_KEY)
+    const start = back?.from ?? (skipIntro && saved ? JSON.parse(saved) : null)
     const map = new MlMap({
       container: container.current,
       style: STYLE_URL,
@@ -89,6 +100,7 @@ export default function SiteMap(props: SiteMapProps) {
     map.on('style.load', () => {
       map.setProjection({ type: 'globe' })
       styleMap(map)
+      if (back) map.flyTo({ ...back.to, duration: FLY_MS, curve: 1.5, essential: true, easing: easeInOut })
       if (start) return
       // Intro: a slow spin, then a cinematic flight to Munich.
       const t0 = performance.now()
@@ -109,10 +121,7 @@ export default function SiteMap(props: SiteMapProps) {
     map.on('click', (e) => {
       if (cb.current.pickMode) cb.current.onPick(e.lngLat.lat, e.lngLat.lng)
     })
-    const save = () => {
-      const c = map.getCenter()
-      sessionStorage.setItem(SEEN_KEY, JSON.stringify({ center: [c.lng, c.lat], zoom: map.getZoom(), pitch: map.getPitch(), bearing: map.getBearing() }))
-    }
+    const save = () => sessionStorage.setItem(SEEN_KEY, JSON.stringify(viewOf(map)))
     map.on('moveend', save)
 
     return () => {
@@ -177,14 +186,12 @@ export default function SiteMap(props: SiteMapProps) {
           done = true
           resolve()
         }
-        const duration = 1900
         map.once('moveend', finish)
         // Start the fade a touch before the camera settles, so there's no dead time at the end.
-        setTimeout(finish, duration - 250)
-        map.flyTo({
-          center: [site.lon, site.lat], zoom: 17.4, pitch: 64, bearing: map.getBearing() - 35, duration, curve: 1.5, essential: true,
-          easing: (t) => (1 - Math.cos(Math.PI * t)) / 2,
-        })
+        setTimeout(finish, FLY_MS - 250)
+        const to = { center: [site.lon, site.lat] as [number, number], zoom: 17.4, pitch: 64, bearing: map.getBearing() - 35 }
+        sessionStorage.setItem(RETURN_KEY, JSON.stringify({ from: to, to: viewOf(map) }))
+        map.flyTo({ ...to, duration: FLY_MS, curve: 1.5, essential: true, easing: easeInOut })
       }),
     flyHome: () => mapRef.current?.flyTo({ center: MUNICH, zoom: 10.4, pitch: 52, bearing: -18, duration: 2500 }),
     flyTo: (lat, lon) => mapRef.current?.flyTo({ center: [lon, lat], zoom: 17, pitch: 0, bearing: 0, duration: 1800, essential: true }),

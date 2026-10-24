@@ -3,7 +3,7 @@ import '../dev/mockApi'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import clsx from 'clsx'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Building2, Factory, GraduationCap, Layers, MapPin, Plane, Plus, Search, ShoppingBag, X } from 'lucide-react'
+import { Building2, ChevronDown, Factory, GraduationCap, Layers, MapPin, Plane, Plus, Search, ShoppingBag, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { isMockActive, onMockChange } from '../dev/mockApi'
@@ -28,6 +28,8 @@ export default function MapPage() {
   const qc = useQueryClient()
   const sites = useQuery({ queryKey: ['sites'], queryFn: api.sites, staleTime: 60_000 })
   const [query, setQuery] = useState('')
+  // 'search' = opened by typing; closes again when focus leaves the panel.
+  const [open, setOpen] = useState<boolean | 'search'>(false)
   const [hovered, setHovered] = useState<string | null>(null)
   const [active, setActive] = useState<string | null>(null)
   const [pickMode, setPickMode] = useState(false)
@@ -87,9 +89,16 @@ export default function MapPage() {
         initial={{ x: -40, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         transition={{ delay: 0.4, type: 'spring', stiffness: 200, damping: 26 }}
-        className="absolute bottom-4 left-4 top-4 flex w-[340px] flex-col"
+        className={clsx('absolute left-4 top-4 flex w-[340px] flex-col', open && 'bottom-4')}
       >
-        <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-white/10 bg-slate-950/60 shadow-2xl shadow-black/50 backdrop-blur-xl">
+        <div
+          // tabIndex so clicks on (Safari-unfocusable) buttons inside still count as focus within the panel
+          tabIndex={-1}
+          onBlur={(e) => {
+            if (open === 'search' && !e.currentTarget.contains(e.relatedTarget)) setOpen(false)
+          }}
+          className="flex min-h-0 flex-1 flex-col rounded-2xl border border-white/10 bg-slate-950/60 shadow-2xl shadow-black/50 outline-none backdrop-blur-xl"
+        >
           <div className="p-4 pb-3">
             <div className="flex items-center gap-2.5">
               <div className="grid size-9 place-items-center rounded-xl bg-gradient-to-br from-sky-400 to-violet-500 text-white shadow-[0_0_24px_rgba(56,189,248,0.5)]">
@@ -105,7 +114,10 @@ export default function MapPage() {
               <Search size={15} className="text-slate-500" />
               <input
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={(e) => {
+                  setQuery(e.target.value)
+                  setOpen((o) => o || 'search')
+                }}
                 onKeyDown={(e) => e.key === 'Enter' && filtered[0] && enter(filtered[0])}
                 placeholder="Search Standorte…"
                 className="min-w-0 flex-1 bg-transparent text-sm text-slate-100 outline-none placeholder:text-slate-500"
@@ -132,8 +144,8 @@ export default function MapPage() {
               ))}
             </div>
           </div>
-          <div className="mx-4 h-px bg-white/5" />
-          <ul className="min-h-0 flex-1 overflow-y-auto p-2 [scrollbar-width:thin]">
+          {open && <div className="mx-4 h-px bg-white/5" />}
+          <ul hidden={!open} className="min-h-0 flex-1 overflow-y-auto p-2 [scrollbar-width:thin]">
             {sites.isLoading && <li className="px-3 py-6 text-center text-sm text-slate-500">Loading sites…</li>}
             {sites.isError && <li className="px-3 py-6 text-center text-sm text-rose-300">Could not load sites: {String(sites.error)}</li>}
             {filtered.map((s) => (
@@ -177,6 +189,13 @@ export default function MapPage() {
             </button>
             <div className="mt-1.5 text-center text-[10px] text-slate-500">by address, or right-click anywhere on the map</div>
           </div>
+          <button
+            onClick={() => setOpen(!open)}
+            aria-label={open ? 'Collapse Standorte' : 'Expand Standorte'}
+            className="mx-auto mb-1.5 grid h-5 w-10 place-items-center rounded-full text-slate-500 transition hover:bg-white/10 hover:text-slate-200"
+          >
+            <ChevronDown size={16} className={clsx('transition-transform', open && 'rotate-180')} />
+          </button>
         </div>
       </motion.div>
 
@@ -208,6 +227,16 @@ export default function MapPage() {
             }}
           />
         </div>
+      )}
+
+      {/* coming back from a twin: fade in from its dark exit */}
+      {skipIntro && (
+        <motion.div
+          className="pointer-events-none absolute inset-0 z-50 bg-[#05070d]"
+          initial={{ opacity: 1 }}
+          animate={{ opacity: 0 }}
+          transition={{ duration: 0.4, ease: 'easeOut' }}
+        />
       )}
 
       {/* crossfade into the twin */}
