@@ -19,7 +19,7 @@ export const KIND_COLOR: Record<Site['kind'], string> = {
 export interface SiteMapApi {
   flyToSite: (site: Site) => Promise<void>
   flyHome: () => void
-  /** Top-down view of a spot, e.g. to place a new Standort precisely. */
+  /** Top-down view of a spot, e.g. to place a new location precisely. */
   flyTo: (lat: number, lon: number) => void
 }
 

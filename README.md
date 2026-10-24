@@ -1,4 +1,4 @@
-# SiteTwin: a living 3D twin for every Standort (Track 01)
+# SiteTwin: a living 3D twin for every location (Track 01)
 
 The interrupted integration is now completed and checked against the real local backend. See [integration status and demo steps](docs/INTEGRATION.md) for verified features, commands, and the external services that still need live validation.
 
@@ -122,7 +122,7 @@ The original project plan follows.
 The repo is the Track 01 student kit (`industrial-agents-hackathon-2026`). It contains 280 buildings in a common `building.json` format, a starter agent (Claude with deterministic routing in `starter_agent/building_map.py`), and a scorer. The judging weights are: **55 pts for the benchmark** (unseen buildings and questions about areas, door widths, reachability, stacked rooms, shared walls, 3D distances and what-if doors), 25 for Interaction, 10 for Creativity and 10 for the demo video.
 
 Your idea:
-- A map of Standorte (sites). Each site has schematics that become a 3D layout.
+- A map of locations (sites). Each site has schematics that become a 3D layout.
 - Phone video or photos become 3D: a room scan, or a new delivery dropped into the twin.
 - Measured dimensions are cross-checked against the layout JSON.
 - Inside a site: recent deliveries and changes, navigation, and meeting-room booking.

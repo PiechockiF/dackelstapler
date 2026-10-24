@@ -1,4 +1,4 @@
-"""Address search and reverse geocoding for the Add-Standort dialog.
+"""Address search and reverse geocoding for the Add-Location dialog.
 
 Proxies Photon (komoot, OSM data, built for search-as-you-type) and falls back to Nominatim. Results are
 cached in memory; both services ask for an identifying User-Agent and light use."""
@@ -10,7 +10,7 @@ import logging
 import httpx
 
 log = logging.getLogger("sitetwin.geocode")
-USER_AGENT = "SiteTwin/0.1 (hackathon prototype; floor-plan Standorte)"
+USER_AGENT = "SiteTwin/0.1 (hackathon prototype; floor-plan locations)"
 PHOTON = "https://photon.komoot.io"
 NOMINATIM = "https://nominatim.openstreetmap.org"
 TIMEOUT = httpx.Timeout(6.0, connect=3.0)

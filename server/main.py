@@ -108,7 +108,7 @@ SITE_ID_RE = re.compile(r"^user-[a-z0-9-]{1,48}$")
 
 
 def _site_name(name: str | None, address: str | None, lat: float, lon: float) -> str:
-    return (name or "").strip() or (address or "").strip() or f"Standort {lat:.4f}, {lon:.4f}"
+    return (name or "").strip() or (address or "").strip() or f"Location {lat:.4f}, {lon:.4f}"
 
 
 def _site_id(requested: str | None, name: str) -> str:

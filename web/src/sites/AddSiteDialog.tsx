@@ -1,4 +1,4 @@
-// Owner: agent D. Create a Standort from an address or map position plus a building.json or several
+// Owner: agent D. Create a location from an address or map position plus a building.json or several
 // floor-plan photos (escape plans etc.). Claude reads every plan; the server stitches storeys and stacks them.
 import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
@@ -221,7 +221,7 @@ export default function AddSiteDialog(props: {
     return (
       <div className="pointer-events-auto absolute left-1/2 top-4 z-50 flex -translate-x-1/2 items-center gap-3 rounded-xl border border-amber-300/40 bg-slate-950/85 px-4 py-2 text-sm text-amber-100 shadow-2xl shadow-black/50 backdrop-blur-xl">
         <Crosshair size={15} />
-        Click on the map to place the Standort
+        Click on the map to place the location
         <button type="button" onClick={props.onCancelPick} className="rounded-lg border border-white/10 px-2 py-0.5 text-xs text-slate-300 hover:bg-white/10">
           Back to form
         </button>
@@ -243,7 +243,7 @@ export default function AddSiteDialog(props: {
             <Building2 size={18} />
           </div>
           <div className="min-w-0 flex-1">
-            <h2 className="text-base font-semibold">New Standort</h2>
+            <h2 className="text-base font-semibold">New Location</h2>
             <p className="truncate text-xs text-slate-400">
               {location ? `${location.lat.toFixed(5)}, ${location.lon.toFixed(5)}` : 'Enter an address or mark the spot on the map'}
             </p>
