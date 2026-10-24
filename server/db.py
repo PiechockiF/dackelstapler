@@ -44,13 +44,14 @@ class SiteRow(SQLModel, table=True):
     demo_location: bool = True
     kind: str = "other"
     user_created: bool = False
+    address: str | None = None
     created_at: str = Field(default_factory=now_iso)
 
     def to_site(self) -> dict:
         return {
             "id": self.id, "name": self.name, "lat": self.lat, "lon": self.lon, "source": self.source,
             "building_id": self.building_id, "data_path": self.data_path, "floors": self.floors,
-            "demo_location": self.demo_location, "kind": self.kind,
+            "demo_location": self.demo_location, "kind": self.kind, "address": self.address,
         }
 
 
@@ -109,6 +110,33 @@ class AddedDoorRow(SQLModel, table=True):
     ts: str = Field(default_factory=now_iso)
 
 
+class AddedAssetRow(SQLModel, table=True):
+    """Equipment/machines/furniture added by hand (contract Asset shape in asset_json)."""
+    __tablename__ = "added_assets"
+    id: str = Field(primary_key=True)
+    site_id: str = Field(index=True)
+    asset_json: str = Field(sa_column=Column(Text))
+    ts: str = Field(default_factory=now_iso)
+
+
+class AssetEditRow(SQLModel, table=True):
+    """Edits of assets from building.json: the whole edited Asset, or removed=True when deleted."""
+    __tablename__ = "asset_edits"
+    site_id: str = Field(primary_key=True)
+    asset_id: str = Field(primary_key=True)
+    asset_json: str | None = Field(default=None, sa_column=Column(Text, nullable=True))
+    removed: bool = False
+    ts: str = Field(default_factory=now_iso)
+
+
+class RemovedDeliveryRow(SQLModel, table=True):
+    """Deleted deliveries (also hides ones that live in the capture job store)."""
+    __tablename__ = "removed_deliveries"
+    site_id: str = Field(primary_key=True)
+    delivery_id: str = Field(primary_key=True)
+    ts: str = Field(default_factory=now_iso)
+
+
 class DeliveryRow(SQLModel, table=True):
     """Deliveries recorded through the server (seed script, or capture when it has no store of its own)."""
     __tablename__ = "deliveries"
@@ -129,7 +157,18 @@ def engine():
         _engine = create_engine(f"sqlite:///{path}", connect_args={"check_same_thread": False})
         _engine_path = path
         SQLModel.metadata.create_all(_engine)
+        _add_missing_columns(_engine)
     return _engine
+
+
+def _add_missing_columns(eng) -> None:
+    """create_all never alters existing tables; add columns introduced after a database was created."""
+    from sqlalchemy import text
+
+    with eng.begin() as conn:
+        columns = {row[1] for row in conn.execute(text("PRAGMA table_info(sites)"))}
+        if "address" not in columns:
+            conn.execute(text("ALTER TABLE sites ADD COLUMN address VARCHAR"))
 
 
 def session() -> Session:
@@ -145,6 +184,7 @@ def reset_engine() -> None:
 
 
 __all__ = [
-    "AddedDoorRow", "AssetMoveRow", "BookingRow", "ClosureRow", "DeliveryRow", "EventRow", "SiteRow",
+    "AddedAssetRow", "AddedDoorRow", "AssetEditRow", "AssetMoveRow", "BookingRow", "ClosureRow", "DeliveryRow", "EventRow",
+    "RemovedDeliveryRow", "SiteRow",
     "engine", "new_id", "now_iso", "reset_engine", "select", "session", "storage_dir", "ROOT",
 ]

@@ -1,5 +1,5 @@
 import { Html } from '@react-three/drei'
-import { DoorClosed, DoorOpen, LocateFixed, Navigation, X } from 'lucide-react'
+import { DoorClosed, DoorOpen, LocateFixed, Navigation, PackagePlus, Wrench, X } from 'lucide-react'
 import { useState } from 'react'
 import type { Building } from '../lib/types'
 import { useTwin } from '../lib/store'
@@ -98,6 +98,24 @@ export function Popover({ building, siteId }: { building: Building; siteId: stri
                   </button>
                   <button disabled={busy} className={`${btn} bg-sky-500/20 text-sky-100 hover:bg-sky-500/30`} onClick={() => run(() => navigate(siteId, pop.id))}>
                     <Navigation size={14} /> Navigate here
+                  </button>
+                  <button
+                    className={`${btn} bg-white/5 text-slate-200 hover:bg-white/10`}
+                    onClick={() => {
+                      setPop(null)
+                      useTwinUi.getState().openManualEntry({ mode: 'equipment', spaceId: pop.id })
+                    }}
+                  >
+                    <Wrench size={14} /> Equipment
+                  </button>
+                  <button
+                    className={`${btn} bg-white/5 text-slate-200 hover:bg-white/10`}
+                    onClick={() => {
+                      setPop(null)
+                      useTwinUi.getState().openManualEntry({ mode: 'delivery', spaceId: pop.id })
+                    }}
+                  >
+                    <PackagePlus size={14} /> Log delivery
                   </button>
                 </>
               )}

@@ -11,6 +11,15 @@ export interface Popover {
   point: XY
 }
 
+/** The manual-entry dialog. Equipment: a room's equipment list; assetId 'new' or an id opens the add/edit
+ *  form directly. Delivery: log one (optionally for a preselected room), or edit deliveryId. */
+export interface ManualEntry {
+  mode: 'equipment' | 'delivery'
+  spaceId: string | null
+  assetId?: string
+  deliveryId?: string
+}
+
 interface TwinUi {
   roomGlow: Record<string, RoomGlow>
   popover: Popover | null
@@ -27,6 +36,7 @@ interface TwinUi {
   minWidth: string
   /** Shade what can't be reached from originId (only while an origin is set). */
   showReach: boolean
+  manualEntry: ManualEntry | null
   setRoomGlow: (g: Record<string, RoomGlow>) => void
   setPopover: (p: Popover | null) => void
   setOrigin: (id: string | null) => void
@@ -36,6 +46,7 @@ interface TwinUi {
   setStepFree: (stepFree: boolean) => void
   setMinWidth: (minWidth: string) => void
   setShowReach: (showReach: boolean) => void
+  openManualEntry: (entry: ManualEntry | null) => void
 }
 
 export const useTwinUi = create<TwinUi>((set) => ({
@@ -48,6 +59,7 @@ export const useTwinUi = create<TwinUi>((set) => ({
   stepFree: false,
   minWidth: '',
   showReach: true,
+  manualEntry: null,
   setRoomGlow: (roomGlow) => set({ roomGlow }),
   setPopover: (popover) => set({ popover }),
   setOrigin: (originId) => set({ originId }),
@@ -57,4 +69,5 @@ export const useTwinUi = create<TwinUi>((set) => ({
   setStepFree: (stepFree) => set({ stepFree }),
   setMinWidth: (minWidth) => set({ minWidth }),
   setShowReach: (showReach) => set({ showReach }),
+  openManualEntry: (manualEntry) => set({ manualEntry }),
 }))
