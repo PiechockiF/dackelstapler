@@ -6,7 +6,7 @@ import json
 import random
 from pathlib import Path
 
-from core.building_map import OUTSIDE, BuildingMap, MapError
+from core.building_map import DOOR_PREFIX, OUTSIDE, BuildingMap, MapError
 from core.geometry import capacity
 from core.reachability import reachable_spaces
 from server.equipment import catalog as equipment_catalog
@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "web/public/offline"
 FIXTURES = ROOT / "web/tests/fixtures/routes.json"
 REACH_FIXTURES = ROOT / "web/tests/fixtures/reachable.json"
-VERSION = 1
+VERSION = 2
 
 
 def dump(path: Path, value) -> None:
@@ -36,14 +36,20 @@ def export() -> None:
         bm = BuildingMap(building)
         # Include the "outside" node: the local router applies the same rule as core (pedestrians stay
         # inside; loads with a width, and searches starting outside, may go round the building).
+        # Doors are nodes ("door:<id>"); the local router reads their width and step-free flag from the building.
+        # Walks inside a space (room centre to door, door to door) name the space; lifts, stairs and entrances
+        # to "outside" name their element in "via". "bend": the drawn walk goes through the space's anchor.
         graph = bm.graph(False, outside=True)
         edges = []
         for a, b, attrs in graph.edges(data=True):
-            via = attrs["via"]
-            element = bm.openings.get(via) or bm.connectors[via]
-            edges.append({"a": a, "b": b, "w": attrs["weight"], "via": via,
-                          "stepFree": bool(element.get("step_free")),
-                          "width": element.get("width_m"), "kind": element["kind"]})
+            edge = {"a": a, "b": b, "w": attrs["weight"]}
+            if "via" in attrs:
+                edge["via"] = attrs["via"]
+            else:
+                edge["space"] = attrs["space"]
+                if a.startswith(DOOR_PREFIX) and b.startswith(DOOR_PREFIX) and bm._detour_anchor(graph, a, b) == attrs["space"]:
+                    edge["bend"] = True
+            edges.append(edge)
         digest = hashlib.sha256(raw).hexdigest()
         hashes[site["id"]] = digest
         dump(OUT / f"{site['id']}.json", {
