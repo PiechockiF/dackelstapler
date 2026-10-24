@@ -20,11 +20,14 @@ interface TwinUi {
   flashIds: string[]
   /** Bumped to ask the camera to frame the whole building again. */
   frameAllTick: number
+  /** Bumped when the user asks for a route, so the HUD can show its directions. */
+  directionsTick: number
   setRoomGlow: (g: Record<string, RoomGlow>) => void
   setPopover: (p: Popover | null) => void
   setOrigin: (id: string | null) => void
   flash: (ids: string[]) => void
   frameAll: () => void
+  showDirections: () => void
 }
 
 export const useTwinUi = create<TwinUi>((set) => ({
@@ -33,9 +36,11 @@ export const useTwinUi = create<TwinUi>((set) => ({
   originId: null,
   flashIds: [],
   frameAllTick: 0,
+  directionsTick: 0,
   setRoomGlow: (roomGlow) => set({ roomGlow }),
   setPopover: (popover) => set({ popover }),
   setOrigin: (originId) => set({ originId }),
   flash: (flashIds) => set({ flashIds }),
   frameAll: () => set((s) => ({ frameAllTick: s.frameAllTick + 1 })),
+  showDirections: () => set((s) => ({ directionsTick: s.directionsTick + 1 })),
 }))

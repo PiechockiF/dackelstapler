@@ -90,6 +90,11 @@ export default function SitePage() {
 
   useEffect(() => () => window.clearTimeout(refetchTimer.current), [siteId])
 
+  // A route requested anywhere (map popover, Rooms, Route tab) opens the Route tab with its directions.
+  useEffect(() => useTwinUi.subscribe((s, prev) => {
+    if (s.directionsTick !== prev.directionsTick) setTab('route')
+  }), [])
+
   const showToast = useCallback((text: string, tone: 'info' | 'ok' | 'warn' = 'info') => {
     setToast({ text, tone })
     window.setTimeout(() => setToast((t) => (t?.text === text ? null : t)), 5000)

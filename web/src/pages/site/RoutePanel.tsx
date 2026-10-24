@@ -1,5 +1,5 @@
 import { ArrowUpDown, Footprints, Navigation, X } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTwin } from '../../lib/store'
 import type { Building } from '../../lib/types'
 import { navigate, originOf } from '../../twin/actions'
@@ -30,6 +30,25 @@ export function RoutePanel({ building, siteId }: { building: Building; siteId: s
   }, [building])
   const options = useMemo(() => [...byName.keys()].sort().slice(0, 2000), [byName])
   const resolve = (v: string) => byName.get(v.trim()) ?? v.trim()
+  // Show the room's name when no other space shares it (the server resolves it back), otherwise its id.
+  const nameCount = useMemo(() => {
+    const m = new Map<string, number>()
+    for (const s of building.spaces) m.set(s.name, (m.get(s.name) ?? 0) + 1)
+    return m
+  }, [building])
+  const label = (id: string) => {
+    const name = idx.spaces.get(id)?.name
+    return name && nameCount.get(name) === 1 ? name : id
+  }
+
+  // Routes picked on the map (or anywhere else) fill in their endpoints, so they can be tweaked here.
+  const routeFrom = route?.from_space_id ?? route?.space_path[0]
+  const routeTo = route?.to_space_id ?? route?.space_path[route.space_path.length - 1]
+  useEffect(() => {
+    if (routeFrom) setFrom(label(routeFrom))
+    if (routeTo) setTo(label(routeTo))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeFrom, routeTo])
 
   const go = async () => {
     setBusy(true)

@@ -89,6 +89,12 @@ export function Popover({ building, siteId }: { building: Building; siteId: stri
                       setOrigin(pop.id)
                       useTwin.getState().setHighlight({ ids: [pop.id], label: 'You are here' })
                       setPop(null)
+                      // Start picked after the target: route again from here.
+                      const route = useTwin.getState().route
+                      const to = route?.to_space_id ?? route?.space_path[route.space_path.length - 1]
+                      if (route && to && to !== pop.id) {
+                        void navigate(siteId, to, { from: pop.id, step_free: route.step_free, min_width_m: route.min_width_m ?? undefined }).catch(() => undefined)
+                      }
                     }}
                   >
                     <LocateFixed size={14} /> I'm here
