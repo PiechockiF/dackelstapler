@@ -32,6 +32,8 @@ export interface Asset {
   id: string; name: string; category: string; type: string; space_id: string; floor_id: string
   position: XY; footprint?: { width_m: number; depth_m: number; rotation_deg: number }; source?: string
 }
+/** GET /api/equipment-types: known equipment with its typical footprint (extra, not in contract v1). */
+export interface EquipmentType { type: string; label: string; category: string; width_m: number; depth_m: number }
 /** One uploaded plan image and where it ended up (transform: normalised 0..1000 image coords -> metres). */
 export interface PlanSource {
   index: number
@@ -79,7 +81,13 @@ export interface Route {
   blocking_openings?: BlockingOpening[]
 }
 
-export type EventType = 'delivery' | 'asset_moved' | 'closure' | 'booking' | 'door_added' | 'capture'
+/** GET /reachable: every space reachable from from_space_id under the route rules and live closures. */
+export interface Reachable { from_space_id: string; step_free: boolean; min_width_m: number | null; space_ids: string[] }
+
+export type EventType =
+  | 'delivery' | 'delivery_updated' | 'delivery_removed'
+  | 'asset_moved' | 'asset_added' | 'asset_updated' | 'asset_removed'
+  | 'closure' | 'booking' | 'door_added' | 'capture'
 export interface SiteEvent { id: string; ts: string; site_id: string; type: EventType; title: string; payload: any }
 
 export interface Dims { w: number; d: number; h: number }

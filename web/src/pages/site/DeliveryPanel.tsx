@@ -1,14 +1,15 @@
-import { QrCode, X } from 'lucide-react'
+import { PackagePlus, Pencil, QrCode, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useState } from 'react'
 import CaptureQR from '../../capture/CaptureQR'
 import DeliveryCard from '../../capture/DeliveryCard'
+import { api } from '../../lib/api'
 import { useTwin } from '../../lib/store'
 import type { Delivery } from '../../lib/types'
 import { useTwinUi } from '../../twin/uiStore'
 import { useSnapshot } from '../../twin/useSnapshot'
 import { Empty } from './FeedPanel'
-import { Btn, Glass } from './ui'
+import { Btn, DeleteButton, Glass } from './ui'
 
 export function focusDelivery(d: Delivery) {
   const s = useTwin.getState()
@@ -22,16 +23,41 @@ export function focusDelivery(d: Delivery) {
 export function DeliveryPanel({ siteId }: { siteId: string }) {
   const snap = useSnapshot()
   const [qr, setQr] = useState(false)
+  const [err, setErr] = useState<string | null>(null)
+  const remove = async (d: Delivery) => {
+    setErr(null)
+    try {
+      await api.deleteDelivery(siteId, d.id)
+      const state = await api.state(siteId)
+      if (useTwin.getState().siteId === siteId) useTwin.getState().setState(state)
+    } catch (x) {
+      setErr(String((x as Error).message ?? x))
+    }
+  }
   const list = [...snap.deliveries].sort((a, b) => b.ts.localeCompare(a.ts))
   return (
     <div className="flex flex-col gap-3">
-      <Btn tone="accent" onClick={() => setQr(true)}>
-        <QrCode size={14} /> Capture with phone
-      </Btn>
+      <div className="grid grid-cols-2 gap-2">
+        <Btn tone="accent" onClick={() => setQr(true)}>
+          <QrCode size={14} /> Phone capture
+        </Btn>
+        <Btn onClick={() => useTwinUi.getState().openManualEntry({ mode: 'delivery', spaceId: null })}>
+          <PackagePlus size={14} /> Log by hand
+        </Btn>
+      </div>
       {!list.length && <Empty>No deliveries yet.</Empty>}
+      {err && <div className="text-xs text-rose-300">{err}</div>}
       {list.map((d) => (
-        <div key={d.id} onClick={() => focusDelivery(d)} className="cursor-pointer rounded-xl transition hover:ring-1 hover:ring-sky-400/40">
-          <DeliveryCard delivery={d} />
+        <div key={d.id} className="flex flex-col gap-1">
+          <div onClick={() => focusDelivery(d)} className="cursor-pointer rounded-xl transition hover:ring-1 hover:ring-sky-400/40">
+            <DeliveryCard delivery={d} />
+          </div>
+          <div className="flex justify-end gap-1">
+            <Btn tone="ghost" onClick={() => useTwinUi.getState().openManualEntry({ mode: 'delivery', spaceId: d.space_id, deliveryId: d.id })}>
+              <Pencil size={13} /> Edit
+            </Btn>
+            <DeleteButton label="Delete" onConfirm={() => void remove(d)} />
+          </div>
         </div>
       ))}
       <AnimatePresence>

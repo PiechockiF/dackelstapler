@@ -8,7 +8,12 @@ import { Glass } from './ui'
 const DAYS = 7
 const DOT: Record<EventType, string> = {
   delivery: 'bg-amber-300',
+  delivery_updated: 'bg-amber-300',
+  delivery_removed: 'bg-slate-400',
   asset_moved: 'bg-sky-300',
+  asset_added: 'bg-teal-300',
+  asset_updated: 'bg-teal-300',
+  asset_removed: 'bg-slate-400',
   closure: 'bg-rose-400',
   booking: 'bg-blue-400',
   door_added: 'bg-emerald-300',

@@ -128,7 +128,7 @@ def sanity_fix(data: dict) -> tuple[dict, list[str]]:
         bm.data["openings"].append(entrance)
         warnings.append(f"No entrance found; assumed one into {space['name']}.")
     for _ in range(len(bm.spaces)):
-        graph = bm.graph(False)
+        graph = bm.graph(False, outside=True)
         reached = set(nx.node_connected_component(graph, "outside")) if "outside" in graph else set()
         missing = [s for s in bm.spaces if s not in reached]
         if not missing:

@@ -14,8 +14,10 @@ export function RoutePanel({ building, siteId }: { building: Building; siteId: s
   const defaultFrom = originId ?? originOf(building)
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
-  const [stepFree, setStepFree] = useState(false)
-  const [minWidth, setMinWidth] = useState('')
+  const stepFree = useTwinUi((s) => s.stepFree)
+  const setStepFree = useTwinUi((s) => s.setStepFree)
+  const minWidth = useTwinUi((s) => s.minWidth)
+  const setMinWidth = useTwinUi((s) => s.setMinWidth)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
 

@@ -110,6 +110,33 @@ class AddedDoorRow(SQLModel, table=True):
     ts: str = Field(default_factory=now_iso)
 
 
+class AddedAssetRow(SQLModel, table=True):
+    """Equipment/machines/furniture added by hand (contract Asset shape in asset_json)."""
+    __tablename__ = "added_assets"
+    id: str = Field(primary_key=True)
+    site_id: str = Field(index=True)
+    asset_json: str = Field(sa_column=Column(Text))
+    ts: str = Field(default_factory=now_iso)
+
+
+class AssetEditRow(SQLModel, table=True):
+    """Edits of assets from building.json: the whole edited Asset, or removed=True when deleted."""
+    __tablename__ = "asset_edits"
+    site_id: str = Field(primary_key=True)
+    asset_id: str = Field(primary_key=True)
+    asset_json: str | None = Field(default=None, sa_column=Column(Text, nullable=True))
+    removed: bool = False
+    ts: str = Field(default_factory=now_iso)
+
+
+class RemovedDeliveryRow(SQLModel, table=True):
+    """Deleted deliveries (also hides ones that live in the capture job store)."""
+    __tablename__ = "removed_deliveries"
+    site_id: str = Field(primary_key=True)
+    delivery_id: str = Field(primary_key=True)
+    ts: str = Field(default_factory=now_iso)
+
+
 class DeliveryRow(SQLModel, table=True):
     """Deliveries recorded through the server (seed script, or capture when it has no store of its own)."""
     __tablename__ = "deliveries"
@@ -157,6 +184,7 @@ def reset_engine() -> None:
 
 
 __all__ = [
-    "AddedDoorRow", "AssetMoveRow", "BookingRow", "ClosureRow", "DeliveryRow", "EventRow", "SiteRow",
+    "AddedAssetRow", "AddedDoorRow", "AssetEditRow", "AssetMoveRow", "BookingRow", "ClosureRow", "DeliveryRow", "EventRow",
+    "RemovedDeliveryRow", "SiteRow",
     "engine", "new_id", "now_iso", "reset_engine", "select", "session", "storage_dir", "ROOT",
 ]

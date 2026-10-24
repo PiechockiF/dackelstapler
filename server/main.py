@@ -350,6 +350,13 @@ def route(site_id: str, body: RouteBody) -> dict:
                               min_width_m=body.min_width_m, via=body.via)
 
 
+@app.get("/api/sites/{site_id}/reachable")
+def reachable(site_id: str, from_: str = Query(alias="from"), step_free: bool = False,
+              min_width_m: float | None = None) -> dict:
+    _ensure_seeded()
+    return twin.reachable(site_id, from_, step_free=step_free, min_width_m=min_width_m)
+
+
 class ClosureBody(BaseModel):
     element_id: str
     closed: bool = True
@@ -387,6 +394,121 @@ def doors(site_id: str, body: DoorBody) -> dict:
     _ensure_seeded()
     twin.add_door(site_id, body.first_space, body.second_space, body.step_free, body.width_m)
     return twin.site_state(site_id)
+
+
+class AssetBody(BaseModel):
+    type: str
+    space_id: str
+    name: str | None = None
+    category: str | None = None
+    width_m: float | None = None
+    depth_m: float | None = None
+    rotation_deg: float | None = None
+    position: list[float] | None = None
+
+
+@app.get("/api/equipment-types")
+def equipment_types() -> list[dict]:
+    """Extra: known equipment types with category and typical footprint (for the add-equipment form)."""
+    from server.equipment import catalog
+
+    return catalog()
+
+
+@app.post("/api/sites/{site_id}/assets")
+def add_asset(site_id: str, body: AssetBody) -> dict:
+    """Extra: add equipment/machines/furniture to a room by hand. Returns the new Asset."""
+    _ensure_seeded()
+    try:
+        result = twin.add_asset(site_id, body.type, body.space_id, body.name, body.category, body.width_m,
+                                body.depth_m, body.rotation_deg, body.position)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+    return result["asset"]
+
+
+class AssetPatchBody(BaseModel):
+    name: str | None = None
+    type: str | None = None
+    category: str | None = None
+    width_m: float | None = None
+    depth_m: float | None = None
+    rotation_deg: float | None = None
+    space_id: str | None = None
+
+
+@app.patch("/api/sites/{site_id}/assets/{asset_id}")
+def edit_asset(site_id: str, asset_id: str, body: AssetPatchBody) -> dict:
+    """Extra: edit any asset (name, type, category, size; a new space_id moves it). Returns the Asset."""
+    _ensure_seeded()
+    try:
+        return twin.update_asset(site_id, asset_id, body.name, body.type, body.category, body.width_m, body.depth_m,
+                                 body.rotation_deg, body.space_id)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+
+
+@app.delete("/api/sites/{site_id}/assets/{asset_id}")
+def delete_asset(site_id: str, asset_id: str) -> dict:
+    """Extra: delete any asset (also ones from the original building data)."""
+    _ensure_seeded()
+    try:
+        asset = twin.remove_asset(site_id, asset_id)
+    except ValueError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    return {"ok": True, "id": asset["id"]}
+
+
+class DimsBody(BaseModel):
+    w: float
+    d: float
+    h: float
+
+
+class ManualDeliveryBody(BaseModel):
+    label: str
+    space_id: str
+    dims_m: DimsBody | None = None
+    target_space_id: str | None = None
+    note: str | None = None
+
+
+@app.post("/api/sites/{site_id}/deliveries")
+def log_delivery(site_id: str, body: ManualDeliveryBody) -> dict:
+    """Extra: record a delivery by hand (no photo). Returns the Delivery with its door/route/floor check."""
+    _ensure_seeded()
+    try:
+        return twin.log_delivery(site_id, body.label, body.space_id, body.dims_m.model_dump() if body.dims_m else None,
+                                 body.target_space_id, body.note)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+
+
+class DeliveryPatchBody(BaseModel):
+    label: str | None = None
+    space_id: str | None = None
+    dims_m: DimsBody | None = None
+    target_space_id: str | None = None
+    note: str | None = None
+
+
+@app.patch("/api/sites/{site_id}/deliveries/{delivery_id}")
+def edit_delivery(site_id: str, delivery_id: str, body: DeliveryPatchBody) -> dict:
+    """Extra: edit a delivery. Send target_space_id: null to clear the destination; omit it to keep it."""
+    _ensure_seeded()
+    target = body.target_space_id if "target_space_id" in body.model_fields_set else twin.UNCHANGED
+    try:
+        return twin.update_delivery(site_id, delivery_id, body.label, body.space_id,
+                                    body.dims_m.model_dump() if body.dims_m else None, target, body.note)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+
+
+@app.delete("/api/sites/{site_id}/deliveries/{delivery_id}")
+def delete_delivery(site_id: str, delivery_id: str) -> dict:
+    _ensure_seeded()
+    twin.remove_delivery(site_id, delivery_id)
+    return {"ok": True, "id": delivery_id}
 
 
 # ------------------------------------------------------------------ events and bookings
