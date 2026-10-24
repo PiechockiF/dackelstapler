@@ -5,8 +5,6 @@ from pathlib import Path
 import matplotlib
 
 matplotlib.use("Agg")
-import itertools
-
 import matplotlib.pyplot as plt
 from matplotlib.patches import Polygon as PolygonPatch
 
@@ -22,28 +20,8 @@ MARKER_SIZE = 9
 
 
 def route_points_on_floor(building_map: BuildingMap, floor_id: str) -> list[tuple[float, float]]:
-    """Room anchors along the route joined through the doors between them."""
-    route = building_map.last_route
-    points: list[tuple[float, float]] = []
-    indoor_path = [space_id for space_id in route.space_path if space_id in building_map.spaces]
-    for previous, current in itertools.pairwise(indoor_path):
-        if building_map.spaces[previous]["floor_id"] != floor_id:
-            continue
-        points.append(building_map.anchor(previous))
-        door = next(
-            (
-                opening
-                for opening in building_map.openings.values()
-                if set(opening["space_ids"]) == {previous, current}
-            ),
-            None,
-        )
-        if door is not None:
-            points.append(tuple(door["position"]))
-    last = indoor_path[-1]
-    if building_map.spaces[last]["floor_id"] == floor_id:
-        points.append(building_map.anchor(last))
-    return points
+    """Room centre points and doors along the latest route, on one floor."""
+    return [point for point_floor, point in building_map.last_route_points if point_floor == floor_id]
 
 
 def draw_route(building_map: BuildingMap, output_directory: Path) -> list[Path]:

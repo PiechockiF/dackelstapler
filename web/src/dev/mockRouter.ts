@@ -114,7 +114,7 @@ export function mockRoute(
     const leg = dijkstra(g, stops[i], stops[i + 1])
     if (!leg) {
       return {
-        reachable: false, length_m: 0, step_free: !!body.step_free, min_width_m: body.min_width_m ?? null,
+        reachable: false, length_m: 0, step_free: !!body.step_free || body.min_width_m != null, min_width_m: body.min_width_m ?? null,
         space_path: [], steps: [`No route from ${stops[i]} to ${stops[i + 1]}.`], floors: [], connectors: [],
       }
     }
@@ -145,7 +145,7 @@ export function mockRoute(
   for (const c of connectors) steps.push(`Take ${idx.connectors.get(c.id)?.name} to ${idx.floors.get(c.to_floor_id)?.name}.`)
   steps.push(`Arrive at ${idx.spaces.get(spacePath[spacePath.length - 1])?.name}.`)
   return {
-    reachable: true, length_m: Math.round(length * 100) / 100, step_free: !!body.step_free, min_width_m: body.min_width_m ?? null,
+    reachable: true, length_m: Math.round(length * 100) / 100, step_free: !!body.step_free || body.min_width_m != null, min_width_m: body.min_width_m ?? null,
     space_path: spacePath, steps, floors, connectors,
   }
 }

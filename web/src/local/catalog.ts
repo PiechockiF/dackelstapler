@@ -11,7 +11,7 @@ async function read<T>(url: string): Promise<T> {
 }
 export function loadCatalog() {
   if (!catalog) catalog = read<Catalog>('/offline/catalog.json').then((c) => {
-    if (c.version !== 1 || !c.sites.length) throw new Error('Unsupported offline data format. Update the app.')
+    if (c.version !== 2 || !c.sites.length) throw new Error('Unsupported offline data format. Update the app.')
     return c
   }).catch((e) => { catalog = undefined; throw e })
   return catalog

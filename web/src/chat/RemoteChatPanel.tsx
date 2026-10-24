@@ -1,4 +1,4 @@
-import { originOf } from '../twin/actions'
+import { adoptRouteMode, originOf } from '../twin/actions'
 import { useTwinUi } from '../twin/uiStore'
 // Owner: agent D. Chat + voice panel, rendered by SitePage.
 // Streams /api/sites/{id}/chat (SSE), shows "what I understood" chips, dispatches actions into useTwin,
@@ -203,6 +203,7 @@ export default function ChatPanel({ siteId }: { siteId: string }) {
           useTwinUi.getState().setOrigin(action.space_id)
           break
         case 'show_route':
+          adoptRouteMode(action.route)
           setFocusFloor(null)
           setRoute(action.route)
           break

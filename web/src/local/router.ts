@@ -4,6 +4,7 @@ import type { GraphEdge, MobileBuilding, RouteRequest } from './types'
 /** The zero-cost node joining all entrances. As in core.building_map, pedestrians never leave the building
  *  and come back in: only loads (a minimum width) and searches that start outside may use it. */
 export const OUTSIDE = 'outside'
+const DOOR = 'door:'
 
 class Heap {
   items: [number, string][] = []
@@ -69,34 +70,41 @@ export class LocalRouter {
       }
     }
   }
-  /** Whether this edge exists under the constraints (same filters as core.building_map.graph). */
+  /** Whether the step to `next` over `edge` exists under the constraints, as in the server's graph
+   *  (core.building_map with bm.closed): a closed space, door, lift or stairs drops out with every walk
+   *  through it; step-free drops doors with a step and stairs; a load drops doors narrower than it. */
   private usable(next: string, edge: GraphEdge, closed: Set<string>, stepFree: boolean, width: number | undefined, outside: boolean) {
-    if (closed.has(next) || closed.has(edge.via) || (stepFree && !edge.stepFree)) return false
+    if (closed.has(next) || (edge.space && closed.has(edge.space)) || (edge.via && closed.has(edge.via))) return false
     if (!outside && (edge.a === OUTSIDE || edge.b === OUTSIDE)) return false
-    return width == null || edge.width == null || edge.width >= width - 1e-6
+    const connector = edge.via ? this.connectors.get(edge.via) : undefined
+    if (connector && stepFree && !connector.step_free) return false
+    if (!next.startsWith(DOOR)) return true
+    const door = this.openings.get(next.slice(DOOR.length))
+    if (!door || closed.has(door.id) || (stepFree && !door.step_free)) return false
+    return width == null || (door.width_m ?? 0) >= width - 1e-6
   }
   private shortest(from: string, to: string, closed: Set<string>, stepFree: boolean, width?: number, outside = width != null) {
     if (closed.has(from) || closed.has(to)) return null
     const distance = new Map<string, number>([[from, 0]])
-    const prev = new Map<string, { node: string; via: string }>()
+    const prev = new Map<string, { node: string; edge: GraphEdge }>()
     const heap = new Heap(); heap.push([0, from])
     while (heap.items.length) {
       const [d, node] = heap.pop()!
       if (d !== distance.get(node)) continue
       if (node === to) {
-        const nodes = [node], vias: string[] = []
+        const nodes = [node], edges: GraphEdge[] = []
         let cur = node
         while (cur !== from) {
           const p = prev.get(cur)!
-          nodes.unshift(p.node); vias.unshift(p.via); cur = p.node
+          nodes.unshift(p.node); edges.unshift(p.edge); cur = p.node
         }
-        return { length: d, nodes, vias }
+        return { length: d, nodes, edges }
       }
       for (const { to: next, edge } of this.adjacency.get(node) ?? []) {
         if (!this.usable(next, edge, closed, stepFree, width, outside)) continue
         const value = d + edge.w
         if (value < (distance.get(next) ?? Infinity)) {
-          distance.set(next, value); prev.set(next, { node, via: edge.via }); heap.push([value, next])
+          distance.set(next, value); prev.set(next, { node, edge }); heap.push([value, next])
         }
       }
     }
@@ -127,7 +135,8 @@ export class LocalRouter {
     const stepFree = !!body.step_free || body.min_width_m != null
     const result: Route = { reachable: true, length_m: 0, step_free: stepFree, min_width_m: body.min_width_m ?? null,
       from_space_id: stops[0], to_space_id: stops.at(-1), via: stops.slice(1, -1), space_path: [], steps: [], floors: [], connectors: [] }
-    let nodes: string[] = [], vias: string[] = [], length = 0
+    // edges[i] joins nodes[i] and nodes[i + 1].
+    let nodes: string[] = [], edges: GraphEdge[] = [], length = 0
     for (let i = 0; i < stops.length - 1; i++) {
       const leg = this.shortest(stops[i], stops[i + 1], closed, stepFree, body.min_width_m)
       if (!leg) {
@@ -137,32 +146,52 @@ export class LocalRouter {
         result.steps = [result.message]
         if (body.min_width_m != null) {
           const unrestricted = this.shortest(stops[i], stops[i + 1], closed, false, undefined, true) // loads may go round the building
-          result.blocking_openings = [...new Set(unrestricted?.vias ?? [])].flatMap((id) => {
+          const doors = new Set((unrestricted?.nodes ?? []).filter((n) => n.startsWith(DOOR)).map((n) => n.slice(DOOR.length)))
+          result.blocking_openings = [...doors].flatMap((id) => {
             const o = this.openings.get(id)
             return o && o.width_m < body.min_width_m! - 1e-6 ? [{ id, width_m: o.width_m, position: o.position, floor_id: o.floor_id }] : []
           })
         }
         return result
       }
-      length += leg.length; nodes.push(...(nodes.length ? leg.nodes.slice(1) : leg.nodes)); vias.push(...leg.vias)
+      length += leg.length; nodes.push(...(nodes.length ? leg.nodes.slice(1) : leg.nodes)); edges.push(...leg.edges)
     }
     result.length_m = Math.round((length + Number.EPSILON) * 100) / 100
-    result.space_path = nodes.filter((n) => !n.startsWith('door:'))
-    for (let i = 0; i < nodes.length; i++) {
-      const node = nodes[i]
-      const door = this.openings.get(node.slice(5))
-      const floorId = node.startsWith('door:') ? door?.floor_id : this.spaces.get(node)?.floor_id
-      const point: XY | undefined = node.startsWith('door:') ? door?.position : this.data.anchors[node]
-      if (!floorId || !point) continue
-      const last = result.floors.at(-1)
-      const connector = i ? this.connectors.get(vias[i - 1]) : undefined
-      if (connector && last && last.floor_id !== floorId) {
-        result.connectors.push({ id: connector.id, kind: connector.kind as 'stairs' | 'lift', from_floor_id: last.floor_id, to_floor_id: floorId, position: point })
+    // Every space passed, including those crossed door to door (core BuildingMap.spaces_passed).
+    const passed: string[] = []
+    nodes.forEach((node, i) => {
+      for (const id of [i ? edges[i - 1].space : undefined, node.startsWith(DOOR) ? undefined : node]) {
+        if (id && passed.at(-1) !== id) passed.push(id)
       }
-      if (!last || last.floor_id !== floorId) {
+    })
+    result.space_path = passed.filter((id) => id !== OUTSIDE)
+    const add = (floorId: string, point: XY) => {
+      const last = result.floors.at(-1)
+      if (last?.floor_id === floorId) last.points.push(point)
+      else {
         const f = this.floors.get(floorId)!
         result.floors.push({ floor_id: floorId, level: f.level, elevation_m: f.elevation_m, points: [point] })
-      } else last.points.push(point)
+      }
+    }
+    for (let i = 0; i < nodes.length; i++) {
+      const node = nodes[i], edge = i ? edges[i - 1] : undefined
+      if (node.startsWith(DOOR)) {
+        const door = this.openings.get(node.slice(DOOR.length))
+        if (!door) continue
+        const bend = edge?.bend && edge.space ? this.spaces.get(edge.space) : undefined
+        if (bend) add(bend.floor_id, this.data.anchors[bend.id])
+        add(door.floor_id, door.position)
+        continue
+      }
+      const space = this.spaces.get(node)
+      if (!space) continue // outside
+      const point = this.data.anchors[node]
+      const last = result.floors.at(-1)
+      const connector = edge?.via ? this.connectors.get(edge.via) : undefined
+      if (connector && last && last.floor_id !== space.floor_id) {
+        result.connectors.push({ id: connector.id, kind: connector.kind as 'stairs' | 'lift', from_floor_id: last.floor_id, to_floor_id: space.floor_id, position: point })
+      }
+      add(space.floor_id, point)
     }
     result.steps = [`Start in ${this.spaces.get(stops[0])?.name}.`, ...result.connectors.map((c) => `Take ${this.connectors.get(c.id)?.name} to ${this.floors.get(c.to_floor_id)?.name}.`), `Arrive at ${this.spaces.get(stops.at(-1)!)?.name}.`]
     return result

@@ -68,7 +68,7 @@ def test_building_and_unknown_site(client):
 def test_route_payload(client):
     route = client.post(f"/api/sites/{HERO}/route", json={"from": "Office 0.30", "to": "Quality lab 0.21"}).json()
     assert route["reachable"] is True
-    assert route["length_m"] == pytest.approx(47.85, abs=0.01)  # the dataset's route model
+    assert route["length_m"] == pytest.approx(48.41, abs=0.01)  # the dataset's route model (kit 1.1.0)
     assert route["space_path"][0].endswith("F0-S030") and route["space_path"][-1].endswith("F0-S021")
     assert route["floors"] and len(route["floors"][0]["points"]) >= 2
     assert any("turn" in step or "past" in step for step in route["steps"])  # landmark directions
@@ -94,6 +94,12 @@ def test_unknown_place_is_400(client):
     response = client.post(f"/api/sites/{HERO}/route", json={"from": "Narnia", "to": "Office 0.30"})
     assert response.status_code == 400
     assert "detail" in response.json()
+
+
+def test_route_to_same_room_is_400(client):
+    response = client.post(f"/api/sites/{HERO}/route", json={"from": "Office 0.30", "to": "Office 0.30"})
+    assert response.status_code == 400
+    assert "already in" in response.json()["detail"]
 
 
 def test_closure_changes_route_and_logs_event(client):

@@ -27,7 +27,7 @@ The same command on `data/dev` or `data/train` (without `--submission-csv`) scor
    - `shared_walls_count`: rooms on the same floor where at least 1 m of outline runs within 0.35 m of this room's outline. Corridors, stairwells, lifts and outdoor spaces (balconies) don't count.
    - `straight_line_3d`: distance between polygon centroids at each floor's `elevation_m`.
    - `what_if_door`: adds a door at the middle of the shared wall, recomputes every room's distance to its nearest entrance through the shared `outside` node, and counts rooms on the asked floor that improve by more than 1 m.
-   Routing uses the starter's cost model unchanged (representative-point anchors, door nodes, 12 m per stair floor, 15 m + 6 m per lift floor).
+   Routing uses the starter's cost model unchanged (kit 1.1.0: door to door 15 cm off the walls, stairs 2 m and lifts 15 m + 1 m per metre climbed, no way round the outside).
 3. **Replies** with a short explanation and a final `Answer: ...` line: one number for numeric kinds, or the room name (plus its ref if the name doesn't contain it) and the area in m² for `largest_room`.
 
 If no template matches and `ANTHROPIC_API_KEY` is set, `claude-haiku-5-5` extracts the same parameters as

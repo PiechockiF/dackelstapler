@@ -4,23 +4,86 @@ The interrupted integration is now completed and checked against the real local 
 
 Quick start: `uv run uvicorn server.main:app --reload --port 8000`, then `cd web && npm run dev`. The application works without API keys using its labelled fallback paths.
 
+Native iOS app (Flutter UI, SceneKit twin, same backend): lives on its own branch, `feat/flutter-ios` (`git switch feat/flutter-ios`). See `mobile/README.md` on that branch for the architecture, the backend ↔ app data flow and how to run it on an iPhone from Xcode.
+
 ## iOS app (Capacitor)
 
-On branch **`ios_build_local`**, iOS is self-contained: 66 bundled buildings, worker-based routing, persistent bookings/closures/asset moves, equipment added/edited/deleted by hand, reachable-area shading, a local command assistant, and deliveries with photos or logged by hand (editable, deletable). No server, tunnel, account, or API keys are required. See [local implementation and limits](docs/LOCAL_FIRST_IOS_PLAN.md) and [TestFlight build steps](docs/TESTFLIGHT.md).
+The web app also runs as a native iOS app: Capacitor packs the built frontend into a native shell (`web/ios/`).
 
-```sh
-cd web && npm ci
-npm run dev:local      # same local provider in the browser, no Python server
-npm run test:local     # Python-generated routing parity + local state tests
-npm run ios:archive    # export assets, build, sync and sign an offline archive
+The app is self-contained, with no server, tunnel, account or API keys. It bundles 66 buildings, routes in a web worker, and keeps bookings, closures, asset moves, equipment and deliveries (with photos or logged by hand) on the phone. It also shades the reachable area and has a local command assistant. Cloud AI, voice and automatic measurement need the online backend and are not included. Python runs only on the development machine, to export the buildings. In the browser, `npm run dev` still uses the backend. See [local implementation and limits](docs/LOCAL_FIRST_IOS_PLAN.md) and [TestFlight build steps](docs/TESTFLIGHT.md).
+
+### Requirements
+
+- A Mac with Xcode, with the command line tools pointing at it: `sudo xcode-select -s /Applications/Xcode.app/Contents/Developer`.
+- Node.js 22 (22.12 or later) or 24 or later. The test runner (vitest) does not officially support Node 23.
+- `uv`, because the build exports the buildings and routing graphs with the Python core.
+- An Apple ID added in **Xcode → Settings → Accounts**. A free personal team is enough for your own iPhone.
+- An iPhone with iOS 15 or later, and a USB cable for the first install.
+
+These steps were checked with Xcode 27.1 and Node 23.11: a simulator build, and a Debug build installed and started on an iPhone with iOS 27.0.1, signed with a free personal team (terminal route below).
+
+### 1. Build
+
+```bash
+cd web
+npm ci
+npm run build:local   # exports the buildings with uv, then builds the frontend in local mode
+npx cap sync ios      # copies the build and capacitor.config.json into the Xcode project
+npx cap open ios      # opens the project in Xcode
 ```
 
-The archive uses bundle ID `com.sitetwin.app` and team `CV955K8T33`. Upload it through Xcode Organizer to the existing `forklift_navi` TestFlight record. Build products live in `~/Library/Developer/Xcode/` to avoid Desktop/iCloud metadata signing errors. Python runs only during asset export on the development machine. Browser `npm run dev` still uses the existing remote provider/backend.
+Repeat `npm run build:local` and `npx cap sync ios` after every frontend change. The files that `cap sync` copies are git-ignored, so a fresh checkout does not build in Xcode until you have run it.
+
+To try the app in a browser first, without Xcode or a server, run `npm run dev:local`. `npm run test:local` checks the local routing against Python-generated cases and tests the local state.
+
+### 2. Install on your iPhone
+
+1. Connect the iPhone with the cable, unlock it and tap **Trust**.
+2. In Xcode, select the **App** project, then the **App** target, then **Signing & Capabilities**.
+3. Turn on **Automatically manage signing** and choose your team.
+4. Unless you are in the project's team (`CV955K8T33`), change the bundle identifier from `com.sitetwin.app` to something unique, for example `com.yourname.sitetwin`; the original ID belongs to that team. Don't commit your team or bundle ID. TestFlight builds depend on the project's values.
+5. On the iPhone, open **Settings → Privacy & Security → Developer Mode**, turn it on and restart the phone. The switch appears only after the phone has been connected to Xcode once.
+6. Select your iPhone in Xcode's run-destination menu and press **⌘R**. The first build also downloads the Capacitor Swift packages.
+7. If iOS reports an untrusted developer on first launch, open **Settings → General → VPN & Device Management**, trust your Apple ID and start the app again.
+
+The app then starts from the home screen without Xcode. Installs signed with a free personal team expire after 7 days; press **⌘R** again to renew.
+
+**From the terminal**, without changing the Xcode project: pass your team ID and your own bundle ID on the command line. Steps 1, 5 and 7 above still apply. Run this in `web/` after the build steps:
+
+```bash
+defaults read com.apple.dt.Xcode IDEProvisioningTeamByIdentifier | grep -E 'teamID|teamName'   # your team ID
+xcrun devicectl list devices                                                                  # your iPhone's identifier
+xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug \
+  -destination 'id=<identifier>' -derivedDataPath ~/Library/Developer/Xcode/DerivedData/SiteTwin-device \
+  -allowProvisioningUpdates DEVELOPMENT_TEAM=<team ID> PRODUCT_BUNDLE_IDENTIFIER=com.yourname.sitetwin build
+xcrun devicectl device install app --device <identifier> \
+  ~/Library/Developer/Xcode/DerivedData/SiteTwin-device/Build/Products/Debug-iphoneos/App.app
+xcrun devicectl device process launch --device <identifier> com.yourname.sitetwin
+```
+
+Use a bundle ID that differs from the Flutter app's (`com.sitetwin.sitetwin`); otherwise installing one app replaces the other on the phone.
+
+### 3. TestFlight (project team only)
+
+Members of team `CV955K8T33` can share the app without a cable:
+
+```bash
+cd web
+npm run ios:archive
+```
+
+The script builds local mode, checks that the bundle contains the buildings and loads no server, and writes a signed archive to `~/Library/Developer/Xcode/Archives/`. In Xcode, open **Window → Organizer**, select the archive and choose **Distribute App → TestFlight & App Store**. It uploads to the existing App Store Connect record `forklift_navi`. Build 2 has already been uploaded, so let Xcode raise the build number. Testers install the app from TestFlight.
+
+### Troubleshooting
+
+- **"Failed to register bundle identifier" or no signing certificate:** change the bundle identifier (step 4 above) and check the team.
+- **The build cannot find `public` or `capacitor.config.json`:** run `npm run build:local` and `npx cap sync ios` first.
+- **Code signing fails with "resource fork, Finder information, or similar detritus not allowed":** the build products ended up in a folder synced by iCloud (Desktop or Documents). Keep Xcode's DerivedData in its default location under `~/Library/Developer/Xcode/`.
 
 ## What is still missing
 
 **Not yet verified**
-- The iOS Release archive compiles and its signature verifies; running it on a physical device is still unverified.
+- The iOS Release archive compiles and its signature verifies. A Debug build installs and starts on a physical iPhone (iOS 27.0.1, free personal team); the Release archive has not been run on a device yet.
 - Live external services have never been tested with real keys: Anthropic chat and vision, fal.ai image-to-3D, ElevenLabs voice and Modal GPU reconstruction. Modal also needs its worker deployed and the optional client installed.
 - Physical capture with a phone camera and the printed marker has only been tested with sample images.
 
@@ -44,7 +107,8 @@ The archive uses bundle ID `com.sitetwin.app` and team `CV955K8T33`. Upload it t
 - Vite warns about large optional map/scan chunks. The local app opens a bundled catalog and lazy-loads buildings and 3D assets; remote map tiles are not required.
 
 Details and verification results: [docs/INTEGRATION.md](docs/INTEGRATION.md).
-Native iOS app (Flutter UI, SceneKit twin, same backend): see [mobile/README.md](mobile/README.md) for the architecture, the backend ↔ app data flow and how to run it on an iPhone from Xcode.
+
+---
 
 The original project plan follows.
 

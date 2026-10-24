@@ -1,7 +1,7 @@
 // Imperative helpers shared by the HUD panels and in-scene popovers.
 import { api } from '../lib/api'
 import { useTwin } from '../lib/store'
-import type { Building } from '../lib/types'
+import type { Building, Route } from '../lib/types'
 import { indexBuilding } from './geom'
 import { useTwinUi } from './uiStore'
 
@@ -22,6 +22,14 @@ export function originOf(b: Building): string | null {
   return useTwinUi.getState().originId ?? defaultOrigin(b)
 }
 
+/** "Without stairs" in chat switches the mode the Route tab and the reach overlay use. */
+export function adoptRouteMode(route: Route) {
+  useTwinUi.setState({
+    stepFree: route.step_free && !route.min_width_m,
+    minWidth: route.min_width_m ? String(route.min_width_m) : '',
+  })
+}
+
 let navigationVersion = 0
 let navigationPending = 0
 let refreshVersion = 0
@@ -37,9 +45,13 @@ export async function navigate(
   if (!from) throw new Error('No start point')
   navigationPending = version
   ++refreshVersion
+  // Unless the caller says otherwise, route in the mode the Route tab and the reach overlay show.
+  const ui = useTwinUi.getState()
+  const stepFree = opts.step_free ?? ui.stepFree
+  const minWidth = opts.min_width_m ?? (Number(ui.minWidth) || undefined)
   const body: { from: string; to: string; step_free?: boolean; min_width_m?: number } = { from, to }
-  if (opts.step_free) body.step_free = true
-  if (opts.min_width_m) body.min_width_m = opts.min_width_m
+  if (stepFree) body.step_free = true
+  if (minWidth) body.min_width_m = minWidth
   try {
     const route = await api.route(siteId, body)
     if (version === navigationVersion && useTwin.getState().siteId === siteId) {

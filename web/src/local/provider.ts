@@ -51,6 +51,7 @@ export const localProvider: SiteTwinDataProvider = {
       // Resolve here: the worker only knows the bundled assets, not ones added or edited on this device.
       const view = withRecord(data, record), rooms = assetRooms(record), resolve = (ref: string) => resolveSpace(view, ref, rooms)
       const resolved = { ...body, from: resolve(body.from), to: resolve(body.to), via: body.via?.map(resolve) }
+      if (resolved.from === resolved.to && !resolved.via?.length) throw new Error(`You are already in ${view.building.spaces.find((s) => s.id === resolved.from)?.name ?? resolved.from}.`)
       const route = await routeInWorker(data, resolved, record.state.closed, rooms)
       if ((await readRecord(id)).revision === record.revision) return route
     }

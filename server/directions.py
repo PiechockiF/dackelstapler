@@ -1,6 +1,7 @@
 """Followable, landmark-based directions for a route: "Turn left at the CNC mill into Main aisle H-B2".
 
-Built from the route's node path (space, door:<id>, space, ..., with connectors as space→space edges).
+Built from the route's node path (space, door:<id>, door:<id>, ..., space: door to door through the spaces
+passed, each walk edge naming its space; connectors are space→space edges).
 Distances use the route model's edge weights, so the per-step metres add up to the route length."""
 
 from __future__ import annotations
@@ -61,6 +62,10 @@ def turn_word(incoming, outgoing) -> str:
     return "left" if angle > 0 else "right"
 
 
+def few(metres: float) -> str:
+    return f"about {metres:.0f} m" if metres >= 1 else "a few steps"
+
+
 def _edge(graph, first: str, second: str) -> dict:
     return min(graph[first][second].values(), key=lambda candidate: candidate["weight"])
 
@@ -106,7 +111,7 @@ def _landmark_steps(bm, nodes: list[str], graph, route) -> list[str]:
     for index, (previous, current) in enumerate(itertools.pairwise(nodes)):
         edge = _edge(graph, previous, current)
         walked += edge["weight"]
-        via = edge["via"]
+        via = edge.get("via")
         if via in bm.connectors and previous in bm.spaces and current in bm.spaces:
             flush()
             connector = bm.connectors[via]
@@ -121,28 +126,29 @@ def _landmark_steps(bm, nodes: list[str], graph, route) -> list[str]:
         if current == OUTSIDE or previous == OUTSIDE:
             if current == OUTSIDE:
                 flush()
-                steps.append(f"Walk about {walked:.0f} m and step outside through the entrance.")
+                steps.append(f"Walk {few(walked)} and step outside through the entrance.")
                 walked = 0.0
             last_point = None
             continue
-        if current.startswith(DOOR_PREFIX):
-            if previous.startswith(DOOR_PREFIX) and via == OUTSIDE:
-                flush()
-                walked -= edge["weight"]
-                steps.append(f"Walk about {walked:.0f} m and leave the building through the entrance.")
-                steps.append(f"Walk about {edge['weight']:.0f} m outside to the next entrance.")
-                walked, last_point = 0.0, None
+        if via == OUTSIDE:
+            flush()
+            walked -= edge["weight"]
+            steps.append(f"Walk {few(walked)} and leave the building through the entrance.")
+            steps.append(f"Walk about {edge['weight']:.0f} m outside to the next entrance.")
+            walked, last_point = 0.0, None
             continue
-        # Arrived in space `current` through the door `previous`.
+        if not previous.startswith(DOOR_PREFIX):
+            continue
+        # Through the door `previous` into the space edge["space"], walking on to `current`.
         door_point = _point(bm, previous)
         is_last = current == nodes[-1]
-        next_point = _point(bm, nodes[index + 2]) if index + 2 < len(nodes) else _point(bm, current)
+        next_point = _point(bm, current)
         outgoing = (next_point[0] - door_point[0], next_point[1] - door_point[1])
         turn = "straight"
         if last_point is not None:
             turn = turn_word((door_point[0] - last_point[0], door_point[1] - last_point[1]), outgoing)
         opening = bm.openings[previous[len(DOOR_PREFIX):]]
-        target = bm.spaces[current]["name"]
+        target = bm.spaces[edge["space"]]["name"]
         if turn == "straight" and not is_last:
             straight_m += walked
             straight_through.append(target)
@@ -152,7 +158,7 @@ def _landmark_steps(bm, nodes: list[str], graph, route) -> list[str]:
             at = f" at {asset_label(landmark)}" if landmark else ""
             passage = {"door": "through the door", "entrance": "in through the entrance"}.get(
                 opening.get("kind"), "through the opening")
-            distance = f"about {walked:.0f} m" if walked >= 1 else "a few steps"
+            distance = few(walked)
             if is_last:
                 past = f", past {asset_label(landmark)}" if landmark else ""
                 steps.append(f"Walk {distance} {passage} into {target}{past}.")

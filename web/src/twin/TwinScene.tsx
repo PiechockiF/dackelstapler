@@ -4,6 +4,7 @@ import { Bloom, EffectComposer, N8AO, ToneMapping, Vignette } from '@react-three
 import { ToneMappingMode } from 'postprocessing'
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
+import type CameraControlsImpl from 'camera-controls'
 import type { Building } from '../lib/types'
 import { useTwin } from '../lib/store'
 import { Connectors } from './Connectors'
@@ -227,6 +228,21 @@ function CameraDirector({ building, insets }: { building: Building; insets?: Twi
     if (lastBox.current && !intro.current && useNav.getState().status === 'idle') frameBox(lastBox.current, { transition: true })
   }, [frameBox])
 
+  // Same as the site map (Google Maps-style): drag pans along the ground, ctrl/right-drag turns and tilts around the center.
+  useEffect(() => {
+    const c = controls.current
+    if (!c) return
+    const { ACTION } = c.constructor as typeof CameraControlsImpl
+    c.mouseButtons.left = ACTION.SCREEN_PAN
+    c.mouseButtons.right = ACTION.ROTATE
+    // Capture phase so the mode is set before camera-controls reads it on drag start.
+    const onDown = (e: PointerEvent) => {
+      c.mouseButtons.left = e.ctrlKey ? ACTION.ROTATE : ACTION.SCREEN_PAN
+    }
+    window.addEventListener('pointerdown', onDown, true)
+    return () => window.removeEventListener('pointerdown', onDown, true)
+  }, [])
+
   // Intro: start wide and low, then glide in once floors have risen.
   useEffect(() => {
     const c = controls.current
@@ -350,6 +366,9 @@ function CameraDirector({ building, insets }: { building: Building; insets?: Twi
       minDistance={3}
       maxDistance={layout.extent * 8}
       maxPolarAngle={Math.PI * 0.49}
+      // 0.16°/px turn, 0.1°/px tilt like the site map; camera-controls scales its speeds by element height.
+      azimuthRotateSpeed={(0.16 * size.height) / 360}
+      polarRotateSpeed={(0.1 * size.height) / 360}
       dollyToCursor
     />
   )

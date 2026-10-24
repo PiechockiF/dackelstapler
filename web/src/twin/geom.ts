@@ -41,17 +41,24 @@ export function pointInPolygon(p: XY, poly: XY[]): boolean {
   return inside
 }
 
-/** A point guaranteed inside the polygon (close to shapely's representative_point). */
+/** shapely's representative_point() (GEOS InteriorPointArea): the server's route anchor, so markers
+ *  sit exactly where routes start and end. */
 export function interiorPoint(poly: XY[]): XY {
-  const c = centroid(poly)
-  if (pointInPolygon(c, poly)) return c
   let minY = Infinity
   let maxY = -Infinity
   for (const [, y] of poly) {
     minY = Math.min(minY, y)
     maxY = Math.max(maxY, y)
   }
-  const y = (minY + maxY) / 2 + 1e-6
+  // Scan halfway between the vertex heights nearest the middle, so the line never hits a vertex.
+  const mid = (minY + maxY) / 2
+  let lo = minY
+  let hi = maxY
+  for (const [, y] of poly) {
+    if (y <= mid) lo = Math.max(lo, y)
+    else hi = Math.min(hi, y)
+  }
+  const y = (lo + hi) / 2
   const xs: number[] = []
   for (let i = 0, n = poly.length; i < n; i++) {
     const [x1, y1] = poly[i]
@@ -59,8 +66,8 @@ export function interiorPoint(poly: XY[]): XY {
     if (y1 > y !== y2 > y) xs.push(x1 + ((y - y1) * (x2 - x1)) / (y2 - y1))
   }
   xs.sort((a, b) => a - b)
-  let best: XY = c
-  let bestWidth = -1
+  let best: XY = centroid(poly)
+  let bestWidth = 0
   for (let i = 0; i + 1 < xs.length; i += 2) {
     const width = xs[i + 1] - xs[i]
     if (width > bestWidth) {

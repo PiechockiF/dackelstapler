@@ -102,6 +102,13 @@ describe('local assistant commands for equipment and deliveries', () => {
   })
 })
 
+describe('local routes (parity with server/twin.py)', () => {
+  it('rejects a route to the room you are already in, unless it has stops', async () => {
+    await expect(localProvider.route(site, { from: 'Office 1.04', to: OFFICE })).rejects.toThrow('You are already in Office 1.04.')
+    expect((await localProvider.route(site, { from: OFFICE, to: OFFICE, via: [LAB] })).reachable).toBe(true)
+  })
+})
+
 describe('local reachability', () => {
   it('returns the spaces reachable from a room and honours closures', async () => {
     const all = await localProvider.reachable(site, OFFICE)

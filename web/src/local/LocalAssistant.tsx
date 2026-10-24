@@ -2,7 +2,7 @@ import { Send, Sparkles } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../lib/api'
 import { useTwin } from '../lib/store'
-import { originOf, refreshRoute } from '../twin/actions'
+import { adoptRouteMode, originOf, refreshRoute } from '../twin/actions'
 import { useTwinUi } from '../twin/uiStore'
 import { openChatThread, useChat } from '../chat/chatStore'
 import { runLocalCommand } from './assistant'
@@ -22,7 +22,7 @@ export default function LocalAssistant({ siteId }: { siteId: string }) {
       if (useTwin.getState().siteId !== siteId) return
       for (const action of result.actions) {
         const twin = useTwin.getState()
-        if (action.type === 'show_route') { twin.setRoute(action.route); twin.setFocusFloor(null) }
+        if (action.type === 'show_route') { adoptRouteMode(action.route); twin.setRoute(action.route); twin.setFocusFloor(null) }
         if (action.type === 'highlight') twin.setHighlight({ ids: action.ids, label: action.label })
         if (action.type === 'focus_floor') twin.setFocusFloor(action.floor_id)
         if (action.type === 'set_location') useTwinUi.getState().setOrigin(action.space_id)
