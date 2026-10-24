@@ -116,6 +116,25 @@ def test_closure_changes_route_and_logs_event(client):
     assert client.get(f"/api/sites/{HERO}/events?since=2999-01-01T00:00:00Z").json() == []
 
 
+def test_reachable_follows_mode_and_closures(client):
+    url = f"/api/sites/{HERO}/reachable"
+    walk = client.get(url, params={"from": "Office 1.04"}).json()
+    assert walk["from_space_id"] == f"{HERO}-F1-S004" and walk["from_space_id"] in walk["space_ids"]
+    quality_lab = f"{HERO}-F0-S021"
+    assert quality_lab in walk["space_ids"]
+    step_free = set(client.get(url, params={"from": "Office 1.04", "step_free": True}).json()["space_ids"])
+    assert quality_lab in step_free and step_free <= set(walk["space_ids"])
+
+    client.post(f"/api/sites/{HERO}/closures", json={"element_id": "Office lift", "closed": True})
+    no_lift = set(client.get(url, params={"from": "Office 1.04", "step_free": True}).json()["space_ids"])
+    assert quality_lab not in no_lift and no_lift < step_free  # upstairs is cut off without the lift
+    assert quality_lab in client.get(url, params={"from": "Office 1.04"}).json()["space_ids"]  # stairs remain
+
+    forklift = client.get(url, params={"from": "Logistics zone H-C5", "min_width_m": 3}).json()
+    assert forklift["step_free"] and f"{HERO}-F0-S030" not in forklift["space_ids"]  # Office 0.30
+    assert client.get(url, params={"from": "Narnia"}).status_code == 400
+
+
 def test_move_asset(client):
     state = client.post(f"/api/sites/{HERO}/assets/{HERO}-A00001/move",
                         json={"space_id": "Production zone H-A4"}).json()

@@ -100,6 +100,7 @@ RoomScan = { id, site_id, space_id, splat_url: string, transform: number[] /* 4x
 | GET | `/api/sites/{id}/building` | | raw `building.json` (with added doors) |
 | GET | `/api/sites/{id}/state` | | `SiteState` |
 | POST | `/api/sites/{id}/route` | `{from, to, step_free?, min_width_m?, via?}` (ids, refs or names) | `Route` |
+| GET | `/api/sites/{id}/reachable` | `?from=&step_free=&min_width_m=` (same rules and live closures as `/route`) | `{from_space_id, step_free, min_width_m, space_ids}` |
 | POST | `/api/sites/{id}/closures` | `{element_id, closed}` | `SiteState` (+ `closure` event) |
 | POST | `/api/sites/{id}/assets/{asset_id}/move` | `{space_id, position?}` | `SiteState` (+ `asset_moved` event) |
 | GET | `/api/sites/{id}/events` | `?since=ISO&limit=` | `Event[]` newest first |

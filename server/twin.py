@@ -456,6 +456,18 @@ def compute_route(site_id: str, start: str, destination: str, *, step_free: bool
         return payload
 
 
+def reachable(site_id: str, start: str, *, step_free: bool = False, min_width_m: float | None = None) -> dict:
+    """Every space reachable from start under the same rules and live closures as compute_route."""
+    from core.reachability import reachable_spaces
+
+    with lock(site_id):
+        bm = get_map(site_id)
+        start_id = bm.resolve_space(start)
+        spaces = reachable_spaces(bm, start_id, step_free=step_free, min_width_m=min_width_m)
+    return {"from_space_id": start_id, "step_free": step_free or min_width_m is not None,
+            "min_width_m": min_width_m, "space_ids": sorted(spaces)}
+
+
 def _empty_route() -> dict:
     return {"reachable": False, "length_m": 0.0, "step_free": False, "min_width_m": None, "space_path": [],
             "steps": [], "floors": [], "connectors": []}

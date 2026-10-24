@@ -1,5 +1,5 @@
 import type {
-  BookableRoom, Booking, Building, CaptureJob, ChatAction, Route, Site, SiteEvent, SiteState,
+  BookableRoom, Booking, Building, CaptureJob, ChatAction, Reachable, Route, Site, SiteEvent, SiteState,
 } from './types'
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -28,6 +28,12 @@ export const api = {
   state: (siteId: string) => request<SiteState>(`/api/sites/${siteId}/state`),
   route: (siteId: string, body: { from: string; to: string; step_free?: boolean; min_width_m?: number; via?: string[] }) =>
     request<Route>(`/api/sites/${siteId}/route`, json(body)),
+  reachable: (siteId: string, from: string, opts: { step_free?: boolean; min_width_m?: number } = {}) => {
+    const query = new URLSearchParams({ from })
+    if (opts.step_free) query.set('step_free', 'true')
+    if (opts.min_width_m) query.set('min_width_m', String(opts.min_width_m))
+    return request<Reachable>(`/api/sites/${siteId}/reachable?${query}`)
+  },
   setClosed: (siteId: string, element_id: string, closed: boolean) =>
     request<SiteState>(`/api/sites/${siteId}/closures`, json({ element_id, closed })),
   moveAsset: (siteId: string, assetId: string, space_id: string, position?: [number, number]) =>
