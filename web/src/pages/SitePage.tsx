@@ -197,7 +197,7 @@ export default function SitePage() {
               ))}
               {compact && <button aria-label="Close panel" className="px-2 text-slate-400" onClick={() => setMobilePanel(null)}><X size={15} /></button>}
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto p-2.5 [scrollbar-width:thin]">
+            <div className="min-h-0 flex-1 overflow-y-auto p-2.5 scrollbar-thin">
               {tab === 'feed' && (
                 <div className="flex flex-col gap-3">
                   <div className="grid grid-cols-2 gap-2">
@@ -317,8 +317,8 @@ export default function SitePage() {
         {TABS.map((t) => <button key={t.id} className={`flex flex-1 flex-col items-center gap-1 py-2 text-[9px] ${mobilePanel === t.id ? 'text-sky-300' : 'text-slate-400'}`} onClick={() => { setTab(t.id); setMobilePanel(mobilePanel === t.id ? null : t.id) }}>{t.icon}{t.label}</button>)}
         <button className={`flex flex-1 flex-col items-center gap-1 py-2 text-[9px] ${mobilePanel === 'chat' ? 'text-sky-300' : 'text-slate-400'}`} onClick={() => setMobilePanel(mobilePanel === 'chat' ? null : 'chat')}><MessageSquare size={17} /> Assistant</button>
       </nav>}
-      {building && compact && !mobilePanel && <p className="pointer-events-none absolute bottom-[147px] left-4 max-w-[90%] truncate text-[9px] text-slate-500">{building.building.attribution}</p>}
-      {isLocalMode && building?.building.id === 'proc-factory-dev-003' && <button className="absolute right-4 top-[132px] rounded-lg border border-white/10 bg-slate-950/80 px-2 py-1.5 text-[10px] text-slate-400" onClick={() => setShowDemoScan(!showDemoScan)}>{showDemoScan ? 'Hide example scan' : 'Show example scan'}</button>}
+      {building && compact && !mobilePanel && <p className="pointer-events-none absolute bottom-36.75 left-4 max-w-[90%] truncate text-[9px] text-slate-500">{building.building.attribution}</p>}
+      {isLocalMode && building?.building.id === 'proc-factory-dev-003' && <button className="absolute right-4 top-33 rounded-lg border border-white/10 bg-slate-950/80 px-2 py-1.5 text-[10px] text-slate-400" onClick={() => setShowDemoScan(!showDemoScan)}>{showDemoScan ? 'Hide example scan' : 'Show example scan'}</button>}
 
       {error && (
         <div className="absolute inset-0 grid place-items-center">
@@ -332,7 +332,7 @@ export default function SitePage() {
 
       {/* crossfade from the map on entry, back to dark on exit */}
       <motion.div
-        className="pointer-events-none absolute inset-0 z-[60] bg-[#05070d]"
+        className="pointer-events-none absolute inset-0 z-60 bg-[#05070d]"
         initial={{ opacity: 1 }}
         animate={{ opacity: !leaving && (building || error) ? 0 : 1 }}
         transition={leaving ? { duration: 0.3, ease: 'easeIn' } : { duration: 1.1, ease: 'easeOut' }}

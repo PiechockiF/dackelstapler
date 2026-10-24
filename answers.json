@@ -1,0 +1,144 @@
+[
+  {
+    "id": "proc-factory-test-011-H01",
+    "question": "Facilities want the total floor area of every production zone on the ground floor added together. How many square metres is that? Finish with a line 'Answer: <number>'.",
+    "kind": "area_sum",
+    "answer": "list_spaces on the ground floor with room_type production_zone returned 7 zones of 297.14 m² each, totalling 2079.98 m².\nAnswer: 2079.98",
+    "trace": [
+      {
+        "tool": "list_spaces",
+        "input": {
+          "floor_level": 0,
+          "room_type": "production_zone"
+        }
+      },
+      {
+        "tool": "submit_answer",
+        "input": {
+          "value": "2079.98",
+          "explanation": "list_spaces on the ground floor with room_type production_zone returned 7 zones of 297.14 m² each, totalling 2079.98 m².",
+          "kind": "area_sum"
+        }
+      }
+    ],
+    "usage": {
+      "input_tokens": 6,
+      "output_tokens": 224,
+      "cache_read_input_tokens": 6574,
+      "cache_creation_input_tokens": 7199
+    }
+  },
+  {
+    "id": "proc-factory-test-011-H02",
+    "question": "I'm moving a 1.1 m wide trolley. It can't go on stairs or steps (lifts are fine), and every door it passes through must be at least 1.1 m wide. It arrives through the entrance into Logistics zone H-E3 (Ground floor). Into how many rooms on the floor 2 can it be delivered? Finish with a line 'Answer: <number>'.",
+    "kind": "count",
+    "answer": "reachable_rooms from Logistics zone H-E3 with step-free routing and min door width 1.1 m (lift allowed) counted 7 rooms on Floor 2: Server rooms 2.07, 2.08, 2.30, Toilet 2.10, and Meeting rooms 2.12, 2.21, 2.26.\nAnswer: 7",
+    "trace": [
+      {
+        "tool": "reachable_rooms",
+        "input": {
+          "start": "proc-factory-test-011-F0-S023",
+          "floor_level": 2,
+          "min_width_m": 1.1,
+          "step_free": true
+        }
+      },
+      {
+        "tool": "submit_answer",
+        "input": {
+          "value": "7",
+          "explanation": "reachable_rooms from Logistics zone H-E3 with step-free routing and min door width 1.1 m (lift allowed) counted 7 rooms on Floor 2: Server rooms 2.07, 2.08, 2.30, Toilet 2.10, and Meeting rooms 2.12, 2.21, 2.26.",
+          "kind": "count"
+        }
+      }
+    ],
+    "usage": {
+      "input_tokens": 6,
+      "output_tokens": 341,
+      "cache_read_input_tokens": 6648,
+      "cache_creation_input_tokens": 6982
+    }
+  },
+  {
+    "id": "proc-factory-test-011-H03",
+    "question": "We're soundproofing Locker room 0.41 (Ground floor). How many other rooms on that floor share a wall with it? Count every room whose wall runs along it for at least 1 m, with or without a door between them; corridors, stairwells and lifts don't count. Finish with a line 'Answer: <number>'.",
+    "kind": "count",
+    "room_id": "proc-factory-test-011-F0-S041",
+    "answer": "space_details for Locker room 0.41 lists four wall neighbours: Assembly zone H-A3, Additive zone H-A4, Office 0.40 and Office 0.42. Corridors, stairwells and lifts are already left out, so Office corridor 0.26 is not counted. I counted the production halls as rooms because they are not corridors, stairwells or lifts.\nAnswer: 4",
+    "trace": [
+      {
+        "tool": "find",
+        "input": {
+          "query": "Locker room 0.41",
+          "floor_level": 0
+        }
+      },
+      {
+        "tool": "space_details",
+        "input": {
+          "space_id": "proc-factory-test-011-F0-S041"
+        }
+      },
+      {
+        "tool": "submit_answer",
+        "input": {
+          "value": "4",
+          "explanation": "space_details for Locker room 0.41 lists four wall neighbours: Assembly zone H-A3, Additive zone H-A4, Office 0.40 and Office 0.42. Corridors, stairwells and lifts are already left out, so Office corridor 0.26 is not counted. I counted the production halls as rooms because they are not corridors, stairwells or lifts.",
+          "kind": "count",
+          "room_id": "proc-factory-test-011-F0-S041"
+        }
+      }
+    ],
+    "usage": {
+      "input_tokens": 8,
+      "output_tokens": 778,
+      "cache_read_input_tokens": 13432,
+      "cache_creation_input_tokens": 7377
+    }
+  },
+  {
+    "id": "proc-factory-test-011-H04",
+    "question": "We're planning a wireless sensor link between Production zone H-B3 (Ground floor) and Kitchen 2.04 (Floor 2). What is the straight-line distance in metres between the centres of the two rooms (each room's floor-plan centroid, at its floor's elevation)? Finish with a line 'Answer: <number>'.",
+    "kind": "distance",
+    "room_id": "proc-factory-test-011-F2-S004",
+    "answer": "I found both rooms and measured the 3D straight-line distance between their floor-plan centroids. Production zone H-B3 is at (-44.75, -24.9, 0.0) and Kitchen 2.04 is at (-1.805, 2.5, 7.0), so the distance is 51.42 m.\nAnswer: 51.42",
+    "trace": [
+      {
+        "tool": "find",
+        "input": {
+          "query": "Production zone H-B3",
+          "floor_level": 0
+        }
+      },
+      {
+        "tool": "find",
+        "input": {
+          "query": "Kitchen 2.04",
+          "floor_level": 2
+        }
+      },
+      {
+        "tool": "straight_line_distance",
+        "input": {
+          "first_space": "proc-factory-test-011-F0-S008",
+          "second_space": "proc-factory-test-011-F2-S004"
+        }
+      },
+      {
+        "tool": "submit_answer",
+        "input": {
+          "value": "51.42",
+          "explanation": "I found both rooms and measured the 3D straight-line distance between their floor-plan centroids. Production zone H-B3 is at (-44.75, -24.9, 0.0) and Kitchen 2.04 is at (-1.805, 2.5, 7.0), so the distance is 51.42 m.",
+          "kind": "distance",
+          "room_id": "proc-factory-test-011-F2-S004"
+        }
+      }
+    ],
+    "usage": {
+      "input_tokens": 8,
+      "output_tokens": 485,
+      "cache_read_input_tokens": 13777,
+      "cache_creation_input_tokens": 7323
+    }
+  }
+]

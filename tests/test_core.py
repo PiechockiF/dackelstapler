@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from benchmark.score import score_reply, within
+from benchmark.score import within
 from core import geometry, solvers
 from core.building_map import OUTSIDE, BuildingMap, MapError
 from core.reachability import blocking_openings, reachable_spaces
@@ -217,18 +217,6 @@ def test_footprint_fits_and_capacity(factory):
     huge = geometry.footprint_fits(factory, room, 50, 50)
     assert not huge["ok"] and huge["position"] is None
     assert geometry.capacity(factory, room) >= 1
-
-
-# ---------- end to end through the text parser ----------
-
-
-def test_answer_end_to_end_on_dev_building():
-    from agent.answer import answer
-
-    for building_id in BUILDINGS:
-        for q in questions(building_id):
-            reply = answer(DATA / "dev" / building_id, q["question"])
-            assert score_reply(q["answer"], reply), (q["id"], reply)
 
 
 @pytest.mark.skipif(not shutil.which("node"), reason="needs node (type stripping, v22.18+)")

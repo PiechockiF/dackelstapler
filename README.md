@@ -185,7 +185,7 @@ benchmark CLI ── agent/answer.py ─────┘  (same core, no server)
 
 ```
 core/        building_map.py (moved/extended from starter_agent), geometry.py, reachability.py, whatif.py
-agent/       tools.py, prompts.py, answer.py  ← benchmark entry `agent.answer:answer`
+agent/       tools.py, prompts.py (chat agent), answer.py (benchmark agent, `agent.answer:answer`)
 server/      main.py, routes/{sites,buildings,route,events,bookings,capture,chat}.py, db.py, ws.py
 capture/     aruco.py, image_to_3d.py (fal), splat_job.py (Modal), dimension_check.py, align.py
 scripts/     geocode_sites.py, seed_demo_events.py, print_marker.py

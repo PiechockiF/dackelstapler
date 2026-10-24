@@ -45,7 +45,7 @@ def footprint_fits(bm, space_id, width_m, depth_m) -> dict  # {"ok": bool, "reas
 def capacity(bm, space_id) -> int  # chairs in the room, else floor(area / 2.5)
 ```
 
-`agent/answer.py` exports `answer(building_directory: Path, question_text: str) -> str` for `benchmark.evaluate --agent agent.answer:answer`.
+`agent/answer.py` is the benchmark agent (Claude tool use over `core/`). It exports `answer(building_directory: Path, question_text: str) -> str` for `benchmark.evaluate --agent agent.answer:answer` and `answer_entry(...)` for `run_benchmark`.
 
 ## JSON shapes
 

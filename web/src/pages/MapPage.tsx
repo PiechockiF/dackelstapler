@@ -89,7 +89,7 @@ export default function MapPage() {
         initial={{ x: -40, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         transition={{ delay: 0.4, type: 'spring', stiffness: 200, damping: 26 }}
-        className={clsx('absolute left-4 top-4 flex w-[340px] flex-col', open && 'bottom-4')}
+        className={clsx('absolute left-4 top-4 flex w-85 flex-col', open && 'bottom-4')}
       >
         <div
           // tabIndex so clicks on (Safari-unfocusable) buttons inside still count as focus within the panel
@@ -101,7 +101,7 @@ export default function MapPage() {
         >
           <div className="p-4 pb-3">
             <div className="flex items-center gap-2.5">
-              <div className="grid size-9 place-items-center rounded-xl bg-gradient-to-br from-sky-400 to-violet-500 text-white shadow-[0_0_24px_rgba(56,189,248,0.5)]">
+              <div className="grid size-9 place-items-center rounded-xl bg-linear-to-br from-sky-400 to-violet-500 text-white shadow-[0_0_24px_rgba(56,189,248,0.5)]">
                 <Layers size={18} />
               </div>
               <div>
@@ -145,7 +145,7 @@ export default function MapPage() {
             </div>
           </div>
           {open && <div className="mx-4 h-px bg-white/5" />}
-          <ul hidden={!open} className="min-h-0 flex-1 overflow-y-auto p-2 [scrollbar-width:thin]">
+          <ul hidden={!open} className="min-h-0 flex-1 overflow-y-auto p-2 scrollbar-thin">
             {sites.isLoading && <li className="px-3 py-6 text-center text-sm text-slate-500">Loading sites…</li>}
             {sites.isError && <li className="px-3 py-6 text-center text-sm text-rose-300">Could not load sites: {String(sites.error)}</li>}
             {filtered.map((s) => (

@@ -114,8 +114,12 @@ class BuildingMap(StarterBuildingMap):
                 if float(opening.get("width_m") or 0.0) < min_width_m - WIDTH_EPSILON_M
             }
         graph.remove_nodes_from([*extra, *(DOOR_PREFIX + element for element in extra | narrow)])
-        graph.remove_edges_from(
-            [(first, second, key) for first, second, key, via in graph.edges(keys=True, data="via") if via in extra]
+        graph.remove_edges_from(  # closed stairs and lifts, and walks through a closed space from door to door
+            [
+                (first, second, key)
+                for first, second, key, data in graph.edges(keys=True, data=True)
+                if data.get("via") in extra or data.get("space") in extra
+            ]
         )
         if outside:
             for opening in self.openings.values():
@@ -163,9 +167,24 @@ class BuildingMap(StarterBuildingMap):
                 ) from error
             length += leg_length
             nodes += leg_nodes if not nodes else leg_nodes[1:]
-        result = SiteRoute(
-            start_space_id=stops[0],
-            destination_space_id=stops[-1],
+        result = self.route_from_nodes(graph, nodes, length, step_free=step_free, min_width_m=min_width_m, closed=closed)
+        self.last_route = result
+        return result
+
+    def route_from_nodes(
+        self,
+        graph: nx.MultiGraph,
+        nodes: list[str],
+        length: float,
+        *,
+        step_free: bool,
+        min_width_m: float | None = None,
+        closed: set[str] | None = None,
+    ) -> SiteRoute:
+        """A SiteRoute for a node path found in `graph` (spaces and door:<id> nodes, first and last a space)."""
+        return SiteRoute(
+            start_space_id=nodes[0],
+            destination_space_id=nodes[-1],
             length_m=round(length, 2),
             space_path=[space for space in self.spaces_passed(graph, nodes) if space != OUTSIDE],
             steps=self.directions(graph, nodes) if len(nodes) > 1 else [
@@ -177,8 +196,6 @@ class BuildingMap(StarterBuildingMap):
             min_width_m=min_width_m,
             graph=graph,
         )
-        self.last_route = result
-        return result
 
     def route(self, start: str, destination: str, step_free: bool = False, via: list[str] | None = None):
         return self.find_route(start, destination, step_free=step_free, via=via)
@@ -346,15 +363,18 @@ class BuildingMap(StarterBuildingMap):
         return payload
 
     def element_path(self, route: SiteRoute) -> list[str]:
-        """Ordered opening and connector ids along a route, each used once."""
+        """The opening, stair or lift id of every step along a route, as in the kit's answers: element i joins
+        space_path[i] and space_path[i + 1], so a stair climbed over two floors appears twice."""
         elements = []
         graph = route.graph if route.graph is not None else self.graph(route.step_free, route.min_width_m)
         for index, node in enumerate(route.nodes):
             previous = route.nodes[index - 1] if index else None
             if node.startswith(DOOR_PREFIX):
-                elements.append(node[len(DOOR_PREFIX):])
+                # A shortest walk may touch a door's landing without going through it: same space on both sides.
+                before = self.cheapest(graph, previous, node).get("space")
+                after = self.cheapest(graph, node, route.nodes[index + 1]).get("space")
+                if before != after:
+                    elements.append(node[len(DOOR_PREFIX):])
             elif previous in self.spaces and node in self.spaces:
-                connector = self._edge_via(graph, previous, node)
-                if not elements or elements[-1] != connector:  # one stair over several flights
-                    elements.append(connector)
+                elements.append(self._edge_via(graph, previous, node))
         return elements

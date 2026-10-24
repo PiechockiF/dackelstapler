@@ -7,6 +7,8 @@ from __future__ import annotations
 
 import math
 
+import networkx as nx
+
 from core import geometry
 from core.building_map import OUTSIDE, BuildingMap, MapError
 from core.reachability import reachable_spaces
@@ -138,6 +140,93 @@ def what_if_door(bm: BuildingMap, first: str, second: str, floor_id: str) -> dic
     return {"count": len(improved), "rooms": improved, "door_position": position}
 
 
+# ---------- routes (warm-up and Sunday benchmark questions) ----------
+
+FORKLIFT_MIN_WIDTH_M = 3.0
+# ponytail: the organizers haven't said which halls are production bays (destinations only, never driven
+# through); these are the halls where the machines stand. Warehouse and logistics zones stay drivable.
+PRODUCTION_BAY_TYPES = {"production_zone", "assembly_zone", "additive_zone"}
+
+
+def route_graph(
+    bm: BuildingMap,
+    *,
+    step_free: bool = False,
+    min_width_m: float | None = None,
+    closed: set[str] | frozenset[str] = frozenset(),
+    forklift: bool = False,
+    endpoints: set[str] | frozenset[str] = frozenset(),
+):
+    """The judges' route graph: never round the outside. A forklift needs openings of at least 3 m, no stairs
+    or steps, and may end in a production bay (one of `endpoints`) but never drive through one."""
+    if forklift:
+        min_width_m = max(min_width_m or 0.0, FORKLIFT_MIN_WIDTH_M)
+    graph = bm.graph(step_free or min_width_m is not None, min_width_m, set(closed))
+    if OUTSIDE in graph:  # bm.graph lets loads round the building; the judges never do
+        graph.remove_node(OUTSIDE)
+    if forklift:
+        bays = {space_id for space_id, space in bm.spaces.items() if space["room_type"] in PRODUCTION_BAY_TYPES}
+        graph.remove_edges_from(
+            [(first, second, key) for first, second, key, space in graph.edges(keys=True, data="space")
+             if space in bays and first not in bm.spaces and second not in bm.spaces]  # door to door through a bay
+        )
+        graph.remove_nodes_from(bays - set(endpoints))
+        graph.remove_edges_from(  # no lift rides either: aisles and wide openings only
+            [(first, second, key) for first, second, key, via in graph.edges(keys=True, data="via") if via in bm.connectors]
+        )
+    return graph
+
+
+def best_route(
+    bm: BuildingMap,
+    starts: list[str],
+    ends: list[str],
+    *,
+    step_free: bool = False,
+    min_width_m: float | None = None,
+    closed: set[str] | frozenset[str] = frozenset(),
+    forklift: bool = False,
+):
+    """Shortest route from any of `starts` to any of `ends` (e.g. every room that holds a CNC mill).
+    Raises MapError when there is none."""
+    graph = route_graph(
+        bm, step_free=step_free, min_width_m=min_width_m, closed=closed, forklift=forklift,
+        endpoints=set(starts) | set(ends),
+    )
+    sources = sorted(space_id for space_id in set(starts) if space_id in graph)
+    if not sources:
+        raise MapError("The start can't be used under these constraints.")
+    lengths, paths = nx.multi_source_dijkstra(graph, sources, weight="weight")
+    reached = sorted((lengths[end], end) for end in set(ends) if end in lengths)
+    if not reached:
+        raise MapError("There is no route under these constraints.")
+    length, end = reached[0]
+    return bm.route_from_nodes(
+        graph, paths[end], length, step_free=step_free or forklift or min_width_m is not None,
+        min_width_m=FORKLIFT_MIN_WIDTH_M if forklift and min_width_m is None else min_width_m, closed=set(closed),
+    )
+
+
+def tour(bm: BuildingMap, stops: list[list[str]], **constraints) -> list:
+    """One route per leg, visiting the stops in order. Each stop is a list of candidate spaces; a leg ends
+    at its nearest candidate, which starts the next leg.
+    ponytail: greedy per leg, so with several candidates per stop the total can miss the best chain; a DP over
+    the stops (super-source Dijkstra per stop) fixes it if tours with item/room-type stops matter."""
+    legs, here = [], stops[0]
+    for candidates in stops[1:]:
+        legs.append(best_route(bm, here, candidates, **constraints))
+        here = [legs[-1].destination_space_id]
+    return legs
+
+
+def assets_of_type(bm: BuildingMap, asset_type: str, floor_id: str | None = None) -> list[dict]:
+    return sorted(
+        (asset for asset in bm.assets.values()
+         if asset["type"] == asset_type and (floor_id is None or asset["floor_id"] == floor_id)),
+        key=lambda asset: asset["id"],
+    )
+
+
 __all__ = [
     "OUTSIDE",
     "largest_room",
@@ -149,4 +238,8 @@ __all__ = [
     "shared_walls_count",
     "straight_line_3d",
     "what_if_door",
+    "route_graph",
+    "best_route",
+    "tour",
+    "assets_of_type",
 ]
