@@ -27,5 +27,6 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 class MainViewController: CAPBridgeViewController {
     override func capacitorDidLoad() {
         bridge?.registerPluginInstance(NavMotionPlugin())
+        bridge?.registerPluginInstance(VoicePlugin())
     }
 }

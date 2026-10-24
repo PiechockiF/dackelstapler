@@ -442,7 +442,7 @@ export default function CapturePage() {
             <Package size={18} />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-sky-300/80">SiteTwin capture</div>
+            <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-sky-300/80">Dackel capture</div>
             <div className="truncate text-sm font-medium text-white">{site?.name ?? building?.building.name ?? (siteId ? siteId : 'Choose a site')}</div>
           </div>
           <a href={MARKER_PDF_URL} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-lg border border-white/10 px-2 py-1.5 text-[11px] text-slate-300 active:bg-white/10">

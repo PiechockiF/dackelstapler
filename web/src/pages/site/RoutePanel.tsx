@@ -1,5 +1,6 @@
-import { ArrowUpDown, Footprints, Navigation, X } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import clsx from 'clsx'
+import { ArrowUpDown, Footprints, LocateFixed, Navigation, X } from 'lucide-react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useTwin } from '../../lib/store'
 import { useNav } from '../../nav/navStore'
 import { walkingRoute } from '../../nav/pdr'
@@ -8,6 +9,33 @@ import { navigate, originOf } from '../../twin/actions'
 import { indexBuilding } from '../../twin/geom'
 import { useTwinUi } from '../../twin/uiStore'
 import { Btn, Field, inputCls } from './ui'
+
+/** A sideways-scrolling row of places for one field; narrows to what's typed. */
+function PlaceChips({ options, value, onPick, lead }: { options: string[]; value: string; onPick: (v: string) => void; lead?: ReactNode }) {
+  const q = value.trim().toLowerCase()
+  const picked = options.includes(value.trim()) ? value.trim() : null
+  // A picked place leads the row so it stays visible; otherwise narrow to what's typed.
+  const shown = (picked ? [picked, ...options.filter((o) => o !== picked)] : q ? options.filter((o) => o.toLowerCase().includes(q)) : options).slice(0, 40)
+  if (!shown.length && !lead) return null
+  return (
+    <div className="-mx-1 mt-0.5 flex gap-1.5 overflow-x-auto px-1 pb-0.5 normal-case tracking-normal [scrollbar-width:none]">
+      {lead}
+      {shown.map((o) => (
+        <button
+          key={o}
+          type="button"
+          onClick={() => onPick(o)}
+          className={clsx(
+            'shrink-0 whitespace-nowrap rounded-full border px-2.5 py-1 text-[11px] font-normal transition',
+            o === value.trim() ? 'border-sky-400/50 bg-sky-500/20 text-sky-100' : 'border-white/10 bg-white/[0.04] text-slate-300 hover:border-sky-300/40',
+          )}
+        >
+          {o}
+        </button>
+      ))}
+    </div>
+  )
+}
 
 export function RoutePanel({ building, siteId }: { building: Building; siteId: string }) {
   const route = useTwin((s) => s.route)
@@ -32,7 +60,7 @@ export function RoutePanel({ building, siteId }: { building: Building; siteId: s
     }
     return m
   }, [building])
-  const options = useMemo(() => [...byName.keys()].sort().slice(0, 2000), [byName])
+  const options = useMemo(() => [...byName.keys()].sort((a, b) => a.localeCompare(b, undefined, { numeric: true })).slice(0, 2000), [byName])
   const resolve = (v: string) => byName.get(v.trim()) ?? v.trim()
   // Show the room's name when no other space shares it (the server resolves it back), otherwise its id.
   const nameCount = useMemo(() => {
@@ -77,16 +105,27 @@ export function RoutePanel({ building, siteId }: { building: Building; siteId: s
           <option key={o} value={o} />
         ))}
       </datalist>
-      <Field label="From">
+      <Field label="From" as="div">
         <input list="twin-spaces" value={from} onChange={(e) => setFrom(e.target.value)} placeholder={defaultFrom ? `${idx.spaces.get(defaultFrom)?.name ?? defaultFrom} (you are here)` : 'Room, ref or id'} className={inputCls} />
+        <PlaceChips
+          options={options}
+          value={from}
+          onPick={setFrom}
+          lead={defaultFrom && (
+            <button type="button" onClick={() => setFrom('')} className={clsx('flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-2.5 py-1 text-[11px] font-normal', !from.trim() ? 'border-emerald-400/50 bg-emerald-500/15 text-emerald-100' : 'border-white/10 bg-white/[0.04] text-slate-300')}>
+              <LocateFixed size={11} /> You are here
+            </button>
+          )}
+        />
       </Field>
       <div className="-my-1.5 flex justify-center">
         <button className="rounded-full p-1 text-slate-400 hover:bg-white/10 hover:text-white" onClick={() => { setFrom(to); setTo(from) }} title="Swap">
           <ArrowUpDown size={14} />
         </button>
       </div>
-      <Field label="To">
+      <Field label="To" as="div">
         <input list="twin-spaces" value={to} onChange={(e) => setTo(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && to && go()} placeholder="Room, ref, asset or id" className={inputCls} />
+        <PlaceChips options={options} value={to} onPick={setTo} />
       </Field>
       <div className="flex items-center gap-3">
         <label className="flex cursor-pointer items-center gap-2 whitespace-nowrap text-xs text-slate-300">

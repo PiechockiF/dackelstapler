@@ -96,7 +96,7 @@ export default function MapPage() {
                 <Layers size={18} />
               </div>
               <div>
-                <div className="text-[17px] font-semibold tracking-tight text-white">SiteTwin</div>
+                <div className="text-[17px] font-semibold tracking-tight text-white">Dackel</div>
                 <div className="text-[11px] text-slate-400">Living 3D twins of every Standort</div>
               </div>
               {mock && <span className="ml-auto rounded bg-amber-400/20 px-1.5 py-0.5 text-[10px] font-semibold text-amber-200">MOCK</span>}

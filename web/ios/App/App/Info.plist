@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>SiteTwin</string>
+	<string>Dackel</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -27,11 +27,13 @@
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>SiteTwin uses the camera to capture deliveries and room scans.</string>
+	<string>Dackel uses the camera to capture deliveries and room scans.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>SiteTwin uses the microphone for voice questions to the site assistant.</string>
+	<string>Dackel uses the microphone so you can speak to the site assistant.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>SiteTwin imports photos and videos for deliveries and room scans.</string>
+	<string>Dackel imports photos and videos for deliveries and room scans.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Dackel turns what you say into assistant commands, on this phone where supported.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

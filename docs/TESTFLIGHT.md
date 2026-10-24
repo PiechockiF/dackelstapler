@@ -77,4 +77,4 @@ archive is development-signed; Xcode handles distribution signing during upload.
 The intended phone check: update in TestFlight, enable airplane mode, open the demo
 factory, route between rooms, close/reopen a lift, book a room, save a photo delivery,
 force-quit, and verify the edits/photo remain after reopening. Repeat after the
-next build update. No API keys belong in the app bundle.
+next build update. The AI assistant calls Claude directly from the phone. `npm run build:local` builds the team's `ANTHROPIC_API_KEY` from the repo-root `.env` into the iOS bundle (never into the server-mode web build, never into git), so anyone with the build can extract it: use a key with a spending limit and rotate it if a build leaks. A key pasted in the assistant's settings overrides it on that phone.

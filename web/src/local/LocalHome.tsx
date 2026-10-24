@@ -19,14 +19,9 @@ export default function LocalHome() {
   return <main className="local-home h-full overflow-y-auto bg-[#070b14] px-5 pb-[var(--safe-bottom)] pt-[var(--safe-top)] text-slate-200">
     <div className="mx-auto max-w-5xl pb-10 pt-7">
       <header className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3"><span className="grid size-10 place-items-center rounded-xl bg-sky-400/15 text-sky-300"><Building2 size={23} /></span><div><h1 className="text-xl font-semibold tracking-tight text-white">SiteTwin</h1><p className="text-xs text-slate-400">Your buildings, on this phone</p></div></div>
+        <div className="flex items-center gap-3"><span className="grid size-10 place-items-center rounded-xl bg-sky-400/15 text-sky-300"><Building2 size={23} /></span><div><h1 className="text-xl font-semibold tracking-tight text-white">Dackel</h1><p className="text-xs text-slate-400">forklift certified</p></div></div>
         <span className="flex items-center gap-1.5 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2.5 py-1 text-[11px] text-emerald-200"><ShieldCheck size={13} /> Local</span>
       </header>
-      <section className="mt-7 rounded-2xl border border-sky-300/15 bg-gradient-to-br from-sky-950/60 to-violet-950/30 p-5">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-sky-300">Ready without a connection</p>
-        <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">Step inside your site.</h2>
-        <p className="mt-2 max-w-lg text-sm leading-relaxed text-slate-400">Explore floors, plan routes, book rooms and save deliveries. Everything stays on this device.</p>
-      </section>
       <label className="mt-6 flex items-center gap-2 rounded-xl border border-white/10 bg-slate-900/70 px-3 py-3"><Search size={17} className="text-slate-500" /><input aria-label="Search sites" className="min-w-0 flex-1 bg-transparent text-base outline-none" placeholder="Search sites or building type…" value={query} onChange={(e) => setQuery(e.target.value)} /></label>
       <div className="mb-3 mt-5 flex justify-between text-[11px] uppercase tracking-wider text-slate-500"><span>Bundled sites</span><span>{list.length} buildings</span></div>
       {sites.isPending && <p className="py-6 text-sm text-slate-400">Opening local storage and bundled buildings…</p>}
