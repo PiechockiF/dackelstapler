@@ -8,3 +8,4 @@ agent_output/
 node_modules/
 web/dist/
 .pytest_cache/
+web/ios/DerivedData/
