@@ -4,11 +4,14 @@ import { api } from '../lib/api'
 import { useTwin } from '../lib/store'
 import { originOf, refreshRoute } from '../twin/actions'
 import { useTwinUi } from '../twin/uiStore'
+import { openChatThread, useChat } from '../chat/chatStore'
 import { runLocalCommand } from './assistant'
 
 export default function LocalAssistant({ siteId }: { siteId: string }) {
-  const [messages, setMessages] = useState<{ role: string; text: string }[]>([]), [input, setInput] = useState(''), [busy, setBusy] = useState(false)
+  const { messages, setMessages, busy, setBusy } = useChat<{ role: string; text: string }>(siteId)
+  const [input, setInput] = useState('')
   const bottom = useRef<HTMLDivElement>(null)
+  useEffect(() => openChatThread(siteId), [siteId])
   useEffect(() => { bottom.current?.scrollIntoView({ block: 'nearest' }) }, [messages, busy])
   const send = async (text = input) => {
     if (!text.trim() || busy) return

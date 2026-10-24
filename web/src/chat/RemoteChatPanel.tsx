@@ -3,12 +3,13 @@ import { useTwinUi } from '../twin/uiStore'
 // Owner: agent D. Chat + voice panel, rendered by SitePage.
 // Streams /api/sites/{id}/chat (SSE), shows "what I understood" chips, dispatches actions into useTwin,
 // push-to-talk (ElevenLabs STT via the server, Web Speech fallback) and spoken replies (TTS, fallback speechSynthesis).
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Loader2, Mic, Send, Sparkles, Square, Volume2, VolumeX } from 'lucide-react'
 import { api, streamChat } from '../lib/api'
 import { useTwin } from '../lib/store'
 import type { ChatAction } from '../lib/types'
+import { openChatThread, useChat, useChatThread } from './chatStore'
 
 interface Message {
   id: string
@@ -72,10 +73,8 @@ function looksGerman(text: string): boolean {
 }
 
 export default function ChatPanel({ siteId }: { siteId: string }) {
-  const sessionId = useMemo(() => `${siteId}-${uid()}`, [siteId])
-  const [messages, setMessages] = useState<Message[]>([])
+  const { messages, setMessages, busy, setBusy } = useChat<Message>(siteId)
   const [input, setInput] = useState('')
-  const [busy, setBusy] = useState(false)
   const [muted, setMuted] = useState(() => {
     try {
       return localStorage.getItem('sitetwin.muted') === '1'
@@ -103,15 +102,14 @@ export default function ChatPanel({ siteId }: { siteId: string }) {
   const setUnderstood = useTwin((s) => s.setUnderstood)
   const setTwinState = useTwin((s) => s.setState)
 
-  // New site → new conversation.
+  // New site → new conversation; reopening the panel on the same site keeps it.
   useEffect(() => {
-    setMessages([])
-    setUnderstood([])
+    openChatThread(siteId)
     api
       .sites()
       .then((sites) => setSiteKind(sites.find((s) => s.id === siteId)?.kind ?? 'default'))
       .catch(() => undefined)
-  }, [siteId, setUnderstood])
+  }, [siteId])
 
   // Which voice backends exist?
   useEffect(() => {
@@ -225,7 +223,7 @@ export default function ChatPanel({ siteId }: { siteId: string }) {
           break
       }
     },
-    [siteId, setRoute, setHighlight, setFocusFloor, setUnderstood, setTwinState],
+    [siteId, setMessages, setRoute, setHighlight, setFocusFloor, setUnderstood, setTwinState],
   )
 
   const send = useCallback(
@@ -241,7 +239,7 @@ export default function ChatPanel({ siteId }: { siteId: string }) {
       let finalText = ''
       try {
         const building = useTwin.getState().building
-        await streamChat(siteId, sessionId, text, {
+        await streamChat(siteId, useChatThread.getState().sessionId, text, {
           onDelta: (delta) => {
             finalText += delta
             setMessages((list) => list.map((m) => (m.id === reply.id ? { ...m, text: m.text + delta } : m)))
@@ -266,7 +264,7 @@ export default function ChatPanel({ siteId }: { siteId: string }) {
         setBusy(false)
       }
     },
-    [busy, siteId, sessionId, handleAction, speak],
+    [busy, siteId, setMessages, setBusy, handleAction, speak],
   )
 
   // ---------------------------------------------------------------- push-to-talk
