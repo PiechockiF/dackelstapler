@@ -30,9 +30,13 @@ export async function navigate(
   const b = useTwin.getState().building
   const from = opts.from || (b ? originOf(b) : null)
   if (!from) throw new Error('No start point')
+  // Unless the caller says otherwise, route in the mode the Route tab and the reach overlay show.
+  const ui = useTwinUi.getState()
+  const stepFree = opts.step_free ?? ui.stepFree
+  const minWidth = opts.min_width_m ?? (Number(ui.minWidth) || undefined)
   const body: { from: string; to: string; step_free?: boolean; min_width_m?: number } = { from, to }
-  if (opts.step_free) body.step_free = true
-  if (opts.min_width_m) body.min_width_m = opts.min_width_m
+  if (stepFree) body.step_free = true
+  if (minWidth) body.min_width_m = minWidth
   const route = await api.route(siteId, body)
   if (useTwin.getState().siteId === siteId) {
     useTwin.getState().setRoute(route)

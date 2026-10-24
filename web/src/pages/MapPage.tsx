@@ -9,7 +9,6 @@ import { useNavigate } from 'react-router-dom'
 import { isMockActive, onMockChange } from '../dev/mockApi'
 import { api } from '../lib/api'
 import type { Site } from '../lib/types'
-import { eventFlows, syntheticFlows, type Flow } from '../map/arcs'
 import SiteMap, { KIND_COLOR, type SiteMapApi } from '../map/SiteMap'
 import AddSiteDialog from '../sites/AddSiteDialog'
 
@@ -35,7 +34,6 @@ export default function MapPage() {
   // The Add-Standort dialog stays mounted while the user picks a spot on the map (picking=true).
   const [dialog, setDialog] = useState<{ lat: number | null; lon: number | null; seq: number; picking: boolean } | null>(null)
   const [leaving, setLeaving] = useState(false)
-  const [flows, setFlows] = useState<Flow[]>([])
   const [mock, setMock] = useState(isMockActive())
   useEffect(() => onMockChange(setMock), [])
   const mapApi = useRef<SiteMapApi>(null)
@@ -49,26 +47,13 @@ export default function MapPage() {
     return [...out].sort((a, b) => Number(a.demo_location) - Number(b.demo_location) || a.name.localeCompare(b.name))
   }, [list, query])
 
-  // Flows: real delivery events when available, else synthetic arcs.
-  useEffect(() => {
-    if (list.length < 2) return
-    let cancelled = false
-    setFlows(syntheticFlows(list))
-    eventFlows(list)
-      .then((f) => !cancelled && f.length >= 3 && setFlows(f))
-      .catch(() => {})
-    return () => {
-      cancelled = true
-    }
-  }, [list])
-
   const enter = async (site: Site) => {
     if (leaving) return
     setActive(site.id)
     setPickMode(false)
     await mapApi.current?.flyToSite(site)
     setLeaving(true)
-    setTimeout(() => nav(`/site/${site.id}`), 650)
+    setTimeout(() => nav(`/site/${site.id}`), 300)
   }
 
   const counts = useMemo(() => {
@@ -82,7 +67,6 @@ export default function MapPage() {
       <SiteMap
         ref={mapApi}
         sites={list}
-        flows={flows}
         hoveredId={hovered}
         activeId={active}
         pickMode={pickMode}
@@ -196,14 +180,6 @@ export default function MapPage() {
         </div>
       </motion.div>
 
-      {/* flows legend */}
-      {flows.length > 0 && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2 }} className="pointer-events-none absolute right-4 top-4 rounded-xl border border-white/10 bg-slate-950/60 px-3 py-2 text-[11px] text-slate-300 backdrop-blur-xl">
-          <span className="mr-1.5 inline-block size-1.5 animate-pulse rounded-full bg-sky-300 shadow-[0_0_8px_#7dd3fc]" />
-          {flows.length} deliveries in motion · last 7 days
-        </motion.div>
-      )}
-
       {dialog && (
         <div className={clsx('absolute inset-0 z-40', dialog.picking && 'pointer-events-none')}>
           <AddSiteDialog
@@ -241,7 +217,7 @@ export default function MapPage() {
             className="pointer-events-none absolute inset-0 z-50 bg-[#05070d]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, ease: 'easeIn' }}
+            transition={{ duration: 0.3, ease: 'easeIn' }}
           />
         )}
       </AnimatePresence>
