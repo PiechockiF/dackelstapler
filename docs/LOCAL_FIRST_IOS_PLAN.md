@@ -1,6 +1,11 @@
 # Local-first iOS implementation plan
 
-Status: proposed only. Implement after the user says **go**.
+Status: implemented on `ios_build_local`. The original implementation design is
+retained below. Runtime data, routing, persistent local workflows, phone layout,
+and mobile graphics profile are implemented. The offline home uses a searchable
+catalog instead of a geographic map. Physical iPhone timing, native photo capture,
+and update retention still need verification through TestFlight; simulator results
+do not establish those device-specific gates. See `TESTFLIGHT.md` for build steps.
 
 ## Outcome and architecture
 

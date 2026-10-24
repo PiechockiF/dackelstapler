@@ -58,8 +58,9 @@ export const localProvider: SiteTwinDataProvider = {
     const item = [...data.building.spaces, ...data.building.openings, ...data.building.vertical_connectors].find((e) => e.id === element)
     if (!item) throw new Error('Unknown room, door, or connector.')
     await mutateRecord(id, (record) => {
+      const was_closed = record.state.closed.includes(element)
       record.state.closed = closed ? [...new Set([...record.state.closed, element])] : record.state.closed.filter((e) => e !== element)
-      return { value: undefined, event: makeEvent(record, 'closure', `${'name' in item ? item.name : item.id} ${closed ? 'closed' : 'reopened'}`, { element_id: element, closed }) }
+      return { value: undefined, event: makeEvent(record, 'closure', `${'name' in item ? item.name : item.id} ${closed ? 'closed' : 'reopened'}`, { element_id: element, closed, was_closed }) }
     })
     return localProvider.state(id)
   },
@@ -100,7 +101,7 @@ export const localProvider: SiteTwinDataProvider = {
 
 export interface ManualDeliveryInput { photo: File; dimensions: Dims; spaceId: string; label: string; note: string }
 export async function saveManualDelivery(siteId: string, input: ManualDeliveryInput): Promise<Delivery> {
-  if (Object.values(input.dimensions).some((v) => !Number.isFinite(v) || v <= 0 || v >= 40)) throw new Error('All dimensions must be greater than zero and smaller than 40 metres.')
+  if ([input.dimensions.w, input.dimensions.d, input.dimensions.h].some((v) => !Number.isFinite(v) || v <= 0 || v >= 40)) throw new Error('All dimensions must be greater than zero and smaller than 40 metres.')
   const data = await loadMobileBuilding(siteId)
   const spaceId = resolveSpace(data, input.spaceId), space = data.building.spaces.find((s) => s.id === spaceId)!
   const entrance = data.building.openings.find((o) => o.space_ids.includes('outside') && o.step_free)
@@ -111,21 +112,22 @@ export async function saveManualDelivery(siteId: string, input: ManualDeliveryIn
     const snapshot = await readRecord(siteId)
     const body: RouteRequest = { from, to: spaceId, min_width_m: input.dimensions.w }
     const route = await routeInWorker(data, body, snapshot.state.closed, assetRooms(snapshot))
+    const placed = route.reachable ? space : data.building.spaces.find((s) => s.id === from)!
     const delivery = await mutateRecord(siteId, (record) => {
       if (record.revision !== snapshot.revision) throw new Error('The building changed while checking the delivery. Please save again.')
       if (record.state.closed.includes(spaceId)) throw new Error('The destination room is closed.')
       const value: Delivery = { id: newId('delivery'), site_id: siteId, ts: makeEvent(record, 'delivery', '', {}).ts, label: input.label.trim().slice(0, 120) || 'Local delivery', note: input.note.slice(0, 2000),
-        dims_m: input.dimensions, tolerance_m: 0, floor_id: space.floor_id, space_id: spaceId, target_space_id: spaceId,
-        position: data.anchors[spaceId], rotation_deg: 0, photo_id: photoId, measurement_source: 'manual',
+        dims_m: input.dimensions, tolerance_m: 0, floor_id: placed.floor_id, space_id: placed.id, target_space_id: spaceId,
+        position: data.anchors[placed.id], rotation_deg: 0, photo_id: photoId, measurement_source: 'manual',
         status: route.reachable ? 'unassessed' : 'blocked', check: { declared: null, floor_fit: null,
           route_fit: { ok: route.reachable, route, blocking_openings: route.blocking_openings ?? [] },
           summary: route.reachable ? 'Doorway width check passed. Turning clearance, height and floor fit are not assessed.' : 'No route meets the entered width and step-free constraints. Full physical fit is not assessed.' } }
       record.state.deliveries.push(value)
-      return { value, event: makeEvent(record, 'delivery', `${value.label} saved in ${space.name}`, value) }
+      return { value, event: makeEvent(record, 'delivery', `${value.label} saved in ${placed.name}`, value) }
     })
     committed = true
     return await hydrateDelivery(delivery)
   } finally {
-    if (!committed) await deletePhoto(photoId)
+    if (!committed) await deletePhoto(photoId).catch(() => console.warn('An uncommitted local photo could not be removed.'))
   }
 }

@@ -6,20 +6,16 @@ Quick start: `uv run uvicorn server.main:app --reload --port 8000`, then `cd web
 
 ## iOS app (Capacitor)
 
-The signed iOS Release archive has been built and verified. See [TestFlight build and release steps](docs/TESTFLIGHT.md) for repeatable archive commands and deployment requirements.
-
-The app ships as a thin native shell (`web/ios/`) that loads the UI from a running server. Every `/api`, `/ws` and `/storage` call then works unchanged. You need Xcode, and the command line tools must point at it: `sudo xcode-select -s /Applications/Xcode.app/Contents/Developer`.
+On branch **`ios_build_local`**, iOS is self-contained: 66 bundled buildings, worker-based routing, persistent bookings/closures/asset moves, a local command assistant, and deliveries with photos and manually entered dimensions. No server, tunnel, account, or API keys are required. See [local implementation and limits](docs/LOCAL_FIRST_IOS_PLAN.md) and [TestFlight build steps](docs/TESTFLIGHT.md).
 
 ```sh
-# Laptop: backend on :8000, then the built frontend, which proxies to it
-uv run uvicorn server.main:app --port 8000
-cd web && npm install && npm run build && npx vite preview --port 4173
-
-# Point the shell at the laptop's Wi-Fi IP, then open Xcode
-CAP_SERVER_URL=http://<LAN-IP>:4173 npx cap sync ios && npx cap open ios
+cd web && npm ci
+npm run dev:local      # same local provider in the browser, no Python server
+npm run test:local     # Python-generated routing parity + local state tests
+npm run ios:archive    # export assets, build, sync and sign an offline archive
 ```
 
-In Xcode, select **App → Signing & Capabilities**. Pick the team's Apple developer account and change the bundle ID if `com.sitetwin.app` is taken. Then run on a device. The phone must be on the same Wi-Fi as the laptop. Rerun `cap sync` whenever `CAP_SERVER_URL` changes. Keep API keys in the backend `.env` and never add them as `VITE_` variables, because those end up in the app bundle.
+The archive uses bundle ID `com.sitetwin.app` and team `CV955K8T33`. Upload it through Xcode Organizer to the existing `forklift_navi` TestFlight record. Build products live in `~/Library/Developer/Xcode/` to avoid Desktop/iCloud metadata signing errors. Python runs only during asset export on the development machine. Browser `npm run dev` still uses the existing remote provider/backend.
 
 ## What is still missing
 
@@ -29,8 +25,8 @@ In Xcode, select **App → Signing & Capabilities**. Pick the team's Apple devel
 - Physical capture with a phone camera and the printed marker has only been tested with sample images.
 
 **Missing for iOS**
-- **No HTTPS deployment.** Over a LAN `http://` URL, iOS blocks the microphone, so voice input does not work in the app. TestFlight testers outside the Wi-Fi need a hosted HTTPS server for both the backend and the frontend.
-- **No offline mode.** The shell shows nothing if the server is unreachable.
+- **Local feature boundary.** The native app supports offline workflows. General cloud AI, voice, automatic measurements, floor-plan interpretation and room reconstruction remain online backend features; the local UI explains these limits.
+- **Device-local state.** Bookings and edits are not synchronized between phones. Export a backup before uninstalling or resetting the app.
 - **No App Store assets.** The app icon and splash screen are still Capacitor's defaults. The privacy policy and App Store listing are also missing. Apple may reject an app that only loads a remote URL, so plan for TestFlight only.
 - **No phone performance check.** Gaussian splats and post-processing have not been tested on iPhone GPUs.
 - **Speech recognition may fail.** The browser speech-recognition fallback probably does not work in the iOS WebView. Voice depends on the server `/api/voice/stt` path, which needs `ELEVENLABS_API_KEY`.
@@ -45,7 +41,7 @@ In Xcode, select **App → Signing & Capabilities**. Pick the team's Apple devel
 - The team flagged 3D render quality as poor in commit `f4429c9`, along with one unfinished task that isn't named. Neither is resolved.
 - The train benchmark scores 515/517. The two failures are ambiguous duplicate room names.
 - Frontend lint passes, but warnings about graphics, hooks and style remain.
-- The production bundle is large (Vite warns about chunk size) and needs network access for map tiles. Preload the site before presenting.
+- Vite warns about large optional map/scan chunks. The local app opens a bundled catalog and lazy-loads buildings and 3D assets; remote map tiles are not required.
 
 Details and verification results: [docs/INTEGRATION.md](docs/INTEGRATION.md).
 

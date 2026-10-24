@@ -4,6 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { localProvider } from '../src/local/provider'
 import { closeDatabase, exportRecords, makeEvent, mutateRecord, readRecord, resetRecords } from '../src/local/storage'
 import { subscribeLocal } from '../src/local/events'
+import { runLocalCommand } from '../src/local/assistant'
+import { snapshotAt } from '../src/twin/timeline'
 
 vi.mock('../src/local/routingClient', () => ({ routeInWorker: async (data, body, closed, rooms) => {
   const { LocalRouter } = await import('../src/local/router')
@@ -14,7 +16,7 @@ beforeEach(async () => {
   vi.stubGlobal('fetch', async (url: string) => new Response(readFileSync(new URL(`../public${url}`, import.meta.url), 'utf8'), { headers: { 'Content-Type': 'application/json' } }))
   await resetRecords()
 })
-afterEach(() => vi.unstubAllGlobals())
+afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks() })
 describe('persistent local provider', () => {
   it('commits state and events together and survives closing/reopening the database', async () => {
     const building = await localProvider.building(site), id = building.vertical_connectors[0].id
@@ -66,5 +68,34 @@ describe('persistent local provider', () => {
     await mutateRecord(site, (record) => ({ value: null, event: makeEvent(record, 'capture', 'Saved', {}) }))
     expect(await Promise.all(revisions)).toEqual([1])
     unsubscribe()
+  })
+  it('keeps persisted state intact after a database write error', async () => {
+    await localProvider.setClosed(site, 'proc-factory-dev-003-V02', true)
+    const before = await readRecord(site), listener = vi.fn(), unsubscribe = subscribeLocal(listener)
+    vi.spyOn(IDBObjectStore.prototype, 'put').mockImplementationOnce(() => { throw new DOMException('Storage full', 'QuotaExceededError') })
+    await expect(localProvider.setClosed(site, 'proc-factory-dev-003-V02', false)).rejects.toThrow('Storage full')
+    expect(await readRecord(site)).toEqual(before)
+    expect(listener).not.toHaveBeenCalled()
+    unsubscribe()
+  })
+  it('executes assistant commands against real local state and explains unsupported requests', async () => {
+    const building = await localProvider.building(site), room = building.spaces.find((s) => s.name === 'Office 1.04')!
+    expect((await runLocalCommand(site, `area of ${room.id}`, room.id)).text).toMatch(/m²/)
+    const connector = building.vertical_connectors[0]
+    await runLocalCommand(site, `close ${connector.id}`, room.id)
+    expect((await localProvider.state(site)).closed).toContain(connector.id)
+    expect((await runLocalCommand(site, 'what changed?', room.id)).text).toContain('closed')
+    const route = await runLocalCommand(site, `route to ${building.spaces[0].id} without stairs`, room.id)
+    expect(route.actions.find((a) => a.type === 'show_route')).toBeDefined()
+    expect((await runLocalCommand(site, 'reconstruct my room', room.id)).text).toContain('online app')
+    await expect(runLocalCommand(site, 'free rooms at 25:60', room.id)).rejects.toThrow(/valid/)
+  })
+  it('replays repeated closures to their previous state instead of inventing a reopen', async () => {
+    const building = await localProvider.building(site), connector = building.vertical_connectors[0].id
+    await localProvider.setClosed(site, connector, true)
+    const first = (await readRecord(site)).events[0]
+    await localProvider.setClosed(site, connector, true)
+    const record = await readRecord(site)
+    expect(snapshotAt(record.state, record.events, first.ts).closed.has(connector)).toBe(true)
   })
 })

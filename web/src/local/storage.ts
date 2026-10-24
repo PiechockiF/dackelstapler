@@ -29,7 +29,7 @@ export function emptyRecord(id: string): LocalRecord {
   return { id, revision: 0, state: { closed: [], asset_overrides: {}, deliveries: [], added_openings: [] }, bookings: [], events: [] }
 }
 export async function readRecord(id: string) { return (await (await database()).get('sites', id)) ?? emptyRecord(id) }
-export const newId = (prefix: string) => `${prefix}-${crypto.randomUUID()}`
+export const newId = (prefix: string) => `${prefix}-${typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : Array.from(crypto.getRandomValues(new Uint8Array(16)), (n) => n.toString(16).padStart(2, '0')).join('')}`
 
 // The callback is synchronous so IndexedDB's write transaction remains alive.
 // The state and its event commit atomically, including concurrent booking checks.

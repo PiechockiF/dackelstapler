@@ -1,88 +1,80 @@
-# SiteTwin iOS build and TestFlight
+# SiteTwin local iOS build and TestFlight
 
-The native Release archive was built and its signature verified with Xcode 26.0.1
-on 24 October 2026. Bundle ID: `com.sitetwin.app`; version/build: `1.0 (1)`;
-developer team: `CV955K8T33` (FRANCISZEK PIECHOCKI).
+Branch: `ios_build_local`. Bundle ID: `com.sitetwin.app`. App Store Connect record:
+[`forklift_navi`](https://appstoreconnect.apple.com/apps/6826578119/testflight).
+Developer team: `CV955K8T33` (FRANCISZEK PIECHOCKI). Version: `1.0`; build: `2`.
 
-The deployment Docker image also builds locally. Container smoke checks passed
-for frontend deep links, health, sites/building data, WebSocket connections, and
-streaming chat. All 50 frontend-routing, server, and capture tests passed.
-
-## Build before deployment
+## Build and verify
 
 ```sh
 cd web
 npm ci
-npm run ios:preflight
+npm run test:local
+npm run build:local
+npm run preview
+npm run ios:archive
 ```
 
-This verifies native compilation and signing. It does not configure a server or
-produce a working online beta. Archives are written to
-`~/Library/Developer/Xcode/Archives/` and derived data to
-`~/Library/Developer/Xcode/DerivedData/SiteTwin/`. Keeping build products outside
-Desktop/iCloud avoids the `resource fork, Finder information, or similar detritus
-not allowed` signing error observed in this checkout.
+Python/uv is needed on the development machine to export the 66 mobile buildings
+and exact routing graphs. It is not needed on the phone. `test:local` regenerates
+2,178 Python routing cases and checks TypeScript costs/reachability, plus storage,
+transaction failures, booking conflicts, assistant commands, and route races.
+The Python suite is still run from the repo root with `uv run pytest -q`.
 
-## Deploy the server, then archive
+The archive command builds local mode, syncs Capacitor and verifies that the native
+bundle contains the catalog and has no remote `server.url`. It does not require
+`CAP_SERVER_URL`; it clears live-reload overrides. Archives and derived data live
+under `~/Library/Developer/Xcode/`, outside Desktop/iCloud, avoiding signing failures
+from Finder metadata. The native Filesystem plugin and privacy manifest are included.
 
-Deployment files are included for one Railway service using the root `Dockerfile`
-and `railway.toml`:
+## Upload
 
-1. Create a [Railway account](https://railway.com) and connect your GitHub account.
-2. Create a project from this repository. Choose the `ios_build_capacitor` branch
-   after these local deployment changes have been committed and pushed. Keep the
-   service root at the repository root; Railway detects the Dockerfile.
-3. Attach a persistent volume at `/data`. `SITETWIN_STORAGE=/data` is set in the
-   image. Use one replica and one worker for the SQLite database and in-memory
-   WebSocket/chat state.
-4. Add optional API keys from the backend `.env` as service variables. The app
-   also works with its labelled fallbacks when keys are absent.
-5. Under Settings → Networking, generate a public domain. Use that HTTPS origin
-   for `CAP_SERVER_URL` below.
+Open the new `.xcarchive` in Xcode Organizer and choose **Distribute App → TestFlight
+& App Store**. Use automatic signing; Xcode can manage the next available build
+number. Then check processing in the existing App Store Connect record and enable
+the build for the existing internal testing group. No USB connection is needed.
 
-This is a shared hackathon demo without user authentication. Anyone with the
-address can use its editing and upload endpoints; use demo data for testing.
-Hosting has not been provisioned by these files.
+Build `1.0 (2)` uploaded successfully on 24 October 2026. Its archive is
+`~/Library/Developer/Xcode/Archives/2026-10-24/SiteTwin-release-15-41-46.xcarchive`.
+Apple processing/compliance and the internal group's **Testing** status have not
+yet been confirmed for build 2. Upload success alone is not that confirmation.
+Build `1.0 (1)` is the earlier disconnected shell. Install build 2 to get the offline implementation. The generated
+archive is development-signed; Xcode handles distribution signing during upload.
 
-The shell loads the frontend from `CAP_SERVER_URL`. The same HTTPS origin must
-serve the built `web/dist` frontend with SPA fallback, forward `/api` and `/ws`
-to the FastAPI backend, and serve its `/storage` routes. WebSockets and streaming
-chat responses must pass through the host/proxy. Store uploads and the SQLite
-database on a persistent volume via `SITETWIN_STORAGE`. Keep `.env` and API keys
-on the backend; never bundle them in the app or expose them as `VITE_` variables.
+## Local behavior and limits
 
-Before building the beta, open the deployed site on a phone and verify that
-`/api/health`, sites, capture uploads, and chat work. Then run:
+- The first screen is a bundled, searchable catalog. Buildings load individually.
+- Routing runs in a worker using exported Python anchors/parallel edges. Closures,
+  waypoints, accessibility and load widths affect actual route computation.
+- Local bookings, edits, events and delivery metadata use versioned IndexedDB.
+  iOS photos/thumbnails use the app's native Library directory; preview mode uses
+  IndexedDB blobs. No server or account is involved in these workflows.
+- **Export backup** includes structured records and photos. On iOS it saves JSON
+  under Files → On My iPhone → SiteTwin. Reset/uninstall removes local app data.
+  Updates retain the same origin/database; verify retention on the actual device.
+- The assistant executes supported building commands locally. It is not an LLM.
+- Deliveries use entered dimensions and simple box geometry. Only route/doorway
+  width is checked. Turning clearance, height and floor fit are **not assessed**.
+  A width-blocked delivery stays at the entrance in the twin.
+- Cloud AI, voice services, automated measurement, generated models, room
+  reconstruction, new building/door imports and cross-device sync are not included.
+  The example scan is bundled and explicitly labelled; loading it is optional.
 
-```sh
-cd web
-CAP_SERVER_URL=https://YOUR-DEPLOYED-HOST npm run ios:archive
-```
+## Verification status
 
-The release command requires an HTTPS origin. It builds the frontend, syncs
-Capacitor, archives the app, and verifies its signature. The server address is
-embedded during sync, so changing it requires a new archive.
+- Production build, TypeScript, native simulator build and signed Release archive
+  succeed. Python tests and local TypeScript tests pass.
+- Browser production checks exercised local routing, closure/replanning, persistence
+  across reload, and a saved photo/manual delivery without backend calls.
+- Native simulator opens the packaged catalog and 3D viewer with no server URL.
+- Native simulator worker routing succeeded (124.9 m test route). Booking writes
+  updated the viewer, and the booking/event survived replacing and relaunching
+  the app with the same bundle ID.
+- Physical iPhone frame rate, first launch in airplane mode, native photo capture,
+  export through Files, and retention across a TestFlight update still require the
+  actual phone. They are not claimed from desktop/simulator results.
 
-## Upload to TestFlight
-
-1. Open the resulting `.xcarchive` in Xcode's Organizer.
-2. Choose **Distribute App → TestFlight & App Store**. Use automatic signing
-   and allow Xcode to manage build numbers. The archive is development-signed;
-   Xcode handles distribution signing during upload.
-3. If prompted, create the SiteTwin app record using bundle ID `com.sitetwin.app`.
-   App Store Connect sign-in may be required.
-4. After Apple finishes processing, open the app's **TestFlight** tab in App Store
-   Connect and enable the build for the intended testing group. Complete any
-   export-compliance questions based on the app's actual encryption use.
-5. External testers require beta review and beta app information. Internal
-   testers must be eligible App Store Connect users.
-
-Version `1.0 (1)` was uploaded on 24 October 2026 and is now **Testing** in the
-existing internal group. The App Store Connect record is named `forklift_navi`
-([TestFlight](https://appstoreconnect.apple.com/apps/6826578119/testflight)).
-The uploaded archive has no server URL configured, so online backend features
-still need a follow-up build using a laptop HTTPS tunnel or deployed host.
-Default Capacitor icon/splash assets are still used.
-
-Apple references: [upload builds](https://developer.apple.com/help/app-store-connect/manage-builds/upload-builds)
-and [distribution through Xcode](https://developer.apple.com/documentation/Xcode/distributing-your-app-for-beta-testing-and-releases).
+The intended phone check: update in TestFlight, enable airplane mode, open the demo
+factory, route between rooms, close/reopen a lift, book a room, save a photo delivery,
+force-quit, and verify the edits/photo remain after reopening. Repeat after the
+next build update. No API keys belong in the app bundle.

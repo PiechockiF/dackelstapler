@@ -22,24 +22,34 @@ export function originOf(b: Building): string | null {
   return useTwinUi.getState().originId ?? defaultOrigin(b)
 }
 
+let navigationVersion = 0
+let navigationPending = 0
+let refreshVersion = 0
+
 export async function navigate(
   siteId: string,
   to: string,
   opts: { from?: string; step_free?: boolean; min_width_m?: number } = {},
 ) {
-  const version = ++refreshVersion
+  const version = ++navigationVersion
   const b = useTwin.getState().building
   const from = opts.from || (b ? originOf(b) : null)
   if (!from) throw new Error('No start point')
+  navigationPending = version
+  ++refreshVersion
   const body: { from: string; to: string; step_free?: boolean; min_width_m?: number } = { from, to }
   if (opts.step_free) body.step_free = true
   if (opts.min_width_m) body.min_width_m = opts.min_width_m
-  const route = await api.route(siteId, body)
-  if (version === refreshVersion && useTwin.getState().siteId === siteId) {
-    useTwin.getState().setRoute(route)
-    useTwin.getState().setFocusFloor(null)
+  try {
+    const route = await api.route(siteId, body)
+    if (version === navigationVersion && useTwin.getState().siteId === siteId) {
+      useTwin.getState().setRoute(route)
+      useTwin.getState().setFocusFloor(null)
+    }
+    return route
+  } finally {
+    if (navigationPending === version) navigationPending = 0
   }
-  return route
 }
 
 export async function toggleClosed(siteId: string, id: string, closed: boolean) {
@@ -50,8 +60,9 @@ export async function toggleClosed(siteId: string, id: string, closed: boolean) 
 }
 
 /** Keep the requested endpoints and waypoints even while a closure makes the route unreachable. */
-let refreshVersion = 0
 export async function refreshRoute(siteId: string) {
+  if (navigationPending) return
+  const navigation = navigationVersion
   const version = ++refreshVersion
   const store = useTwin.getState()
   const route = store.route
@@ -62,7 +73,7 @@ export async function refreshRoute(siteId: string) {
     step_free: route.step_free, min_width_m: route.min_width_m ?? undefined, via: route.via,
   })
   // A slow request must not replace a newer route or another site's view.
-  if (version === refreshVersion && useTwin.getState().siteId === siteId && useTwin.getState().route === route) {
+  if (version === refreshVersion && navigation === navigationVersion && useTwin.getState().siteId === siteId && useTwin.getState().route === route) {
     useTwin.getState().setRoute(next)
   }
 }

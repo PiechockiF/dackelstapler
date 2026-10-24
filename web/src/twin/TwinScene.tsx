@@ -160,7 +160,7 @@ function CameraDirector({ building, insets }: { building: Building; insets?: Twi
     () =>
       (box: THREE.Box3, opts: { polar?: number; azimuth?: number; transition?: boolean } = {}) => {
         const c = controls.current
-        if (!c || box.isEmpty()) return
+        if (!c || box.isEmpty() || size.width <= 0 || size.height <= 0) return
         const sphere = box.getBoundingSphere(new THREE.Sphere())
         const cam = camera as THREE.PerspectiveCamera
         const ins = insets ?? { left: 0, right: 0, top: 0, bottom: 0 }
@@ -176,7 +176,8 @@ function CameraDirector({ building, insets }: { building: Building; insets?: Twi
         // Shift the view so the content sits in the uncovered part of the screen.
         const visH = 2 * dist * Math.tan(vfov / 2)
         const pxToWorld = visH / size.height
-        c.setFocalOffset(((ins.right - ins.left) / 2) * pxToWorld, ((ins.top - ins.bottom) / 2) * pxToWorld, 0, opts.transition ?? true)
+        // CameraControls' positive vertical focal offset moves content upward.
+        c.setFocalOffset(((ins.right - ins.left) / 2) * pxToWorld, ((ins.bottom - ins.top) / 2) * pxToWorld, 0, opts.transition ?? true)
       },
     [camera, size, insets],
   )

@@ -15,11 +15,7 @@ export default function LocalCapturePage() {
   const [spaceId, setSpaceId] = useState(''), [label, setLabel] = useState(''), [note, setNote] = useState('')
   const [dimensions, setDimensions] = useState({ w: '', d: '', h: '' })
   const [busy, setBusy] = useState(false), [error, setError] = useState(''), [saved, setSaved] = useState<Delivery>()
-  useEffect(() => {
-    if (!photo) { setPreview(''); return }
-    const url = URL.createObjectURL(photo); setPreview(url)
-    return () => URL.revokeObjectURL(url)
-  }, [photo])
+  useEffect(() => () => { if (preview) URL.revokeObjectURL(preview) }, [preview])
   const save = async (event: React.FormEvent) => {
     event.preventDefault()
     if (!photo || !spaceId || busy) return
@@ -34,8 +30,8 @@ export default function LocalCapturePage() {
     <p className="mt-2 text-sm leading-relaxed text-slate-400">Photo and entered dimensions are stored on this phone. The route check compares doorway widths; it does not measure the photo or assess turns, height or floor fit.</p>
     {building.error && <p role="alert" className="mt-4 text-rose-300">{building.error.message}</p>}
     {!siteId && <p className="mt-4">Choose a building from the home screen first.</p>}
-    {saved ? <div className="mt-5 space-y-4"><p className="flex items-center gap-2 text-emerald-300"><Check size={17} /> Saved on this device</p><DeliveryCard delivery={saved} /><Link className="block rounded-xl bg-sky-400 px-4 py-3 text-center font-medium text-slate-950" to={`/site/${siteId}`}>View in building</Link></div> : building.data && <form onSubmit={save} className="mt-6 flex flex-col gap-4">
-      <label className="block rounded-xl border border-dashed border-sky-400/40 bg-sky-400/5 p-4 text-sm text-sky-200"><span className="flex items-center gap-2"><Camera size={17} /> Take or choose a photo</span><input required type="file" accept="image/*" onChange={(e) => setPhoto(e.target.files?.[0])} className="mt-3 block w-full text-xs text-slate-400" /></label>
+    {saved ? <div className="mt-5 space-y-4"><p className="flex items-center gap-2 text-emerald-300"><Check size={17} /> Saved on this device</p><DeliveryCard delivery={saved} building={building.data} /><Link className="block rounded-xl bg-sky-400 px-4 py-3 text-center font-medium text-slate-950" to={`/site/${siteId}`}>View in building</Link></div> : building.data && <form onSubmit={save} className="mt-6 flex flex-col gap-4">
+      <label className="block rounded-xl border border-dashed border-sky-400/40 bg-sky-400/5 p-4 text-sm text-sky-200"><span className="flex items-center gap-2"><Camera size={17} /> Take or choose a photo</span><input required type="file" accept="image/*" onChange={(e) => { const next = e.target.files?.[0]; setPhoto(next); setPreview(next ? URL.createObjectURL(next) : '') }} className="mt-3 block w-full text-xs text-slate-400" /></label>
       {preview && <img src={preview} alt="Delivery photo preview" className="max-h-52 w-full rounded-xl object-contain" />}
       <label className="text-xs text-slate-400">Label<input maxLength={120} className={field} value={label} onChange={(e) => setLabel(e.target.value)} placeholder="e.g. Steel drum pallet" /></label>
       <fieldset><legend className="mb-1 text-xs text-slate-400">Entered dimensions (metres)</legend><div className="grid grid-cols-3 gap-2">{(['w', 'd', 'h'] as const).map((axis) => <label key={axis} className="text-xs text-slate-400">{{ w: 'Width', d: 'Depth', h: 'Height' }[axis]}<input aria-label={{ w: 'Width in metres', d: 'Depth in metres', h: 'Height in metres' }[axis]} required type="number" inputMode="decimal" min="0.01" max="39.99" step="any" className={field} value={dimensions[axis]} onChange={(e) => setDimensions({ ...dimensions, [axis]: e.target.value })} /></label>)}</div></fieldset>

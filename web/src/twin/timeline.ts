@@ -20,7 +20,11 @@ export function snapshotAt(state: SiteState | null, events: SiteEvent[], ts: str
   for (const e of later) {
     const p = e.payload ?? {}
     if (e.type === 'closure' && p.element_id) {
-      if (p.closed) closed.delete(p.element_id)
+      if (typeof p.was_closed === 'boolean') {
+        if (p.was_closed) closed.add(p.element_id)
+        else closed.delete(p.element_id)
+      }
+      else if (p.closed) closed.delete(p.element_id)
       else closed.add(p.element_id)
     } else if (e.type === 'asset_moved' && p.asset_id) {
       if (p.from?.position && p.from?.floor_id) overrides[p.asset_id] = p.from

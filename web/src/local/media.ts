@@ -5,6 +5,7 @@ import { database, exportRecords, newId } from './storage'
 
 const urls = new Map<string, string>()
 const mediaPath = (id: string) => `sitetwin-media/${id}.jpg`
+const thumbPath = (id: string) => `sitetwin-media/${id}-thumb.jpg`
 async function blobBase64(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
@@ -13,7 +14,7 @@ async function blobBase64(blob: Blob): Promise<string> {
     reader.readAsDataURL(blob)
   })
 }
-async function resizePhoto(file: File): Promise<Blob> {
+async function resizePhoto(file: File, maximum = 1600): Promise<Blob> {
   if (!file.type.startsWith('image/')) throw new Error('Choose a photo, not a video or document.')
   if (file.size > 30 * 1024 * 1024) throw new Error('Choose a photo smaller than 30 MB.')
   const url = URL.createObjectURL(file)
@@ -21,7 +22,7 @@ async function resizePhoto(file: File): Promise<Blob> {
     const image = new Image()
     image.src = url
     await image.decode()
-    const scale = Math.min(1, 1600 / Math.max(image.naturalWidth, image.naturalHeight))
+    const scale = Math.min(1, maximum / Math.max(image.naturalWidth, image.naturalHeight))
     const canvas = document.createElement('canvas')
     canvas.width = Math.max(1, Math.round(image.naturalWidth * scale))
     canvas.height = Math.max(1, Math.round(image.naturalHeight * scale))
@@ -33,18 +34,33 @@ async function resizePhoto(file: File): Promise<Blob> {
 }
 export async function savePhoto(file: File): Promise<string> {
   const blob = await resizePhoto(file)
+  const thumbnail = await resizePhoto(new File([blob], 'thumbnail.jpg', { type: 'image/jpeg' }), 400)
   const id = newId('photo')
-  if (isNative) await Filesystem.writeFile({ path: mediaPath(id), directory: Directory.Library, data: await blobBase64(blob), recursive: true })
-  else await (await database()).put('media', blob, id)
+  if (isNative) {
+    try {
+      await Filesystem.writeFile({ path: mediaPath(id), directory: Directory.Library, data: await blobBase64(blob), recursive: true })
+      await Filesystem.writeFile({ path: thumbPath(id), directory: Directory.Library, data: await blobBase64(thumbnail), recursive: true })
+    } catch (error) {
+      await Promise.allSettled([Filesystem.deleteFile({ path: mediaPath(id), directory: Directory.Library }), Filesystem.deleteFile({ path: thumbPath(id), directory: Directory.Library })])
+      throw error
+    }
+  } else {
+    const tx = (await database()).transaction('media', 'readwrite')
+    await tx.store.put(blob, id); await tx.store.put(thumbnail, `${id}-thumb`); await tx.done
+  }
   return id
 }
 export async function photoUrl(id: string): Promise<string | undefined> {
   if (urls.has(id)) return urls.get(id)
   try {
     let url: string
-    if (isNative) url = Capacitor.convertFileSrc((await Filesystem.getUri({ path: mediaPath(id), directory: Directory.Library })).uri)
+    if (isNative) {
+      const path = await Filesystem.stat({ path: thumbPath(id), directory: Directory.Library }).then(() => thumbPath(id), () => mediaPath(id))
+      url = Capacitor.convertFileSrc((await Filesystem.getUri({ path, directory: Directory.Library })).uri)
+    }
     else {
-      const blob = await (await database()).get('media', id)
+      const db = await database()
+      const blob = await db.get('media', `${id}-thumb`) ?? await db.get('media', id)
       if (!blob) return undefined
       url = URL.createObjectURL(blob)
     }
@@ -54,8 +70,13 @@ export async function photoUrl(id: string): Promise<string | undefined> {
   } catch { return undefined }
 }
 export async function deletePhoto(id: string) {
-  if (isNative) await Filesystem.deleteFile({ path: mediaPath(id), directory: Directory.Library })
-  else await (await database()).delete('media', id)
+  if (isNative) {
+    await Filesystem.deleteFile({ path: mediaPath(id), directory: Directory.Library })
+    await Filesystem.deleteFile({ path: thumbPath(id), directory: Directory.Library })
+  } else {
+    const tx = (await database()).transaction('media', 'readwrite')
+    await tx.store.delete(id); await tx.store.delete(`${id}-thumb`); await tx.done
+  }
   const url = urls.get(id)
   if (url?.startsWith('blob:')) URL.revokeObjectURL(url)
   urls.delete(id)

@@ -4,7 +4,7 @@ import clsx from 'clsx'
 import { Ban, Box, CircleCheck, DoorOpen, Layers, Route as RouteIcon, TriangleAlert } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useTwin } from '../lib/store'
-import type { Delivery, Dims } from '../lib/types'
+import type { Building, Delivery, Dims } from '../lib/types'
 
 type Tone = 'ok' | 'warn' | 'danger' | 'muted'
 
@@ -62,8 +62,9 @@ function Line({ tone, icon, children }: { tone: Tone; icon: ReactNode; children:
   )
 }
 
-export default function DeliveryCard({ delivery }: { delivery: Delivery }) {
-  const building = useTwin((s) => s.building)
+export default function DeliveryCard({ delivery, building: providedBuilding }: { delivery: Delivery; building?: Building }) {
+  const storedBuilding = useTwin((s) => s.building)
+  const building = providedBuilding ?? storedBuilding
   const name = (id?: string | null) => (id && building?.spaces.find((s) => s.id === id)?.name) || undefined
   const badge = badgeFor(delivery)
   const dims: Dims = delivery.dims_m
@@ -171,7 +172,7 @@ export default function DeliveryCard({ delivery }: { delivery: Delivery }) {
             {check.floor_fit.reason}
           </Line>
         )}
-        {check?.summary && (
+        {check?.summary && delivery.measurement_source !== 'manual' && (
           <p className="mt-0.5 line-clamp-3 text-[11px] leading-snug text-slate-400" title={check.summary}>
             {check.summary.includes('⚠') && !fit && <TriangleAlert size={11} className="mr-1 inline text-warn" />}
             {check.summary}
