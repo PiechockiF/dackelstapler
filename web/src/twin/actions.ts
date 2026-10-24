@@ -37,6 +37,7 @@ export async function navigate(
   if (useTwin.getState().siteId === siteId) {
     useTwin.getState().setRoute(route)
     useTwin.getState().setFocusFloor(null)
+    useTwinUi.getState().showDirections()
   }
   return route
 }
