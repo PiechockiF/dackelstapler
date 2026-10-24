@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import networkx as nx
 
-from core.building_map import DOOR_PREFIX, MapError
+from core.building_map import DOOR_PREFIX, OUTSIDE, MapError
 
 
 def reachable_spaces(
@@ -17,7 +17,7 @@ def reachable_spaces(
 ) -> set[str]:
     """Every space reachable from entry_space_id (itself included) in the constrained graph.
     A load (min_width_m set) also implies step-free: no stairs, no steps."""
-    graph = bm.graph(step_free or min_width_m is not None, min_width_m, set(closed))
+    graph = bm.graph(step_free or min_width_m is not None, min_width_m, set(closed), outside=entry_space_id == OUTSIDE)
     if entry_space_id not in graph:
         return set()
     component = nx.node_connected_component(graph, entry_space_id)
@@ -27,7 +27,7 @@ def reachable_spaces(
 def blocking_openings(bm, start: str, destination: str, min_width_m: float) -> list[dict]:
     """Openings on the unconstrained shortest route that are narrower than min_width_m."""
     try:
-        route = bm.find_route(start, destination)
+        route = bm.find_route(start, destination, outside=True)  # loads may go round the building
     except MapError:
         return []
     blocking = []

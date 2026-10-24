@@ -1,6 +1,10 @@
 import type { Route, XY } from '../lib/types'
 import type { GraphEdge, MobileBuilding, RouteRequest } from './types'
 
+/** The zero-cost node joining all entrances. As in core.building_map, pedestrians never leave the building
+ *  and come back in: only loads (a minimum width) and searches that start outside may use it. */
+export const OUTSIDE = 'outside'
+
 class Heap {
   items: [number, string][] = []
   push(value: [number, string]) {
@@ -65,7 +69,13 @@ export class LocalRouter {
       }
     }
   }
-  private shortest(from: string, to: string, closed: Set<string>, stepFree: boolean, width?: number) {
+  /** Whether this edge exists under the constraints (same filters as core.building_map.graph). */
+  private usable(next: string, edge: GraphEdge, closed: Set<string>, stepFree: boolean, width: number | undefined, outside: boolean) {
+    if (closed.has(next) || closed.has(edge.via) || (stepFree && !edge.stepFree)) return false
+    if (!outside && (edge.a === OUTSIDE || edge.b === OUTSIDE)) return false
+    return width == null || edge.width == null || edge.width >= width - 1e-6
+  }
+  private shortest(from: string, to: string, closed: Set<string>, stepFree: boolean, width?: number, outside = width != null) {
     if (closed.has(from) || closed.has(to)) return null
     const distance = new Map<string, number>([[from, 0]])
     const prev = new Map<string, { node: string; via: string }>()
@@ -83,8 +93,7 @@ export class LocalRouter {
         return { length: d, nodes, vias }
       }
       for (const { to: next, edge } of this.adjacency.get(node) ?? []) {
-        if (closed.has(next) || closed.has(edge.via) || (stepFree && !edge.stepFree)) continue
-        if (width != null && edge.width != null && edge.width < width - 1e-6) continue
+        if (!this.usable(next, edge, closed, stepFree, width, outside)) continue
         const value = d + edge.w
         if (value < (distance.get(next) ?? Infinity)) {
           distance.set(next, value); prev.set(next, { node, via: edge.via }); heap.push([value, next])
@@ -92,6 +101,24 @@ export class LocalRouter {
       }
     }
     return null
+  }
+  /** Every space reachable from `from` (itself included), like core.reachability.reachable_spaces. */
+  reachable(from: string, closedIds: string[], opts: { step_free?: boolean; min_width_m?: number } = {}): string[] {
+    const closed = new Set(closedIds)
+    const width = opts.min_width_m
+    const stepFree = !!opts.step_free || width != null
+    const outside = width != null || from === OUTSIDE
+    if (closed.has(from) || (from !== OUTSIDE && !this.spaces.has(from))) return []
+    const seen = new Set([from]), queue = [from]
+    while (queue.length) {
+      const node = queue.pop()!
+      for (const { to: next, edge } of this.adjacency.get(node) ?? []) {
+        if (seen.has(next) || !this.usable(next, edge, closed, stepFree, width, outside)) continue
+        seen.add(next)
+        queue.push(next)
+      }
+    }
+    return [...seen].filter((id) => this.spaces.has(id)).sort()
   }
   route(body: RouteRequest, closedIds: string[], assetRooms: Record<string, string> = {}): Route {
     if (body.min_width_m != null && (!Number.isFinite(body.min_width_m) || body.min_width_m <= 0)) throw new Error('Load width must be a positive number.')
@@ -109,7 +136,7 @@ export class LocalRouter {
         result.message = 'No route satisfies the current closures and accessibility/width constraints.'
         result.steps = [result.message]
         if (body.min_width_m != null) {
-          const unrestricted = this.shortest(stops[i], stops[i + 1], closed, false)
+          const unrestricted = this.shortest(stops[i], stops[i + 1], closed, false, undefined, true) // loads may go round the building
           result.blocking_openings = [...new Set(unrestricted?.vias ?? [])].flatMap((id) => {
             const o = this.openings.get(id)
             return o && o.width_m < body.min_width_m! - 1e-6 ? [{ id, width_m: o.width_m, position: o.position, floor_id: o.floor_id }] : []

@@ -6,13 +6,16 @@ export interface TwinSnapshot {
   closed: Set<string>
   overrides: Record<string, { position: XY; floor_id: string; space_id: string }>
   deliveries: Delivery[]
+  /** Assets added by hand after the scrub time (hidden in the past). */
+  notYetAdded: Set<string>
 }
 
 export function snapshotAt(state: SiteState | null, events: SiteEvent[], ts: string | null): TwinSnapshot {
   const closed = new Set(state?.closed ?? [])
   const overrides = { ...(state?.asset_overrides ?? {}) }
   let deliveries = state?.deliveries ?? []
-  if (!ts) return { closed, overrides, deliveries }
+  const notYetAdded = new Set<string>()
+  if (!ts) return { closed, overrides, deliveries, notYetAdded }
   const t = Date.parse(ts)
   deliveries = deliveries.filter((d) => Date.parse(d.ts) <= t)
   const later = events.filter((e) => Date.parse(e.ts) > t).sort((a, b) => b.ts.localeCompare(a.ts))
@@ -29,9 +32,11 @@ export function snapshotAt(state: SiteState | null, events: SiteEvent[], ts: str
     } else if (e.type === 'asset_moved' && p.asset_id) {
       if (p.from?.position && p.from?.floor_id) overrides[p.asset_id] = p.from
       else delete overrides[p.asset_id]
+    } else if (e.type === 'asset_added' && p.asset_id) {
+      notYetAdded.add(p.asset_id)
     }
   }
-  return { closed, overrides, deliveries }
+  return { closed, overrides, deliveries, notYetAdded }
 }
 
 let last: { state: SiteState | null; events: SiteEvent[]; ts: string | null; snap: TwinSnapshot } | null = null

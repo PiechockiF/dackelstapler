@@ -144,7 +144,7 @@ export default function DeliveryCard({ delivery, building: providedBuilding }: {
                   {door.reason !== 'steps' && (
                     <span className="tabular-nums text-slate-400">
                       {' '}
-                      ({door.width_m.toFixed(2)} m &lt; {m2(delivery.measurement_source === 'manual' ? dims.w : Math.min(dims.w, dims.d))} m)
+                      ({door.width_m.toFixed(2)} m &lt; {m2(Math.min(dims.w, dims.d))} m)
                     </span>
                   )}
                 </Line>

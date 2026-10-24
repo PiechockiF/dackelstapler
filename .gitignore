@@ -24,6 +24,7 @@ dist/
 htmlcov/
 web/public/offline/
 web/tests/fixtures/routes.json
+web/tests/fixtures/reachable.json
 .ipynb_checkpoints/
 
 # editors / OS
@@ -34,3 +35,4 @@ Thumbs.db
 
 # logs
 *.log
+web/ios/DerivedData/

@@ -25,6 +25,19 @@ describe('Python/TypeScript routing parity across all 66 bundled sites', () => {
       expect(route.to_space_id).toBeDefined()
     }
   })
+  it('matches Python reachable_spaces for every generated case (closures, step-free, loads, from outside)', () => {
+    const cases = JSON.parse(readFileSync(new URL('./fixtures/reachable.json', import.meta.url), 'utf8')) as { site: string; from: string; step_free?: boolean; min_width_m?: number; closed: string[]; expected: string[] }[]
+    expect(cases.length).toBeGreaterThan(0)
+    for (const c of cases) {
+      expect(router(c.site).reachable(c.from, c.closed, { step_free: c.step_free, min_width_m: c.min_width_m }), JSON.stringify({ ...c, expected: undefined })).toEqual(c.expected)
+    }
+  })
+  it('keeps pedestrians inside but lets loads go round the building', () => {
+    const r = router('proc-factory-dev-003'), from = 'proc-factory-dev-003-F0-S014', to = 'proc-factory-dev-003-F1-S023'
+    const walk = r.route({ from, to, step_free: true }, [])
+    expect(walk.space_path).not.toContain('outside')
+    expect(walk.length_m).toBeCloseTo(171.85, 2)
+  })
   it('treats minimum width as step-free and preserves an unreachable request for rerouting', () => {
     const r = router('proc-factory-dev-003'), b = r.data.building
     const from = b.spaces[0].id, to = b.spaces.at(-1)!.id

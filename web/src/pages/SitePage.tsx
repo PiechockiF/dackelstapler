@@ -2,7 +2,7 @@
 import { useQuery } from '@tanstack/react-query'
 import clsx from 'clsx'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ArrowLeft, CalendarDays, ChevronRight, MessageSquare, Navigation, PackageOpen, Radio, Box, X } from 'lucide-react'
+import { ArrowLeft, Box, CalendarDays, ChevronRight, MessageSquare, Navigation, PackageOpen, PackagePlus, Radio, Wrench, X } from 'lucide-react'
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import ChatPanel from '../chat/ChatPanel'
@@ -20,9 +20,10 @@ import { BookingPanel } from './site/BookingPanel'
 import { DeliveryPanel, focusDelivery } from './site/DeliveryPanel'
 import { FeedPanel } from './site/FeedPanel'
 import { FloorBar } from './site/FloorBar'
+import { ManualEntryDialog } from './site/ManualEntryDialog'
 import { RoutePanel } from './site/RoutePanel'
 import { Timeline } from './site/Timeline'
-import { Glass } from './site/ui'
+import { Btn, Glass } from './site/ui'
 
 const TwinScene = lazy(() => import('../twin/TwinScene'))
 
@@ -56,7 +57,7 @@ export default function SitePage() {
   useEffect(() => {
     let cancelled = false
     setError(null)
-    useTwinUi.setState({ roomGlow: {}, popover: null, originId: null, flashIds: [] })
+    useTwinUi.setState({ roomGlow: {}, popover: null, originId: null, flashIds: [], manualEntry: null })
     useTwin.getState().setTimelineTs(null)
     api
       .building(siteId)
@@ -92,6 +93,11 @@ export default function SitePage() {
 
   useEffect(() => () => window.clearTimeout(refetchTimer.current), [siteId])
 
+  // A route requested anywhere (map popover, Rooms, Route tab) opens the Route tab with its directions.
+  useEffect(() => useTwinUi.subscribe((s, prev) => {
+    if (s.directionsTick !== prev.directionsTick) setTab('route')
+  }), [])
+
   const showToast = useCallback((text: string, tone: 'info' | 'ok' | 'warn' = 'info') => {
     setToast({ text, tone })
     window.setTimeout(() => setToast((t) => (t?.text === text ? null : t)), 5000)
@@ -102,7 +108,7 @@ export default function SitePage() {
       if (m.type === 'event' && m.event.site_id === siteId) {
         useTwin.getState().pushEvent(m.event)
         refetchState()
-        if (m.event.type === 'door_added') {
+        if (['door_added', 'asset_added', 'asset_updated', 'asset_removed'].includes(m.event.type)) {
           void api.building(siteId).then((next) => {
             if (useTwin.getState().siteId === siteId) useTwin.setState({ building: next })
           }).catch(() => undefined)
@@ -175,7 +181,19 @@ export default function SitePage() {
               {compact && <button aria-label="Close panel" className="px-2 text-slate-400" onClick={() => setMobilePanel(null)}><X size={15} /></button>}
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto p-2.5 [scrollbar-width:thin]">
-              {tab === 'feed' && <FeedPanel building={building} />}
+              {tab === 'feed' && (
+                <div className="flex flex-col gap-3">
+                  <div className="grid grid-cols-2 gap-2">
+                    <Btn onClick={() => useTwinUi.getState().openManualEntry({ mode: 'equipment', spaceId: null })}>
+                      <Wrench size={14} /> Equipment
+                    </Btn>
+                    <Btn onClick={() => useTwinUi.getState().openManualEntry({ mode: 'delivery', spaceId: null })}>
+                      <PackagePlus size={14} /> Log delivery
+                    </Btn>
+                  </div>
+                  <FeedPanel building={building} />
+                </div>
+              )}
               {tab === 'deliveries' && <DeliveryPanel siteId={siteId} />}
               {tab === 'rooms' && <BookingPanel siteId={siteId} />}
               {tab === 'route' && <RoutePanel building={building} siteId={siteId} />}
@@ -183,6 +201,8 @@ export default function SitePage() {
           </Glass>
         </div>
       )}
+
+      {building && <ManualEntryDialog siteId={siteId} building={building} />}
 
       {/* floor switcher */}
       {building && (

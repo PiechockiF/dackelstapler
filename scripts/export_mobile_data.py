@@ -6,12 +6,15 @@ import json
 import random
 from pathlib import Path
 
-from core.building_map import BuildingMap, MapError
+from core.building_map import OUTSIDE, BuildingMap, MapError
 from core.geometry import capacity
+from core.reachability import reachable_spaces
+from server.equipment import catalog as equipment_catalog
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "web/public/offline"
 FIXTURES = ROOT / "web/tests/fixtures/routes.json"
+REACH_FIXTURES = ROOT / "web/tests/fixtures/reachable.json"
 VERSION = 1
 
 
@@ -23,6 +26,7 @@ def dump(path: Path, value) -> None:
 def export() -> None:
     catalog = json.loads((ROOT / "data/sites.json").read_text())
     fixtures = []
+    reach_fixtures = []
     rng = random.Random(42)
     hashes = {}
     for site in catalog:
@@ -30,7 +34,9 @@ def export() -> None:
         raw = path.read_bytes()
         building = json.loads(raw)
         bm = BuildingMap(building)
-        graph = bm.graph(False)
+        # Include the "outside" node: the local router applies the same rule as core (pedestrians stay
+        # inside; loads with a width, and searches starting outside, may go round the building).
+        graph = bm.graph(False, outside=True)
         edges = []
         for a, b, attrs in graph.edges(data=True):
             via = attrs["via"]
@@ -69,9 +75,18 @@ def export() -> None:
             except MapError:
                 expected = {"reachable": False, "length_m": 0}
             fixtures.append({"site": site["id"], "body": body, "closed": closed, "expected": expected})
-    dump(OUT / "catalog.json", {"version": VERSION, "sites": catalog, "hashes": hashes})
+        for i, start in enumerate([OUTSIDE, *rng.sample(ids, min(3, len(ids)))]):
+            for options in ({}, {"step_free": True}, {"min_width_m": rng.choice([0.9, 1.2, 2.0])}):
+                closed = [] if i % 2 else list(bm.connectors)[:1] + list(bm.openings)[::9]
+                spaces = reachable_spaces(bm, start, step_free=options.get("step_free", False),
+                                          min_width_m=options.get("min_width_m"), closed=set(closed))
+                reach_fixtures.append({"site": site["id"], "from": start, **options, "closed": closed,
+                                       "expected": sorted(spaces)})
+    dump(OUT / "catalog.json", {"version": VERSION, "sites": catalog, "hashes": hashes, "equipment": equipment_catalog()})
     dump(FIXTURES, fixtures)
-    print(f"Exported {len(catalog)} offline sites and {len(fixtures)} Python routing fixtures.")
+    dump(REACH_FIXTURES, reach_fixtures)
+    print(f"Exported {len(catalog)} offline sites, {len(fixtures)} routing and {len(reach_fixtures)} reachability "
+          "fixtures from Python.")
 
 
 if __name__ == "__main__":

@@ -49,11 +49,13 @@ same provider used by iOS. Neither provider silently falls back to the other.
 | --- | --- |
 | Sites and 3D buildings | Bundle all 66 catalog entries and their building JSON; load only the selected building. |
 | Building search, area, capacity | Indexed local data, with static values prepared from Python where appropriate. |
-| Routes | Actual shortest paths, floors, waypoints, step-free and door-width constraints, closures, unreachable explanations, and rerouting. |
+| Routes | Actual shortest paths, floors, waypoints, step-free and door-width constraints, closures, unreachable explanations, and rerouting. As on the server, walking routes never leave the building and re-enter; loads with a width may go round outside. |
+| Reachable area | Shading of what can be reached from "I'm here" under the Route options and closures (same result as `core.reachability`). |
 | Asset moves, closures, feed, timeline | Real local mutations and events that survive restart. |
+| Equipment by hand | Per-room equipment list: add (catalog sizes, free spot in the room), rename/resize/move, delete, including bundled assets. |
 | Room availability and bookings | Actual local bookings, overlap checks, capacity/time validation; no invented occupied slots. |
 | Text assistant | A clearly identified local command assistant for supported navigation, search, area/capacity, closures, bookings, and recent changes. Ask for clarification on ambiguous places. |
-| Deliveries | Take/import a photo, enter dimensions and destination, save the delivery, show a simple dimensioned box, and calculate supported doorway/route-width checks. |
+| Deliveries | Take/import a photo, enter dimensions and destination, save the delivery, show a simple dimensioned box, and calculate supported doorway/route-width checks. Or log one by hand (Euro pallet if no size), then edit or delete it; door and floor-space checks re-run on edit. |
 | Map | Bundled site list always works. Online street tiles are optional enhancement; offline view uses a lightweight local overview without claiming detailed street coverage. |
 | Existing demo scan | Optional, explicitly labelled bundled example; load only when requested. |
 

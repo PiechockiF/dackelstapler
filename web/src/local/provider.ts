@@ -2,14 +2,14 @@ import type { SiteTwinDataProvider } from '../lib/provider'
 import type { BookableRoom, Booking, Delivery, Dims, SiteState, XY } from '../lib/types'
 import { pointInPolygon } from '../twin/geom'
 import { loadCatalog, loadMobileBuilding } from './catalog'
+import { addAsset, assetRooms, deleteAsset, deleteDelivery, equipmentTypes, logDelivery, updateAsset, updateDelivery, withRecord } from './edits'
 import { deletePhoto, photoUrl, savePhoto } from './media'
 import { resolveSpace } from './router'
-import { routeInWorker } from './routingClient'
+import { reachableInWorker, routeInWorker } from './routingClient'
 import { makeEvent, mutateRecord, newId, readRecord, type LocalRecord } from './storage'
 import type { MobileBuilding, RouteRequest } from './types'
 
 const unavailable = async (): Promise<never> => { throw new Error('This feature requires the online backend. It is not available in local mode.') }
-const assetRooms = (r: LocalRecord) => Object.fromEntries(Object.entries(r.state.asset_overrides).map(([id, value]) => [id, value.space_id]))
 export async function hydrateDelivery(delivery: Delivery): Promise<Delivery> {
   return delivery.photo_id ? { ...delivery, photo_url: await photoUrl(delivery.photo_id) } : delivery
 }
@@ -42,16 +42,25 @@ export function commitBooking(record: LocalRecord, data: MobileBuilding, body: O
 }
 export const localProvider: SiteTwinDataProvider = {
   sites: async () => (await loadCatalog()).sites,
-  building: async (id) => (await loadMobileBuilding(id)).building,
+  building: async (id) => withRecord(await loadMobileBuilding(id), await readRecord(id)).building,
   state: async (id) => { await loadMobileBuilding(id); return hydrateState((await readRecord(id)).state) },
   route: async (id, body) => {
     const data = await loadMobileBuilding(id)
     for (let attempt = 0; attempt < 3; attempt++) {
       const record = await readRecord(id)
-      const route = await routeInWorker(data, body, record.state.closed, assetRooms(record))
+      // Resolve here: the worker only knows the bundled assets, not ones added or edited on this device.
+      const view = withRecord(data, record), rooms = assetRooms(record), resolve = (ref: string) => resolveSpace(view, ref, rooms)
+      const resolved = { ...body, from: resolve(body.from), to: resolve(body.to), via: body.via?.map(resolve) }
+      const route = await routeInWorker(data, resolved, record.state.closed, rooms)
       if ((await readRecord(id)).revision === record.revision) return route
     }
     throw new Error('The building changed while calculating the route. Please retry.')
+  },
+  reachable: async (id, from, opts = {}) => {
+    const data = await loadMobileBuilding(id), record = await readRecord(id)
+    const start = resolveSpace(withRecord(data, record), from, assetRooms(record))
+    const space_ids = await reachableInWorker(data, start, record.state.closed, opts)
+    return { from_space_id: start, step_free: !!opts.step_free || opts.min_width_m != null, min_width_m: opts.min_width_m ?? null, space_ids }
   },
   setClosed: async (id, element, closed) => {
     const data = await loadMobileBuilding(id)
@@ -65,7 +74,7 @@ export const localProvider: SiteTwinDataProvider = {
     return localProvider.state(id)
   },
   moveAsset: async (id, assetId, target, position) => {
-    const data = await loadMobileBuilding(id)
+    const data = withRecord(await loadMobileBuilding(id), await readRecord(id))
     const asset = data.building.assets.find((a) => a.id === assetId)
     if (!asset) throw new Error('Unknown asset.')
     const spaceId = resolveSpace(data, target), space = data.building.spaces.find((s) => s.id === spaceId)!
@@ -79,6 +88,17 @@ export const localProvider: SiteTwinDataProvider = {
       return { value: undefined, event: makeEvent(record, 'asset_moved', `${asset.name} moved to ${space.name}`, { asset_id: assetId, from: previous, to: next }) }
     })
     return localProvider.state(id)
+  },
+  equipmentTypes,
+  addAsset,
+  updateAsset,
+  deleteAsset,
+  logDelivery: async (id, body) => hydrateDelivery(await logDelivery(id, body)),
+  updateDelivery: async (id, deliveryId, body) => hydrateDelivery(await updateDelivery(id, deliveryId, body)),
+  deleteDelivery: async (id, deliveryId) => {
+    const removed = await deleteDelivery(id, deliveryId)
+    if (removed.photo_id) await deletePhoto(removed.photo_id).catch(() => console.warn('The removed delivery photo could not be deleted.'))
+    return { ok: true }
   },
   events: async (id, since, limit = 1000) => {
     await loadMobileBuilding(id)
@@ -95,7 +115,7 @@ export const localProvider: SiteTwinDataProvider = {
       return { value, event: makeEvent(record, 'booking', `${name} booked: ${value.title}`, value) }
     })
   },
-  previewSite: unavailable, createSite: unavailable, captureDelivery: unavailable, captureRoom: unavailable, captureJob: unavailable,
+  previewSite: unavailable, restitchSite: unavailable, createSite: unavailable, geocode: unavailable, reverseGeocode: unavailable, captureDelivery: unavailable, captureRoom: unavailable, captureJob: unavailable,
   roomScans: async () => [], health: async () => ({ ok: true, voice: false, llm: false }), captureHost: async () => ({ lan_ip: null }),
 }
 
@@ -110,7 +130,7 @@ export async function saveManualDelivery(siteId: string, input: ManualDeliveryIn
   let committed = false
   try {
     const snapshot = await readRecord(siteId)
-    const body: RouteRequest = { from, to: spaceId, min_width_m: input.dimensions.w }
+    const body: RouteRequest = { from, to: spaceId, min_width_m: Math.min(input.dimensions.w, input.dimensions.d) } // the narrow side goes through the door first
     const route = await routeInWorker(data, body, snapshot.state.closed, assetRooms(snapshot))
     const placed = route.reachable ? space : data.building.spaces.find((s) => s.id === from)!
     const delivery = await mutateRecord(siteId, (record) => {

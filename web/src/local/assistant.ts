@@ -1,12 +1,14 @@
 import type { ChatAction } from '../lib/types'
 import { loadMobileBuilding } from './catalog'
+import { withRecord } from './edits'
 import { localProvider } from './provider'
 import { resolveSpace } from './router'
+import { readRecord } from './storage'
 
 export interface CommandReply { text: string; actions: ChatAction[] }
-const help = 'I work locally with building data. Try “route to <room>”, “area of <room>”, “capacity of <room>”, “find <asset>”, “close <door/lift ID or name>”, “reopen <ID or name>”, “free rooms for 6”, “book <room> at 14:00 for 60 minutes”, “move <asset> to <room>”, or “what changed?”. For general AI conversation, voice, and reconstruction use the online app.'
+const help = 'I work locally with building data. Try “route to <room>”, “area of <room>”, “capacity of <room>”, “find <asset>”, “close <door/lift ID or name>”, “reopen <ID or name>”, “free rooms for 6”, “book <room> at 14:00 for 60 minutes”, “move <asset> to <room>”, “add <equipment> to <room>”, “remove <asset>”, “delivery <what> at <room>”, or “what changed?”. For general AI conversation, voice, and reconstruction use the online app.'
 export async function runLocalCommand(siteId: string, message: string, origin: string | null, previousTarget?: string): Promise<CommandReply> {
-  const data = await loadMobileBuilding(siteId), b = data.building
+  const data = withRecord(await loadMobileBuilding(siteId), await readRecord(siteId)), b = data.building
   const text = message.trim().replace(/[?!]+$/, ''), actions: ChatAction[] = []
   const reply = (text: string): CommandReply => ({ text, actions })
   const state = await localProvider.state(siteId)
@@ -39,6 +41,25 @@ export async function runLocalCommand(siteId: string, message: string, origin: s
     await localProvider.moveAsset(siteId, assets[0].id, room)
     actions.push({ type: 'state_changed' }, { type: 'highlight', ids: [assets[0].id], label: assets[0].name })
     return reply(`${assets[0].name} moved to ${b.spaces.find((s) => s.id === room)!.name}. Saved on this phone.`)
+  }
+  if ((match = text.match(/^add (?:an? )?(.+?) (?:to|in|into) (.+)$/i))) {
+    const room = resolveSpace(data, match[2], assetRooms)
+    const asset = await localProvider.addAsset(siteId, { type: match[1], space_id: room })
+    actions.push({ type: 'state_changed' }, { type: 'highlight', ids: [asset.id], label: asset.name }, { type: 'focus_floor', floor_id: asset.floor_id })
+    return reply(`${asset.name} added to ${b.spaces.find((s) => s.id === room)!.name}. Saved on this phone.`)
+  }
+  if ((match = text.match(/^(?:remove|delete) (.+)$/i))) {
+    const name = match[1].trim().toLowerCase()
+    const assets = b.assets.filter((a) => a.id.toLowerCase() === name || a.name.toLowerCase() === name)
+    if (assets.length !== 1) return reply('Use an exact, unique asset name or ID.')
+    await localProvider.deleteAsset(siteId, assets[0].id)
+    actions.push({ type: 'state_changed' })
+    return reply(`${assets[0].name} removed. Saved on this phone.`)
+  }
+  if ((match = text.match(/^(?:log )?delivery (?:of )?(.+?) (?:at|in|arrived at|arrived in) (.+)$/i))) {
+    const delivery = await localProvider.logDelivery(siteId, { label: match[1], space_id: resolveSpace(data, match[2], assetRooms) })
+    actions.push({ type: 'state_changed' }, { type: 'highlight', ids: [delivery.id], label: delivery.label }, { type: 'focus_floor', floor_id: delivery.floor_id })
+    return reply(`${delivery.check.summary} Saved on this phone.`)
   }
   if ((match = text.match(/^book (.+?) at (\d{1,2}:\d{2}) for (\d+) (?:minutes?|mins?)$/i))) {
     const start = parseClock(match[2]), minutes = Number(match[3])

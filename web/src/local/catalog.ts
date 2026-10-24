@@ -1,7 +1,7 @@
-import type { Site } from '../lib/types'
+import type { EquipmentType, Site } from '../lib/types'
 import type { MobileBuilding } from './types'
 
-interface Catalog { version: number; sites: Site[]; hashes: Record<string, string> }
+interface Catalog { version: number; sites: Site[]; hashes: Record<string, string>; equipment?: EquipmentType[] }
 let catalog: Promise<Catalog> | undefined
 const cache = new Map<string, Promise<MobileBuilding>>()
 async function read<T>(url: string): Promise<T> {

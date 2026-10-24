@@ -290,6 +290,103 @@ class TwinTools:
             answer["previous_route_replanned"] = replanned
         return answer
 
+    def add_equipment(self, kind: str, space: str, name: str | None = None, width_m: float | None = None,
+                      depth_m: float | None = None) -> dict:
+        space_id = self.resolve(space)
+        self.emit({"type": "understood", "chips": [f"add: {name or kind}", f"to: {self.space_label(space_id)}"]})
+        result = twin.add_asset(self.site_id, kind, space_id, name, width_m=width_m, depth_m=depth_m)
+        asset = result["asset"]
+        self.emit({"type": "state_changed"})
+        self.emit({"type": "highlight", "ids": [asset["id"]], "label": asset["name"]})
+        self._focus_space(space_id)
+        self.last_target = space_id
+        return {"added": {k: asset[k] for k in ("id", "name", "type", "category", "footprint")},
+                "room": self.space_label(space_id)}
+
+    def log_delivery(self, label: str, space: str, width_m: float | None = None, depth_m: float | None = None,
+                     height_m: float | None = None, destination: str | None = None, note: str | None = None) -> dict:
+        space_id = self.resolve(space)
+        target_id = self.resolve(destination) if destination else None
+        sizes = (width_m, depth_m, height_m)
+        dims = dict(zip("wdh", sizes)) if all(sizes) else None
+        chips = [f"delivery: {label}", f"at: {self.space_label(space_id)}"]
+        if target_id:
+            chips.append(f"to: {self.bm.spaces[target_id]['name']}")
+        chips.append(f"{width_m:g} × {depth_m:g} × {height_m:g} m" if dims else "size: Euro pallet (assumed)")
+        self.emit({"type": "understood", "chips": chips})
+        delivery = twin.log_delivery(self.site_id, label, space_id, dims, target_id, note)
+        self.emit({"type": "state_changed"})
+        self.emit({"type": "highlight", "ids": [delivery["id"]], "label": delivery["label"]})
+        self._focus_space(delivery["space_id"])
+        self.last_target = delivery["space_id"]
+        return self._delivery_summary(delivery)
+
+    def update_equipment(self, asset: str, name: str | None = None, kind: str | None = None,
+                         width_m: float | None = None, depth_m: float | None = None) -> dict:
+        bm = self.bm
+        asset_id = twin.resolve_asset(bm, asset)
+        changes = [f"{label}: {value:g} m" if isinstance(value, float) else f"{label}: {value}"
+                   for label, value in (("name", name), ("type", kind), ("width", width_m), ("depth", depth_m)) if value]
+        self.emit({"type": "understood", "chips": [f"edit: {bm.assets[asset_id]['name']}", *changes]})
+        updated = twin.update_asset(self.site_id, asset_id, name, kind, width_m=width_m, depth_m=depth_m)
+        self.emit({"type": "state_changed"})
+        self.emit({"type": "highlight", "ids": [asset_id], "label": updated["name"]})
+        return {"updated": {k: updated[k] for k in ("id", "name", "type", "category", "footprint")}}
+
+    def remove_equipment(self, asset: str) -> dict:
+        bm = self.bm
+        asset_id = twin.resolve_asset(bm, asset)
+        record = bm.assets[asset_id]
+        self.emit({"type": "understood", "chips": [f"remove: {record['name']}", f"from: {self.space_label(record['space_id'])}"]})
+        removed = twin.remove_asset(self.site_id, asset_id)
+        self.emit({"type": "state_changed"})
+        return {"removed": {k: removed[k] for k in ("id", "name", "type")}, "room": self.space_label(removed["space_id"])}
+
+    def _resolve_delivery(self, reference: str) -> dict:
+        deliveries = twin.list_deliveries(self.site_id)
+        exact = [d for d in deliveries if reference in (d["id"], d.get("label"))]
+        if len(exact) == 1:
+            return exact[0]
+        matches = self.find_delivery(reference, emit=False, strict=True)["matches"]
+        if len(matches) == 1:
+            return twin.get_delivery(self.site_id, matches[0]["id"])
+        if not matches:
+            raise MapError(f"No delivery matches '{reference}'.")
+        raise MapError("Several deliveries match: " + "; ".join(f"{m['id']} ({m['label']}, {m['where']})" for m in matches[:8]))
+
+    def update_delivery(self, delivery: str, label: str | None = None, space: str | None = None,
+                        width_m: float | None = None, depth_m: float | None = None, height_m: float | None = None,
+                        destination: str | None = None, note: str | None = None) -> dict:
+        current = self._resolve_delivery(delivery)
+        space_id = self.resolve(space) if space else None
+        target = self.resolve(destination) if destination else twin.UNCHANGED
+        sizes = (width_m, depth_m, height_m)
+        if any(sizes) and not all(sizes):
+            raise ValueError("Give all three sizes (width, depth, height) or none.")
+        dims = dict(zip("wdh", sizes)) if all(sizes) else None
+        chips = [f"edit: {current['label']}"]
+        if label:
+            chips.append(f"label: {label}")
+        if space_id:
+            chips.append(f"now at: {self.space_label(space_id)}")
+        if dims:
+            chips.append(f"{width_m:g} × {depth_m:g} × {height_m:g} m")
+        if target is not twin.UNCHANGED:
+            chips.append(f"to: {self.bm.spaces[target]['name']}")
+        self.emit({"type": "understood", "chips": chips})
+        updated = twin.update_delivery(self.site_id, current["id"], label, space_id, dims, target, note)
+        self.emit({"type": "state_changed"})
+        self.emit({"type": "highlight", "ids": [updated["id"]], "label": updated["label"]})
+        self._focus_space(updated["space_id"])
+        return self._delivery_summary(updated)
+
+    def remove_delivery(self, delivery: str) -> dict:
+        current = self._resolve_delivery(delivery)
+        self.emit({"type": "understood", "chips": [f"remove delivery: {current['label']}"]})
+        twin.remove_delivery(self.site_id, current["id"])
+        self.emit({"type": "state_changed"})
+        return {"removed": {"id": current["id"], "label": current["label"]}}
+
     # ------------------------------------------------------------ rooms
 
     def free_rooms(self, start: str, end: str | None = None, people: int = 1, near: str | None = None) -> dict:
@@ -331,7 +428,7 @@ def make_tools(tools: TwinTools) -> list:
     def guarded(function, *args, **kwargs) -> str:
         try:
             return as_json(function(*args, **kwargs))
-        except (MapError, twin.BookingConflict, ValueError, KeyError) as error:
+        except (MapError, twin.BookingConflict, twin.NotFound, ValueError, KeyError) as error:
             raise ToolError(str(error)) from error
 
     @beta_tool
@@ -396,6 +493,91 @@ def make_tools(tools: TwinTools) -> list:
             width_m: Door width in metres (default 0.9).
         """
         return guarded(tools.add_door, first_space, second_space, step_free, width_m)
+
+    @beta_tool
+    def add_equipment(kind: str, space: str, name: str | None = None, width_m: float | None = None,
+                      depth_m: float | None = None) -> str:
+        """Add a new machine, piece of equipment or furniture to a room's equipment list ("we got a new
+        coffee machine in the kitchen", "put a CNC mill in hall A"). Saved for everyone and shown live.
+
+        Args:
+            kind: What it is, e.g. "coffee machine", "cnc mill", "workbench", "fire extinguisher".
+            space: Space id or exact room name/number, or "here".
+            name: Its own name if the person gave one; otherwise one is generated from kind and room.
+            width_m: Footprint width in metres if known (typical size used otherwise).
+            depth_m: Footprint depth in metres if known.
+        """
+        return guarded(tools.add_equipment, kind, space, name, width_m, depth_m)
+
+    @beta_tool
+    def log_delivery(label: str, space: str, width_m: float | None = None, depth_m: float | None = None,
+                     height_m: float | None = None, destination: str | None = None, note: str | None = None) -> str:
+        """Record a delivery that arrived, without a photo ("3 drums of oil arrived at goods-in"). Checks
+        that it fits the room and, if a destination is given, every door on the way there.
+
+        Args:
+            label: What was delivered, e.g. "Steel sheet pallet", "CNC spare parts".
+            space: Where it stands now: space id or exact room name/number, or "here".
+            width_m: Width in metres; give all three sizes or none (then a Euro pallet is assumed).
+            depth_m: Depth in metres.
+            height_m: Height in metres.
+            destination: Where it has to go next, if said.
+            note: Anything else worth keeping (supplier, PO number).
+        """
+        return guarded(tools.log_delivery, label, space, width_m, depth_m, height_m, destination, note)
+
+    @beta_tool
+    def update_equipment(asset: str, name: str | None = None, kind: str | None = None, width_m: float | None = None,
+                         depth_m: float | None = None) -> str:
+        """Rename an asset or correct its type or size. To put it in another room use move_asset.
+
+        Args:
+            asset: Asset id or exact asset name, e.g. "Coffee machine 1.04".
+            name: New name.
+            kind: New type, e.g. "espresso machine".
+            width_m: New footprint width in metres.
+            depth_m: New footprint depth in metres.
+        """
+        return guarded(tools.update_equipment, asset, name, kind, width_m, depth_m)
+
+    @beta_tool
+    def remove_equipment(asset: str) -> str:
+        """Remove a machine, piece of equipment or furniture from the building ("the old drill press is gone").
+        Only call when the person clearly says it was removed or added by mistake.
+
+        Args:
+            asset: Asset id or exact asset name.
+        """
+        return guarded(tools.remove_equipment, asset)
+
+    @beta_tool
+    def update_delivery(delivery: str, label: str | None = None, space: str | None = None, width_m: float | None = None,
+                        depth_m: float | None = None, height_m: float | None = None, destination: str | None = None,
+                        note: str | None = None) -> str:
+        """Correct a recorded delivery: what it is, where it stands now, its size, where it has to go, or the note.
+        Re-checks doors and floor space when place, size or destination change.
+
+        Args:
+            delivery: Delivery id or what was delivered, e.g. "steel sheet pallet".
+            label: New description.
+            space: Where it stands now (space id or exact room name/number, or "here").
+            width_m: New width in metres (give all three sizes).
+            depth_m: New depth in metres.
+            height_m: New height in metres.
+            destination: Where it has to go next.
+            note: New note (supplier, PO number).
+        """
+        return guarded(tools.update_delivery, delivery, label, space, width_m, depth_m, height_m, destination, note)
+
+    @beta_tool
+    def remove_delivery(delivery: str) -> str:
+        """Delete a delivery record (picked up, unpacked, or logged by mistake). Only call when the person
+        clearly asks for it.
+
+        Args:
+            delivery: Delivery id or what was delivered.
+        """
+        return guarded(tools.remove_delivery, delivery)
 
     @beta_tool
     def recent_changes(since_hours: float = 24.0) -> str:
@@ -471,5 +653,6 @@ def make_tools(tools: TwinTools) -> list:
         """
         return guarded(tools.set_location, place)
 
-    return [building_overview, locate, find_route, set_closed, move_asset, add_door, recent_changes,
-            find_delivery, free_rooms, book_room, room_facts, reachability, set_my_location]
+    return [building_overview, locate, find_route, set_closed, move_asset, add_door, add_equipment, update_equipment,
+            remove_equipment, log_delivery, update_delivery, remove_delivery, recent_changes, find_delivery, free_rooms,
+            book_room, room_facts, reachability, set_my_location]

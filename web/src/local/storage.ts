@@ -1,9 +1,13 @@
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb'
-import type { Booking, SiteEvent, SiteState } from '../lib/types'
+import type { Asset, Booking, SiteEvent, SiteState } from '../lib/types'
 import { emitLocal } from './events'
 
 export interface LocalRecord {
   id: string; revision: number; state: SiteState; bookings: Booking[]; events: SiteEvent[]
+  /** Equipment added by hand on this device. */
+  added_assets: Asset[]
+  /** Edits of bundled assets: the edited Asset, or null when it was deleted. */
+  asset_edits: Record<string, Asset | null>
 }
 interface LocalDatabase extends DBSchema {
   sites: { key: string; value: LocalRecord }
@@ -26,24 +30,33 @@ export async function closeDatabase() {
   if (previous) (await previous).close()
 }
 export function emptyRecord(id: string): LocalRecord {
-  return { id, revision: 0, state: { closed: [], asset_overrides: {}, deliveries: [], added_openings: [] }, bookings: [], events: [] }
+  return { id, revision: 0, state: { closed: [], asset_overrides: {}, deliveries: [], added_openings: [] }, bookings: [], events: [], added_assets: [], asset_edits: {} }
 }
-export async function readRecord(id: string) { return (await (await database()).get('sites', id)) ?? emptyRecord(id) }
+/** Records saved by earlier app versions lack the equipment fields. */
+function upgrade(record: LocalRecord | undefined, id: string): LocalRecord {
+  if (!record) return emptyRecord(id)
+  record.added_assets ??= []
+  record.asset_edits ??= {}
+  return record
+}
+export async function readRecord(id: string) { return upgrade(await (await database()).get('sites', id), id) }
 export const newId = (prefix: string) => `${prefix}-${typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : Array.from(crypto.getRandomValues(new Uint8Array(16)), (n) => n.toString(16).padStart(2, '0')).join('')}`
 
 // The callback is synchronous so IndexedDB's write transaction remains alive.
-// The state and its event commit atomically, including concurrent booking checks.
-export async function mutateRecord<T>(id: string, change: (record: LocalRecord) => { value: T; event: SiteEvent }): Promise<T> {
+// The state and its event(s) commit atomically, including concurrent booking checks.
+// Several events are listed oldest first; make the later ones with makeEvent(record, …, after).
+export async function mutateRecord<T>(id: string, change: (record: LocalRecord) => { value: T; event: SiteEvent | SiteEvent[] }): Promise<T> {
   const db = await database()
   const tx = db.transaction('sites', 'readwrite')
   try {
-    const record = (await tx.store.get(id)) ?? emptyRecord(id)
+    const record = upgrade(await tx.store.get(id), id)
     const { value, event } = change(record)
+    const events = Array.isArray(event) ? event : [event]
     record.revision++
-    record.events.unshift(event)
+    for (const e of events) record.events.unshift(e)
     await tx.store.put(record)
     await tx.done
-    emitLocal({ type: 'event', event })
+    for (const e of events) emitLocal({ type: 'event', event: e })
     return value
   } catch (error) {
     try { tx.abort() } catch { /* Already aborted/committed. */ }
@@ -51,9 +64,10 @@ export async function mutateRecord<T>(id: string, change: (record: LocalRecord) 
     throw error
   }
 }
-export function makeEvent(record: LocalRecord, type: SiteEvent['type'], title: string, payload: SiteEvent['payload']): SiteEvent {
-  // Stable ordering even when two writes happen during the same millisecond.
-  const ts = new Date(Math.max(Date.now(), Date.parse(record.events[0]?.ts ?? '') + 1 || 0)).toISOString()
+export function makeEvent(record: LocalRecord, type: SiteEvent['type'], title: string, payload: SiteEvent['payload'], after?: SiteEvent): SiteEvent {
+  // Stable ordering even when two writes happen during the same millisecond (or in one mutation: `after`).
+  const previous = after?.ts ?? record.events[0]?.ts ?? ''
+  const ts = new Date(Math.max(Date.now(), Date.parse(previous) + 1 || 0)).toISOString()
   return { id: newId('event'), ts, site_id: record.id, type, title, payload }
 }
 export async function exportRecords() { return { version: 1, exportedAt: new Date().toISOString(), sites: await (await database()).getAll('sites') } }

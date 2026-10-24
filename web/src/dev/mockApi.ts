@@ -3,7 +3,7 @@
 // Buildings are read straight from ../data/dev through Vite (dev server only).
 import type { BookableRoom, Booking, Building, Delivery, Site, SiteEvent, SiteState } from '../lib/types'
 import { hashString, indexBuilding, polygonArea } from '../twin/geom'
-import { mockRoute } from './mockRouter'
+import { mockReachable, mockRoute } from './mockRouter'
 
 type Loader = () => Promise<Building>
 // Dev only (tree-shaken from production builds): building.json files as lazily imported JSON modules.
@@ -147,6 +147,10 @@ async function handle(method: string, url: URL, body: unknown): Promise<unknown>
     if (rest === 'state') return stateOf(st)
     if (rest === 'events') return st.events
     if (rest === 'route') return mockRoute(b, body as never, st.closed)
+    if (rest === 'reachable') {
+      const width = Number(url.searchParams.get('min_width_m'))
+      return mockReachable(b, { from: url.searchParams.get('from') ?? '', step_free: url.searchParams.get('step_free') === 'true', min_width_m: width > 0 ? width : undefined }, st.closed)
+    }
     if (rest === 'closures') {
       const { element_id, closed } = body as { element_id: string; closed: boolean }
       if (closed) st.closed.add(element_id)

@@ -137,12 +137,12 @@ def route_fit(bm, start: str, target: str, width: float) -> dict:
     """Contract route_fit + internal keys (_alt_via, _direct_len)."""
     direct = None
     try:
-        direct = bm.find_route(start, target, step_free=True)
+        direct = bm.find_route(start, target, step_free=True, outside=True)  # a load's natural route
     except MapError:
         direct = None
     if direct is None:
         try:  # no step-free route at all: show the unconstrained one so the steps/stairs are visible
-            direct = bm.find_route(start, target)
+            direct = bm.find_route(start, target, outside=True)
         except MapError:
             direct = None
     blocking = _narrow_openings(bm, direct, width) if direct is not None else []
@@ -225,7 +225,8 @@ def _fmt(value: float) -> str:
 
 def summarize(dims: dict, tolerance: float, declared: dict | None, declared_dims: dict | None,
               fit: dict | None, floor: dict | None, target: str | None, bm, placed_in: str) -> str:
-    parts = [f"{_fmt(dims['w'])} × {_fmt(dims['d'])} × {_fmt(dims['h'])} m (±{round(tolerance * 100):.0f} cm)."]
+    size = f"{_fmt(dims['w'])} × {_fmt(dims['d'])} × {_fmt(dims['h'])} m"
+    parts = [f"{size} (±{round(tolerance * 100):.0f} cm)." if tolerance else f"{size}."]
     if declared is not None:
         if declared["ok"]:
             parts.append(f"Matches PO ({_fmt(max(declared_dims['w'], declared_dims['d']))} × "
@@ -264,19 +265,24 @@ def summarize(dims: dict, tolerance: float, declared: dict | None, declared_dims
 
 
 def check_delivery(bm, dims: dict, tolerance: float, declared_dims: dict | None = None,
-                   target_space: str | None = None, existing_deliveries: list[dict] | None = None) -> dict:
-    """Returns {"check": DimensionCheck, "status", "space_id", "floor_id", "position", "rotation_deg", "receiving"}."""
+                   target_space: str | None = None, existing_deliveries: list[dict] | None = None,
+                   at_space: str | None = None) -> dict:
+    """Returns {"check": DimensionCheck, "status", "space_id", "floor_id", "position", "rotation_deg", "receiving"}.
+
+    at_space: where the item already stands (logged by hand). The route check to target_space starts there
+    instead of at the dock, and the item is placed there."""
     existing = existing_deliveries or []
     w, d = max(dims["w"], dims["d"]), min(dims["w"], dims["d"])
     load_width = d  # the narrow side goes through the door first
     receiving = receiving_space(bm)
     target = bm.resolve_space(target_space) if target_space else None
+    start = bm.resolve_space(at_space) if at_space else receiving["space_id"]
 
     declared = declared_check(dims, tolerance, declared_dims)
-    fit = route_fit(bm, receiving["space_id"], target, load_width) if target and target != receiving["space_id"] else None
-    if fit is None and target == receiving["space_id"]:
+    fit = route_fit(bm, start, target, load_width) if target and target != start else None
+    if fit is None and target == start:
         fit = {"ok": True, "route": None, "blocking_openings": []}
-    floor_target = target or receiving["space_id"]
+    floor_target = target or start
     floor = floor_fit(bm, floor_target, w, d, existing)
 
     blocked = (fit is not None and not fit["ok"] and not fit.get("alternative")) or not floor["ok"]
@@ -284,7 +290,11 @@ def check_delivery(bm, dims: dict, tolerance: float, declared_dims: dict | None 
 
     # Place it: in the target when it can actually get there through the direct route and fits,
     # otherwise at the dock (where it waits for the alternative route / a decision).
-    placed_in = target if (target and fit is not None and fit["ok"] and floor["ok"]) else receiving["space_id"]
+    # An item logged where it already stands stays there.
+    if at_space:
+        placed_in = start
+    else:
+        placed_in = target if (target and fit is not None and fit["ok"] and floor["ok"]) else start
     placement = floor if placed_in == floor_target and floor["ok"] else floor_fit(bm, placed_in, w, d, existing)
     if placement["ok"]:
         position, rotation = placement["position"], placement["rotation_deg"]

@@ -6,7 +6,7 @@ Quick start: `uv run uvicorn server.main:app --reload --port 8000`, then `cd web
 
 ## iOS app (Capacitor)
 
-On branch **`ios_build_local`**, iOS is self-contained: 66 bundled buildings, worker-based routing, persistent bookings/closures/asset moves, a local command assistant, and deliveries with photos and manually entered dimensions. No server, tunnel, account, or API keys are required. See [local implementation and limits](docs/LOCAL_FIRST_IOS_PLAN.md) and [TestFlight build steps](docs/TESTFLIGHT.md).
+On branch **`ios_build_local`**, iOS is self-contained: 66 bundled buildings, worker-based routing, persistent bookings/closures/asset moves, equipment added/edited/deleted by hand, reachable-area shading, a local command assistant, and deliveries with photos or logged by hand (editable, deletable). No server, tunnel, account, or API keys are required. See [local implementation and limits](docs/LOCAL_FIRST_IOS_PLAN.md) and [TestFlight build steps](docs/TESTFLIGHT.md).
 
 ```sh
 cd web && npm ci
@@ -44,6 +44,7 @@ The archive uses bundle ID `com.sitetwin.app` and team `CV955K8T33`. Upload it t
 - Vite warns about large optional map/scan chunks. The local app opens a bundled catalog and lazy-loads buildings and 3D assets; remote map tiles are not required.
 
 Details and verification results: [docs/INTEGRATION.md](docs/INTEGRATION.md).
+Native iOS app (Flutter UI, SceneKit twin, same backend): see [mobile/README.md](mobile/README.md) for the architecture, the backend ↔ app data flow and how to run it on an iPhone from Xcode.
 
 The original project plan follows.
 

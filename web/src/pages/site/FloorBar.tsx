@@ -1,9 +1,10 @@
 import clsx from 'clsx'
-import { Layers, Maximize2, Rows3 } from 'lucide-react'
+import { Layers, Maximize2, Radar, Rows3 } from 'lucide-react'
 import { useTwin } from '../../lib/store'
 import type { Building } from '../../lib/types'
 import { sortedFloors } from '../../twin/geom'
 import { useTwinUi } from '../../twin/uiStore'
+import { useReach } from '../../twin/useReach'
 import { Glass } from './ui'
 
 export function FloorBar({ building }: { building: Building }) {
@@ -12,6 +13,13 @@ export function FloorBar({ building }: { building: Building }) {
   const setFocus = useTwin((s) => s.setFocusFloor)
   const setExploded = useTwin((s) => s.setExploded)
   const frameAll = useTwinUi((s) => s.frameAll)
+  const originId = useTwinUi((s) => s.originId)
+  const showReach = useTwinUi((s) => s.showReach)
+  const setShowReach = useTwinUi((s) => s.setShowReach)
+  const stepFree = useTwinUi((s) => s.stepFree)
+  const minWidth = Number(useTwinUi((s) => s.minWidth)) || 0
+  const reach = useReach()
+  const mode = minWidth > 0 ? `step-free, doors ≥ ${minWidth} m` : stepFree ? 'step-free' : 'walking'
   const floors = sortedFloors(building).reverse()
   const pill = 'rounded-lg px-2.5 py-1 text-xs font-medium transition whitespace-nowrap'
   return (
@@ -41,6 +49,17 @@ export function FloorBar({ building }: { building: Building }) {
         ))}
       </div>
       <div className="mx-1 h-5 w-px bg-white/10" />
+      {originId && (
+        <button
+          title={`Dim every room you can't reach from where you are (${mode}, with current closures). Change the mode in the Route tab.`}
+          onClick={() => setShowReach(!showReach)}
+          className={clsx(pill, 'flex items-center gap-1.5', showReach ? 'bg-emerald-500/20 text-emerald-100' : 'text-slate-300 hover:bg-white/10')}
+        >
+          <Radar size={14} />
+          Reach
+          {reach && <span className="font-mono text-[11px] text-emerald-200/80">{reach.size}/{building.spaces.length}</span>}
+        </button>
+      )}
       <button title="Frame building" onClick={() => { setFocus(null); frameAll() }} className={clsx(pill, 'text-slate-300 hover:bg-white/10')}>
         <Maximize2 size={14} />
       </button>
