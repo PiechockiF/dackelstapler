@@ -2,6 +2,9 @@ import type {
   Asset, BookableRoom, Booking, Building, CaptureJob, ChatAction, Delivery, Dims, EquipmentType, GeoResult, Reachable,
   Route, Site, SiteDraft, SiteEvent, SiteState,
 } from './types'
+import { isLocalMode } from './mode'
+import { localProvider } from '../local/provider'
+import type { RestitchRequest, SiteTwinDataProvider } from './provider'
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, init)
@@ -18,16 +21,13 @@ const json = (body: unknown, method = 'POST'): RequestInit => ({
   body: JSON.stringify(body),
 })
 
-export const api = {
+const remoteApi: SiteTwinDataProvider = {
   sites: () => request<Site[]>('/api/sites'),
   previewSite: (form: FormData) => {
     form.set('preview', 'true')
     return request<SiteDraft>('/api/sites', { method: 'POST', body: form })
   },
-  restitchSite: (body: {
-    extractions: unknown[]; matches?: Record<string, unknown> | null; level_overrides: Record<number, number>
-    site_id?: string; name?: string; address?: string; lat?: number; lon?: number; width_m?: number
-  }) => request<SiteDraft>('/api/sites/restitch', json(body)),
+  restitchSite: (body: RestitchRequest) => request<SiteDraft>('/api/sites/restitch', json(body)),
   createSite: (form: FormData) => request<Site>('/api/sites', { method: 'POST', body: form }),
   geocode: (q: string, near?: { lat: number; lon: number }) =>
     request<GeoResult[]>(`/api/geocode?q=${encodeURIComponent(q)}${near ? `&lat=${near.lat}&lon=${near.lon}` : ''}`),
@@ -62,14 +62,18 @@ export const api = {
     request<{ ok: boolean }>(`/api/sites/${siteId}/deliveries/${deliveryId}`, { method: 'DELETE' }),
   events: (siteId: string, since?: string, limit = 200) =>
     request<SiteEvent[]>(`/api/sites/${siteId}/events?limit=${limit}${since ? `&since=${encodeURIComponent(since)}` : ''}`),
-  bookableRooms: (siteId: string, start: string, end: string, people = 1) =>
-    request<BookableRoom[]>(`/api/sites/${siteId}/rooms/bookable?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&people=${people}`),
+  bookableRooms: (siteId: string, start: string, end: string, people = 1, near?: string | null) =>
+    request<BookableRoom[]>(`/api/sites/${siteId}/rooms/bookable?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&people=${people}${near ? `&near=${encodeURIComponent(near)}` : ''}`),
   bookings: (siteId: string) => request<Booking[]>(`/api/sites/${siteId}/bookings`),
   book: (siteId: string, body: Omit<Booking, 'id' | 'site_id'>) => request<Booking>(`/api/sites/${siteId}/bookings`, json(body)),
   captureDelivery: (form: FormData) => request<CaptureJob>('/api/capture/delivery', { method: 'POST', body: form }),
   captureRoom: (form: FormData) => request<CaptureJob>('/api/capture/room', { method: 'POST', body: form }),
   captureJob: (jobId: string) => request<CaptureJob>(`/api/capture/jobs/${jobId}`),
+  roomScans: (id: string) => request<import('./types').RoomScan[]>(`/api/capture/rooms?site_id=${encodeURIComponent(id)}`),
+  health: () => request<{ ok?: boolean; voice?: boolean; llm?: boolean }>('/api/health'),
+  captureHost: () => request<{ lan_ip: string | null }>('/api/capture/host'),
 }
+export const api: SiteTwinDataProvider = isLocalMode ? localProvider : remoteApi
 
 /** POST /api/sites/{id}/chat and parse the SSE stream. */
 export async function streamChat(

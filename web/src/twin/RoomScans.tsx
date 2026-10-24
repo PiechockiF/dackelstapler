@@ -6,6 +6,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import type { RoomScan, XY } from '../lib/types'
 import { useTwin } from '../lib/store'
+import { api } from '../lib/api'
+import { isLocalMode } from '../lib/mode'
 import { FloorAnchor } from './FloorAnchor'
 import { indexBuilding } from './geom'
 import { type TwinLayout, useLayout } from './layout'
@@ -27,8 +29,7 @@ export function useRoomScans(siteId: string): Scan[] {
     const load = async () => {
       let list: Scan[] = []
       try {
-        const r = await fetch(`/api/capture/rooms?site_id=${encodeURIComponent(siteId)}`)
-        if (r.ok) list = await r.json()
+        list = await api.roomScans(siteId)
       } catch {
         /* server down */
       }
@@ -147,7 +148,7 @@ function ScanView({ scan, floorId, layout }: { scan: Scan; floorId: string; layo
       {(focus == null || focus === floorId) && (
         <Html position={[ax, 6, az]} center zIndexRange={[55, 51]} style={{ pointerEvents: 'none' }}>
           <div className="w-64 rounded-lg border border-violet-300/40 bg-slate-950/75 px-2.5 py-1.5 text-[11px] leading-snug text-violet-50 shadow-[0_0_24px_rgba(167,139,250,0.35)] backdrop-blur">
-            <div className="mb-0.5 text-[10px] font-semibold uppercase tracking-wider text-violet-300">Room scan</div>
+            <div className="mb-0.5 text-[10px] font-semibold uppercase tracking-wider text-violet-300">{isLocalMode ? 'Bundled example scan' : 'Room scan'}</div>
             {status || scan.summary}
           </div>
         </Html>

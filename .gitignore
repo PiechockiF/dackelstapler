@@ -6,7 +6,6 @@ mobile/
 !.env.example
 .venv/
 __pycache__/
-*.pyc
 .DS_Store
 storage/
 agent_output/
@@ -15,7 +14,27 @@ web/dist/
 .pytest_cache/
 web/ios/DerivedData/
 .tooling/
-*.log
+
+# python
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+web/public/offline/
+web/tests/fixtures/routes.json
+web/tests/fixtures/reachable.json
+.ipynb_checkpoints/
+
+# editors / OS
 .idea/
 *.iml
 .vscode/
+*.swp
+Thumbs.db
+
+# logs
+*.log

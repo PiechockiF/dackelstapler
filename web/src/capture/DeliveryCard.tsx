@@ -4,7 +4,7 @@ import clsx from 'clsx'
 import { Ban, Box, CircleCheck, DoorOpen, Layers, Route as RouteIcon, TriangleAlert } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useTwin } from '../lib/store'
-import type { Delivery, Dims } from '../lib/types'
+import type { Building, Delivery, Dims } from '../lib/types'
 
 type Tone = 'ok' | 'warn' | 'danger' | 'muted'
 
@@ -25,6 +25,7 @@ const toneBadge: Record<Tone, string> = {
 function badgeFor(delivery: Delivery): { tone: Tone; text: string } {
   const fit = delivery.check?.route_fit
   if (delivery.status === 'blocked') return { tone: 'danger', text: 'Blocked' }
+  if (delivery.status === 'unassessed') return { tone: 'warn', text: 'Width checked only' }
   if (delivery.status === 'mismatch') return { tone: 'warn', text: 'PO mismatch' }
   if (fit && !fit.ok && fit.alternative) return { tone: 'warn', text: 'Reroute' }
   return { tone: 'ok', text: 'Cleared' }
@@ -61,8 +62,9 @@ function Line({ tone, icon, children }: { tone: Tone; icon: ReactNode; children:
   )
 }
 
-export default function DeliveryCard({ delivery }: { delivery: Delivery }) {
-  const building = useTwin((s) => s.building)
+export default function DeliveryCard({ delivery, building: providedBuilding }: { delivery: Delivery; building?: Building }) {
+  const storedBuilding = useTwin((s) => s.building)
+  const building = providedBuilding ?? storedBuilding
   const name = (id?: string | null) => (id && building?.spaces.find((s) => s.id === id)?.name) || undefined
   const badge = badgeFor(delivery)
   const dims: Dims = delivery.dims_m
@@ -128,7 +130,7 @@ export default function DeliveryCard({ delivery }: { delivery: Delivery }) {
 
         {fit && fit.ok && (
           <Line tone="ok" icon={<CircleCheck size={14} />}>
-            Fits every door{target ? <> to <b className="font-medium text-slate-100">{target}</b></> : null}
+            {delivery.measurement_source === 'manual' ? 'Doorway widths pass' : 'Fits every door'}{target ? <> to <b className="font-medium text-slate-100">{target}</b></> : null}
             {fit.route ? <span className="text-slate-500"> · {Math.round(fit.route.length_m)} m</span> : null}
           </Line>
         )}
@@ -164,12 +166,13 @@ export default function DeliveryCard({ delivery }: { delivery: Delivery }) {
             )}
           </>
         )}
+        {delivery.measurement_source === 'manual' && <Line tone="warn" icon={<TriangleAlert size={14} />}>{check.summary}</Line>}
         {check?.floor_fit && !check.floor_fit.ok && (
           <Line tone="warn" icon={<Layers size={14} />}>
             {check.floor_fit.reason}
           </Line>
         )}
-        {check?.summary && (
+        {check?.summary && delivery.measurement_source !== 'manual' && (
           <p className="mt-0.5 line-clamp-3 text-[11px] leading-snug text-slate-400" title={check.summary}>
             {check.summary.includes('⚠') && !fit && <TriangleAlert size={11} className="mr-1 inline text-warn" />}
             {check.summary}

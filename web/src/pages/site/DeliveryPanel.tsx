@@ -1,6 +1,8 @@
-import { PackagePlus, Pencil, QrCode, X } from 'lucide-react'
+import { Camera, PackagePlus, Pencil, QrCode, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
+import { isLocalMode } from '../../lib/mode'
 import CaptureQR from '../../capture/CaptureQR'
 import DeliveryCard from '../../capture/DeliveryCard'
 import { api } from '../../lib/api'
@@ -38,9 +40,18 @@ export function DeliveryPanel({ siteId }: { siteId: string }) {
   return (
     <div className="flex flex-col gap-3">
       <div className="grid grid-cols-2 gap-2">
-        <Btn tone="accent" onClick={() => setQr(true)}>
-          <QrCode size={14} /> Phone capture
-        </Btn>
+        {isLocalMode ? (
+          <Link
+            to={`/capture?site=${encodeURIComponent(siteId)}`}
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-sky-400/30 bg-sky-500/20 px-2.5 py-1.5 text-xs font-medium text-sky-100 transition hover:bg-sky-500/30"
+          >
+            <Camera size={14} /> With photo
+          </Link>
+        ) : (
+          <Btn tone="accent" onClick={() => setQr(true)}>
+            <QrCode size={14} /> Phone capture
+          </Btn>
+        )}
         <Btn onClick={() => useTwinUi.getState().openManualEntry({ mode: 'delivery', spaceId: null })}>
           <PackagePlus size={14} /> Log by hand
         </Btn>

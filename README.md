@@ -8,14 +8,14 @@ Native iOS app (Flutter UI, SceneKit twin, same backend): lives on its own branc
 
 ## iOS app (Capacitor)
 
-The web app also runs as a native iOS app: Capacitor packs the built frontend into a native shell (`web/ios/`). The app lives on the **`ios_build_local`** branch. `main` only has part of its Xcode project, so build it from that branch.
+The web app also runs as a native iOS app: Capacitor packs the built frontend into a native shell (`web/ios/`).
 
-The app is self-contained. The buildings are bundled, and routing, bookings and edits run and are saved on the phone, so it needs no server, API keys or network. Cloud AI, voice and automatic measurement are not included. Details are in `docs/LOCAL_FIRST_IOS_PLAN.md` and `docs/TESTFLIGHT.md` on that branch.
+The app is self-contained, with no server, tunnel, account or API keys. It bundles 66 buildings, routes in a web worker, and keeps bookings, closures, asset moves, equipment and deliveries (with photos or logged by hand) on the phone. It also shades the reachable area and has a local command assistant. Cloud AI, voice and automatic measurement need the online backend and are not included. Python runs only on the development machine, to export the buildings. In the browser, `npm run dev` still uses the backend. See [local implementation and limits](docs/LOCAL_FIRST_IOS_PLAN.md) and [TestFlight build steps](docs/TESTFLIGHT.md).
 
 ### Requirements
 
 - A Mac with Xcode, with the command line tools pointing at it: `sudo xcode-select -s /Applications/Xcode.app/Contents/Developer`.
-- Node.js 22.12 or later.
+- Node.js 22 (22.12 or later) or 24 or later. The test runner (vitest) does not officially support Node 23.
 - `uv`, because the build exports the buildings and routing graphs with the Python core.
 - An Apple ID added in **Xcode → Settings → Accounts**. A free personal team is enough for your own iPhone.
 - An iPhone with iOS 15 or later, and a USB cable for the first install.
@@ -25,8 +25,6 @@ These build steps were checked with Xcode 27.1 and Node 23.11 up to a simulator 
 ### 1. Build
 
 ```bash
-git fetch origin
-git switch ios_build_local
 cd web
 npm ci
 npm run build:local   # exports the buildings with uv, then builds the frontend in local mode
@@ -36,7 +34,7 @@ npx cap open ios      # opens the project in Xcode
 
 Repeat `npm run build:local` and `npx cap sync ios` after every frontend change. The files that `cap sync` copies are git-ignored, so a fresh checkout does not build in Xcode until you have run it.
 
-To try the app in a browser first, without Xcode or a server, run `npm run dev:local`.
+To try the app in a browser first, without Xcode or a server, run `npm run dev:local`. `npm run test:local` checks the local routing against Python-generated cases and tests the local state.
 
 ### 2. Install on your iPhone
 
@@ -59,13 +57,41 @@ cd web
 npm run ios:archive
 ```
 
-The script builds local mode, checks that the bundle contains the buildings and loads no server, and writes a signed archive to `~/Library/Developer/Xcode/Archives/`. In Xcode, open **Window → Organizer**, select the archive and choose **Distribute App → TestFlight & App Store**. Build 2 has already been uploaded, so let Xcode raise the build number. Testers install the app from TestFlight.
+The script builds local mode, checks that the bundle contains the buildings and loads no server, and writes a signed archive to `~/Library/Developer/Xcode/Archives/`. In Xcode, open **Window → Organizer**, select the archive and choose **Distribute App → TestFlight & App Store**. It uploads to the existing App Store Connect record `forklift_navi`. Build 2 has already been uploaded, so let Xcode raise the build number. Testers install the app from TestFlight.
 
 ### Troubleshooting
 
 - **"Failed to register bundle identifier" or no signing certificate:** change the bundle identifier (step 4 above) and check the team.
 - **The build cannot find `public` or `capacitor.config.json`:** run `npm run build:local` and `npx cap sync ios` first.
 - **Code signing fails with "resource fork, Finder information, or similar detritus not allowed":** the build products ended up in a folder synced by iCloud (Desktop or Documents). Keep Xcode's DerivedData in its default location under `~/Library/Developer/Xcode/`.
+
+## What is still missing
+
+**Not yet verified**
+- The iOS Release archive compiles and its signature verifies; running it on a physical device is still unverified.
+- Live external services have never been tested with real keys: Anthropic chat and vision, fal.ai image-to-3D, ElevenLabs voice and Modal GPU reconstruction. Modal also needs its worker deployed and the optional client installed.
+- Physical capture with a phone camera and the printed marker has only been tested with sample images.
+
+**Missing for iOS**
+- **Local feature boundary.** The native app supports offline workflows. General cloud AI, voice, automatic measurements, floor-plan interpretation and room reconstruction remain online backend features; the local UI explains these limits.
+- **Device-local state.** Bookings and edits are not synchronized between phones. Export a backup before uninstalling or resetting the app.
+- **No App Store assets.** The app icon and splash screen are still Capacitor's defaults. The privacy policy and App Store listing are also missing. Apple may reject an app that only loads a remote URL, so plan for TestFlight only.
+- **No phone performance check.** Gaussian splats and post-processing have not been tested on iPhone GPUs.
+- **Speech recognition may fail.** The browser speech-recognition fallback probably does not work in the iOS WebView. Voice depends on the server `/api/voice/stt` path, which needs `ELEVENLABS_API_KEY`.
+
+**Fallbacks and limits**
+- Without keys, image-to-3D produces a generic textured crate or pallet, and room reconstruction produces a labelled procedural scan. Neither reconstructs the actual object or room.
+- One photo gives about ±8–10 cm measurement uncertainty, not ±3 cm.
+- Parsing PNG, JPEG and PDF floor plans needs an Anthropic key. The PDF review shows only the extracted geometry, without the source PDF underneath.
+- The hero site has no wider detour for oversized deliveries, so a "blocked" result there is correct.
+
+**Quality**
+- The team flagged 3D render quality as poor in commit `f4429c9`, along with one unfinished task that isn't named. Neither is resolved.
+- The train benchmark scores 515/517. The two failures are ambiguous duplicate room names.
+- Frontend lint passes, but warnings about graphics, hooks and style remain.
+- Vite warns about large optional map/scan chunks. The local app opens a bundled catalog and lazy-loads buildings and 3D assets; remote map tiles are not required.
+
+Details and verification results: [docs/INTEGRATION.md](docs/INTEGRATION.md).
 
 ---
 

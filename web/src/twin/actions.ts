@@ -1,7 +1,7 @@
 // Imperative helpers shared by the HUD panels and in-scene popovers.
 import { api } from '../lib/api'
 import { useTwin } from '../lib/store'
-import type { Building } from '../lib/types'
+import type { Building, Route } from '../lib/types'
 import { indexBuilding } from './geom'
 import { useTwinUi } from './uiStore'
 
@@ -22,14 +22,29 @@ export function originOf(b: Building): string | null {
   return useTwinUi.getState().originId ?? defaultOrigin(b)
 }
 
+/** "Without stairs" in chat switches the mode the Route tab and the reach overlay use. */
+export function adoptRouteMode(route: Route) {
+  useTwinUi.setState({
+    stepFree: route.step_free && !route.min_width_m,
+    minWidth: route.min_width_m ? String(route.min_width_m) : '',
+  })
+}
+
+let navigationVersion = 0
+let navigationPending = 0
+let refreshVersion = 0
+
 export async function navigate(
   siteId: string,
   to: string,
   opts: { from?: string; step_free?: boolean; min_width_m?: number } = {},
 ) {
+  const version = ++navigationVersion
   const b = useTwin.getState().building
   const from = opts.from || (b ? originOf(b) : null)
   if (!from) throw new Error('No start point')
+  navigationPending = version
+  ++refreshVersion
   // Unless the caller says otherwise, route in the mode the Route tab and the reach overlay show.
   const ui = useTwinUi.getState()
   const stepFree = opts.step_free ?? ui.stepFree
@@ -37,13 +52,17 @@ export async function navigate(
   const body: { from: string; to: string; step_free?: boolean; min_width_m?: number } = { from, to }
   if (stepFree) body.step_free = true
   if (minWidth) body.min_width_m = minWidth
-  const route = await api.route(siteId, body)
-  if (useTwin.getState().siteId === siteId) {
-    useTwin.getState().setRoute(route)
-    useTwin.getState().setFocusFloor(null)
-    useTwinUi.getState().showDirections()
+  try {
+    const route = await api.route(siteId, body)
+    if (version === navigationVersion && useTwin.getState().siteId === siteId) {
+      useTwin.getState().setRoute(route)
+      useTwin.getState().setFocusFloor(null)
+      useTwinUi.getState().showDirections()
+    }
+    return route
+  } finally {
+    if (navigationPending === version) navigationPending = 0
   }
-  return route
 }
 
 export async function toggleClosed(siteId: string, id: string, closed: boolean) {
@@ -54,19 +73,20 @@ export async function toggleClosed(siteId: string, id: string, closed: boolean) 
 }
 
 /** Keep the requested endpoints and waypoints even while a closure makes the route unreachable. */
-let refreshVersion = 0
 export async function refreshRoute(siteId: string) {
+  if (navigationPending) return
+  const navigation = navigationVersion
   const version = ++refreshVersion
   const store = useTwin.getState()
   const route = store.route
-  if (store.siteId !== siteId || !route || route.space_path.length < 2) return
+  if (store.siteId !== siteId || !route || (!route.from_space_id && route.space_path.length < 2)) return
   const next = await api.route(siteId, {
     from: route.from_space_id ?? route.space_path[0],
     to: route.to_space_id ?? route.space_path[route.space_path.length - 1],
     step_free: route.step_free, min_width_m: route.min_width_m ?? undefined, via: route.via,
   })
   // A slow request must not replace a newer route or another site's view.
-  if (version === refreshVersion && useTwin.getState().siteId === siteId && useTwin.getState().route === route) {
+  if (version === refreshVersion && navigation === navigationVersion && useTwin.getState().siteId === siteId && useTwin.getState().route === route) {
     useTwin.getState().setRoute(next)
   }
 }

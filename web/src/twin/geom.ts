@@ -31,6 +31,16 @@ export function centroid(poly: XY[]): XY {
   return [cx / (6 * a), cy / (6 * a)]
 }
 
+export function pointInPolygon(p: XY, poly: XY[]): boolean {
+  let inside = false
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [xi, yi] = poly[i]
+    const [xj, yj] = poly[j]
+    if (yi > p[1] !== yj > p[1] && p[0] < ((xj - xi) * (p[1] - yi)) / (yj - yi) + xi) inside = !inside
+  }
+  return inside
+}
+
 /** shapely's representative_point() (GEOS InteriorPointArea): the server's route anchor, so markers
  *  sit exactly where routes start and end. */
 export function interiorPoint(poly: XY[]): XY {

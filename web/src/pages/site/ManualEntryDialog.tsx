@@ -45,7 +45,7 @@ export function ManualEntryDialog({ siteId, building }: { siteId: string; buildi
           onClick={close}
         >
           <motion.div initial={{ scale: 0.92, y: 10 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95 }} onClick={(e) => e.stopPropagation()}>
-            <Glass className="relative flex max-h-[85vh] w-96 flex-col gap-3 overflow-y-auto p-5 [scrollbar-width:thin]">
+            <Glass className="relative flex max-h-[85vh] w-[min(24rem,calc(100vw-1.5rem))] flex-col gap-3 overflow-y-auto p-5 [scrollbar-width:thin]">
               <button className="absolute right-3 top-3 rounded p-1 text-slate-400 hover:bg-white/10 hover:text-white" onClick={close}>
                 <X size={16} />
               </button>

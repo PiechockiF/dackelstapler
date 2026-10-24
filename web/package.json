@@ -6,10 +6,19 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "mobile:data": "cd .. && uv run python -m scripts.export_mobile_data",
+    "build:local": "npm run mobile:data && VITE_DATA_MODE=local npm run build",
+    "dev:local": "npm run mobile:data && VITE_DATA_MODE=local vite",
+    "test:local": "npm run mobile:data && vitest run",
+    "ios:archive": "bash scripts/ios-archive.sh",
+    "ios:preflight": "bash scripts/ios-archive.sh --preflight",
     "lint": "oxlint",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@capacitor/core": "^8.5.3",
+    "@capacitor/filesystem": "^8.1.5",
+    "@capacitor/ios": "^8.5.3",
     "@deck.gl/core": "^9.4.0",
     "@deck.gl/layers": "^9.4.0",
     "@deck.gl/mapbox": "^9.4.0",
@@ -20,6 +29,7 @@
     "@tanstack/react-query": "^5.104.5",
     "clsx": "^2.1.1",
     "framer-motion": "^14.6.0",
+    "idb": "^8.0.4",
     "lucide-react": "^1.61.0",
     "maplibre-gl": "^6.15.0",
     "postprocessing": "^6.39.5",
@@ -32,15 +42,18 @@
     "zustand": "^5.0.16"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.3",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^24.19.2",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@types/three": "^0.186.0",
     "@vitejs/plugin-react": "^6.1.2",
+    "fake-indexeddb": "^6.2.6",
     "oxlint": "^1.88.0",
     "tailwindcss": "^4.3.3",
     "typescript": "~6.0.3",
-    "vite": "^8.3.4"
+    "vite": "^8.3.4",
+    "vitest": "^4.1.12"
   }
 }
