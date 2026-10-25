@@ -64,7 +64,7 @@ Validation commands:
 
 ```sh
 uv run pytest -q
-uv run python -m benchmark.evaluate data/dev --agent agent.answer:answer
+uv run --env-file .env python -m benchmark.evaluate data/dev --agent agent.answer:answer
 uv run python -m starter_agent.evaluate data/dev --oracle
 cd web
 npm run build

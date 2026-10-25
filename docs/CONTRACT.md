@@ -8,7 +8,7 @@ Coordinates are always the building's local metres (x right, y up) from `buildin
 
 | Area | Owner | Directories |
 |---|---|---|
-| Core geometry, routing, benchmark | A | `core/`, `agent/answer.py`, `tests/`, `BENCHMARK.md` |
+| Core geometry, routing, benchmark | A | `core/`, `agent/answer.py`, `tests/`, `SUBMISSION/BENCHMARK.md` |
 | Map + 3D twin | B | `web/src/map/`, `web/src/twin/`, `web/src/pages/` |
 | Capture (phone → 3D → checks) | C | `capture/`, `web/src/capture/`, `scripts/print_marker.py` |
 | Server, chat agent, voice, seed data | D | `server/`, `agent/tools.py`, `agent/prompts.py`, `agent/chat.py`, `scripts/geocode_sites.py`, `scripts/seed_demo_events.py`, `web/src/chat/`, `web/src/sites/` |
@@ -45,7 +45,7 @@ def footprint_fits(bm, space_id, width_m, depth_m) -> dict  # {"ok": bool, "reas
 def capacity(bm, space_id) -> int  # chairs in the room, else floor(area / 2.5)
 ```
 
-`agent/answer.py` exports `answer(building_directory: Path, question_text: str) -> str` for `benchmark.evaluate --agent agent.answer:answer`.
+`agent/answer.py` is the benchmark agent (Claude tool use over `core/`). It exports `answer(building_directory: Path, question_text: str) -> str` for `benchmark.evaluate --agent agent.answer:answer` and `answer_entry(...)` for `run_benchmark`.
 
 ## JSON shapes
 

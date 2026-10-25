@@ -390,7 +390,7 @@ export default function ChatPanel({ siteId, onClose }: { siteId: string; onClose
     <div className="flex h-full w-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-slate-950/60 text-slate-100 shadow-2xl shadow-black/40 backdrop-blur-xl">
       {/* header */}
       <div className="flex items-center gap-2 border-b border-white/10 px-4 py-3">
-        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 to-violet-400 text-slate-950">
+        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-linear-to-br from-sky-400 to-violet-400 text-slate-950">
           <Sparkles size={15} />
         </div>
         <div className="min-w-0 flex-1">
@@ -479,7 +479,7 @@ export default function ChatPanel({ siteId, onClose }: { siteId: string; onClose
       </div>
 
       {/* suggestions */}
-      <div className="flex gap-1.5 overflow-x-auto px-4 pb-2 [scrollbar-width:none]">
+      <div className="flex gap-1.5 overflow-x-auto px-4 pb-2 scrollbar-none">
         {suggestions.map((suggestion) => (
           <button
             key={suggestion}
