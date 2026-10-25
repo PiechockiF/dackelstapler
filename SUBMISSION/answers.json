@@ -1,0 +1,582 @@
+[
+  {
+    "question_id": "osm-way363805324-H01",
+    "answer": "Listed all generic rooms on Floor 1 by polygon area; Generic room 1.02 is the largest at 162.33 m².\nAnswer: Generic room 1.02, 162.33 m²"
+  },
+  {
+    "question_id": "osm-way363805324-H02",
+    "answer": "Listed all spaces of room type generic_room on the ground floor (level 0): 5 rooms (0.02, 0.15, 0.17, 0.12, 0.11) with a total polygon area of 54.78 m².\nAnswer: 54.78"
+  },
+  {
+    "question_id": "osm-way363805324-H03",
+    "answer": "The closest office chair is in Gemeinschaftsbüro (Floor 1), 14.84 m from Generic room 1.10. From there it is 30.06 m to Generic room 1.02, the largest generic room on Floor 1 at 162.33 m². That makes 44.9 m in total.\nAnswer: 44.9"
+  },
+  {
+    "question_id": "osm-way363805324-H04",
+    "answer": "space_details for Büchercorner (Floor 1) shows Großer Saal (Ground floor) directly below, covering 57.74 of its 58.4 m². Two other spaces below overlap it by less than 0.5 m² each.\nAnswer: Großer Saal"
+  },
+  {
+    "question_id": "osm-way363805324-H07",
+    "answer": "space_details for Kitchen 0.16 lists the spaces above it on Floor 1 by how much of its outline they cover. Generic room 1.10 covers the most, 39.16 m² of the kitchen's 61.3 m², ahead of Corridor 1.15 and Generic room 111.\nAnswer: Generic room 1.10 (Floor 1)"
+  },
+  {
+    "question_id": "osm-way363805324-H10",
+    "answer": "space_details for Generic room U20 lists five rooms sharing a wall (≥1 m within 0.35 m): Musik- und Tanraum, Generic rooms -1.10, -1.11, -1.12 and -1.13. All are of type room; corridors and stairwells are excluded by the rule.\nAnswer: 5"
+  },
+  {
+    "question_id": "osm-way363805324-H11",
+    "answer": "I found both rooms and used the 3D straight-line distance between their floor-plan centroids. Generic room -1.11 is at -3.0 m and Büchercorner is at 3.0 m.\nAnswer: 21.156"
+  },
+  {
+    "question_id": "osm-way43035346-H01",
+    "answer": "Listed all 16 generic rooms on Floor 3 (level 3) by polygon area; Generic room N3806 is the largest at 115.03 m².\nAnswer: Generic room N3806, 115.03 m²"
+  },
+  {
+    "question_id": "osm-way43035346-H02",
+    "answer": "Listed all spaces with room_type generic_room on Floor 1 (level 1): 26 rooms with a total polygon area of 592.8 m².\nAnswer: 592.8"
+  },
+  {
+    "question_id": "osm-way43035346-H03",
+    "answer": "I passed all 11 fire extinguishers as the pickup stop. The route went to the nearest one, in Stairwell N3834 on Floor 3 (21.26 m), then down Stairs 2 to Generic room N1838, the largest generic room on Floor 1 at 107.0 m² (32.73 m). Stairs were allowed.\nAnswer: 53.99"
+  },
+  {
+    "question_id": "osm-way43035346-H04",
+    "answer": "space_details for Generic room -1.14 lists Generic room N0806 on the ground floor as directly above it, overlapping 3.26 m² of the room's 3.81 m² outline.\nAnswer: Generic room N0806 (Ground floor)"
+  },
+  {
+    "question_id": "osm-way43035346-H05",
+    "answer": "space_details for Generic room N-1840 (Basement 1) lists six rooms in shares_wall_with: -1.07, N-1806B, N-1806A, N-1841, N-1842 and -1.26. Corridors, stairwells and lifts are already left out of that list.\nAnswer: 6"
+  },
+  {
+    "question_id": "osm-way43035346-H06",
+    "answer": "I found both rooms and used straight_line_distance between their polygon centroids at floor elevation (-3.0 m for Basement 1 and 6.0 m for Floor 2). The 3D distance is 11.846 m.\nAnswer: 11.846"
+  },
+  {
+    "question_id": "osm-way43035346-H07",
+    "answer": "The what-if tool simulated a door in the middle of the wall shared by Generic room N0808 and Generic room N0809 on the ground floor. It counted the rooms on Floor 3 whose walk to their nearest entrance gets more than 1 m shorter, and found none.\nAnswer: 0"
+  },
+  {
+    "question_id": "osm-way50299584-H01",
+    "answer": "Listed all 34 generic rooms on the ground floor (level 0) by polygon area; Generic room 0566 is the largest at 559.8 m², well ahead of Generic room 0583 (189.21 m²).\nAnswer: Generic room 0566, 559.8 m²"
+  },
+  {
+    "question_id": "osm-way50299584-H02",
+    "answer": "Listed all spaces of room type generic_room on Floor 3 (41 rooms) and took the summed polygon area reported by list_spaces: 959.76 m².\nAnswer: 959.76"
+  },
+  {
+    "question_id": "osm-way50299584-H03",
+    "answer": "Routed from Generic room 1508 (Floor 1) to the nearest of all six coat racks (stairs allowed); the nearest by route is Coat rack 2591 in Corridor 2591 on Floor 2 via Lift 1 (56.15 m). From there to Generic room 2538, the largest generic room on Floor 2 (73.31 m²), is 47.21 m, for a total of 103.36 m.\nAnswer: 103.36"
+  },
+  {
+    "question_id": "osm-way50299584-H04",
+    "answer": "space_details for Generic room -1517 (Basement 1) shows that Generic room 0583 on the Ground floor covers the most of its outline (10.9 of 11.13 m²). That makes it the room directly above.\nAnswer: Generic room 0583"
+  },
+  {
+    "question_id": "osm-way50299584-H06",
+    "answer": "space_details for Generic room 0520 (Ground floor) lists Generic room -1530 (Basement 1) as the space directly below, with its outline covering the full 14.65 m² of the room.\nAnswer: Generic room -1530"
+  },
+  {
+    "question_id": "osm-way50299584-H11",
+    "answer": "space_details for Generic room 0523 (Ground floor) shows that Generic room 1530 on Floor 1 covers most of its outline (12.65 m² of 14.3 m²). Two other rooms overlap only slightly.\nAnswer: Generic room 1530"
+  },
+  {
+    "question_id": "osm-way50299584-H12",
+    "answer": "space_details for Generic room 2522 (Floor 2) lists 4 rooms sharing a wall (≥1 m, corridors/stairs/lifts excluded): Generic rooms 2530, 2523, 2522A and 2523A.\nAnswer: 4"
+  },
+  {
+    "question_id": "osm-way50299584-H13",
+    "answer": "Found Generic room 3580.2 (Floor 3, elevation 9 m) and Generic room 1561 (Floor 1, elevation 3 m) and computed the 3D straight-line distance between their floor-plan centroids at floor elevation with straight_line_distance: 62.01 m.\nAnswer: 62.01"
+  },
+  {
+    "question_id": "osm-way50300147-H01",
+    "answer": "Listed all 38 generic rooms on the ground floor (level 0) by polygon area; Generic room 0219 is the largest at 530.16 m², well ahead of Generic room 0220 at 174.63 m².\nAnswer: Generic room 0219, 530.16 m²"
+  },
+  {
+    "question_id": "osm-way50300147-H02",
+    "answer": "list_spaces on floor 1 (Floor 1) with room_type generic_room returned 43 rooms with a total polygon area of 1699.6 m².\nAnswer: 1699.6"
+  },
+  {
+    "question_id": "osm-way50300147-H03",
+    "answer": "The nearest desk is in Generic room 1211B (Floor 1), about 2.71 m from 1211D. From there the desk goes via Stairs 5 to Generic room 2221, the largest generic room on Floor 2 at 159.53 m², about 75.53 m. Total 78.24 m with stairs allowed; desk rooms on lower floors were left out because 1211B is right next door.\nAnswer: 78.24"
+  },
+  {
+    "question_id": "osm-way50300147-H04",
+    "answer": "space_details for Generic room -1284 (Basement 1) shows Generic room 0260 (Ground floor) covering 69.54 of its 70.45 m², by far the largest overlap on the floor above.\nAnswer: Generic room 0260"
+  },
+  {
+    "question_id": "osm-way50300147-H05",
+    "answer": "space_details for Generic room 1271C (Floor 1) lists Generic room 0219 (Ground floor) directly below it, overlapping its full 1.51 m² outline.\nAnswer: Generic room 0219"
+  },
+  {
+    "question_id": "osm-way50300147-H06",
+    "answer": "The space details for Generic room -1216 (Basement 1) show that Generic room 0209 (Ground floor) covers the most of its outline, 33.87 m² of overlap. Two small strips of corridor (Corridor 0205 and Corridor 0205A) make up the rest.\nAnswer: Generic room 0209"
+  },
+  {
+    "question_id": "osm-way50300147-H07",
+    "answer": "space_details for Generic room -1208 (Basement 1) lists 6 rooms sharing a wall (≥1 m within 0.35 m, corridors/stairwells excluded): -1247e, -1206, -1202, -1247d, -1247f, -1247c.\nAnswer: 6"
+  },
+  {
+    "question_id": "osm-way50300147-H08",
+    "answer": "Resolved Generic room 2231 (Floor 2, elevation 6 m) and Generic room -1248 (Basement 1, elevation -3 m), then computed the 3D straight-line distance between their polygon centroids at floor elevation: 45.491 m.\nAnswer: 45.491"
+  },
+  {
+    "question_id": "osm-way50300147-H09",
+    "answer": "Used the what-if door tool with a hypothetical door mid-wall between Corridor 0263 and Corridor 0244 (Ground floor), counting Basement 1 rooms whose route to the nearest entrance shortens by more than 1 m. The tool reports 47 such rooms.\nAnswer: 47"
+  },
+  {
+    "question_id": "osm-way50300147-H10",
+    "answer": "Resolved Lobby 0.01 (F0-S001) and Generic room 0293 (F0-S006) and ran the what-if door tool for Basement 1 (level -1). It reports 47 basement rooms whose route to the nearest entrance becomes more than 1 m shorter.\nAnswer: 47"
+  },
+  {
+    "question_id": "proc-campus-test-000-H01",
+    "answer": "Listed all toilet rooms on Floor 1 (level 1); there are three, and Toilet 1.25 has the largest polygon area at 34.02 m².\nAnswer: Toilet 1.25, 34.02 m²"
+  },
+  {
+    "question_id": "proc-campus-test-000-H02",
+    "answer": "Listed all server rooms on Basement 1 (level -1): -1.30 (37.74), -1.33 (27.9), -1.07 (20.04), -1.38 (19.74 m²). Their polygon areas sum to 105.42 m².\nAnswer: 105.42"
+  },
+  {
+    "question_id": "proc-campus-test-000-H03",
+    "answer": "Ran reachable_rooms from Main lobby (Ground floor) with step-free access and a minimum door width of 1.0 m (lifts allowed), counting only Floor 1. 21 rooms of type \"room\" are reachable on Floor 1.\nAnswer: 21"
+  },
+  {
+    "question_id": "proc-campus-test-000-H04",
+    "answer": "The closest coffee machine by walking distance is in Kitchen 4.41 (45.3 m from Office 4.27). The largest meeting room on Floor 2 is Meeting room 2.09 (41.34 m²), and the walk there from the kitchen via Staircase 2 is 82.94 m, giving 128.24 m in total.\nAnswer: 128.24"
+  },
+  {
+    "question_id": "proc-campus-test-000-H05",
+    "answer": "3D straight-line distance between the polygon centroids of Lab 2.23 (Floor 2, elevation 7.6 m) and Storage 0.36 (Ground floor, elevation 0 m), computed with the straight_line_distance tool: 41.308 m.\nAnswer: 41.31"
+  },
+  {
+    "question_id": "proc-campus-test-004-H01",
+    "answer": "Listed all 4 meeting rooms on the ground floor by polygon area; Meeting room 0.15 is the largest at 35.46 m² (next is Meeting room 0.21 at 26.52 m²).\nAnswer: Meeting room 0.15, 35.46 m²"
+  },
+  {
+    "question_id": "proc-campus-test-004-H02",
+    "answer": "Listed all spaces with room type \"office\" on Floor 1 (6 offices: 1.21, 1.03, 1.06, 1.26, 1.15, 1.10) and summed their polygon areas, giving 184.14 m².\nAnswer: 184.14"
+  },
+  {
+    "question_id": "proc-campus-test-004-H03",
+    "answer": "Used reachable_rooms from Main lobby (Ground floor) with step-free routing (lifts allowed) and a minimum door width of 1.0 m, counting only rooms on Floor 2. 13 rooms are reachable.\nAnswer: 13"
+  },
+  {
+    "question_id": "proc-campus-test-004-H04",
+    "answer": "Nearest stove is in Kitchen 0.05 (33.56 m from Storage 0.12); then carried via Staircase 1 to Lab 1.17, the largest lab on Floor 1 at 35.46 m² (40.73 m). Total route 74.29 m with stairs allowed.\nAnswer: 74.29"
+  },
+  {
+    "question_id": "proc-campus-test-004-H05",
+    "answer": "Used straight_line_distance between the floor-plan centroids of Lab 1.17 (Floor 1, elevation 3.8 m) and Lab 3.19 (Floor 3, elevation 11.4 m): 13.0 m horizontal and 7.6 m vertical offset give 15.059 m.\nAnswer: 15.06"
+  },
+  {
+    "question_id": "proc-campus-test-005-H01",
+    "answer": "Listed all six meeting rooms on Floor 1 (level 1) by polygon area; Meeting room 1.13 is the largest at 41.52 m².\nAnswer: Meeting room 1.13, 41.52 m²"
+  },
+  {
+    "question_id": "proc-campus-test-005-H02",
+    "answer": "Listed all spaces of room type \"office\" on the ground floor (level 0): 16 offices whose polygon areas total 456.72 m².\nAnswer: 456.72"
+  },
+  {
+    "question_id": "proc-campus-test-005-H03",
+    "answer": "Counted rooms on Floor 4 reachable from Main lobby with step-free routing (lifts allowed) and every door at least 1.0 m wide, using reachable_rooms. 18 rooms qualify.\nAnswer: 18"
+  },
+  {
+    "question_id": "proc-campus-test-005-H04",
+    "answer": "Nearest kitchen counter by route is in Kitchen 2.33 (29.09 m from Seminar room 2.37); from there via Staircase 2 to Storage 1.27, the largest storage on Floor 1 (39.3 m²), is 60.43 m. Total 89.52 m with stairs allowed.\nAnswer: 89.52"
+  },
+  {
+    "question_id": "proc-campus-test-005-H05",
+    "answer": "space_details for Toilet -1.31 (Basement 1) lists three rooms sharing a wall of at least 1 m: Storage -1.30, Locker room -1.40 and Locker room -1.41. Corridors, stairwells and lifts are excluded.\nAnswer: 3"
+  },
+  {
+    "question_id": "proc-campus-test-005-H06",
+    "answer": "Resolved Lab 4.10 (Floor 4, elevation 15.2 m) and Office 2.41 (Floor 2, elevation 7.6 m) and computed the 3D distance between their polygon centroids at floor elevation with straight_line_distance: 39.09 m.\nAnswer: 39.09"
+  },
+  {
+    "question_id": "proc-campus-test-008-H01",
+    "answer": "Listed all 8 office spaces on Floor 2 (level 2) by polygon area; Office 2.19 is largest at 39.66 m², ahead of Office 2.07 at 35.94 m².\nAnswer: Office 2.19, 39.66 m²"
+  },
+  {
+    "question_id": "proc-campus-test-008-H02",
+    "answer": "list_spaces found 3 meeting rooms on Floor 1 (1.07: 35.94, 1.21: 25.62, 1.03: 24.84 m²), and their polygon areas add up to 86.4 m².\nAnswer: 86.4"
+  },
+  {
+    "question_id": "proc-campus-test-008-H03",
+    "answer": "Counted rooms on Floor 5 reachable from Main lobby (Ground floor) step-free (lifts allowed) through doors at least 1.0 m wide, using reachable_rooms; 11 rooms qualify.\nAnswer: 11"
+  },
+  {
+    "question_id": "proc-campus-test-008-H04",
+    "answer": "The closest plant by route is in Office 3.24, 22.46 m from Seminar room 3.21. The largest meeting room on Floor 1 is Meeting room 1.07 (35.94 m²), 56.45 m further using Staircase 1, so the total is 78.91 m.\nAnswer: 78.91"
+  },
+  {
+    "question_id": "proc-campus-test-008-H05",
+    "answer": "Resolved Office 1.25 (Floor 1, centroid at 3.8 m elevation) and Technical room -1.19 (Basement 1, centroid at -3.8 m) and computed the 3D distance between their floor-plan centroids with straight_line_distance: 33.732 m.\nAnswer: 33.73"
+  },
+  {
+    "question_id": "proc-campus-test-012-H01",
+    "answer": "Listed all 7 offices on Floor 1 by polygon area; Office 1.12 is the largest at 40.02 m², ahead of Office 1.28 at 33.06 m².\nAnswer: Office 1.12, 40.02 m²"
+  },
+  {
+    "question_id": "proc-campus-test-012-H02",
+    "answer": "list_spaces on floor 4 with room_type toilet returned three toilets (4.20: 37.92, 4.30: 32.76, 4.25: 28.5 m²), with a total polygon area of 99.18 m².\nAnswer: 99.18"
+  },
+  {
+    "question_id": "proc-campus-test-012-H03",
+    "answer": "Counted rooms on Floor 1 reachable from Main lobby with step-free travel (lifts allowed) and every door at least 1.0 m wide, using reachable_rooms. 16 rooms qualify.\nAnswer: 16"
+  },
+  {
+    "question_id": "proc-campus-test-012-H04",
+    "answer": "The closest plant is in Office 3.23 (9.77 m from Seminar room 3.22). From there it is 34.06 m to Lab 3.13, the largest lab on Floor 3 (39.72 m²). Stairs were allowed but the route didn't need them.\nAnswer: 43.83"
+  },
+  {
+    "question_id": "proc-campus-test-012-H05",
+    "answer": "Used the 3D straight-line distance between the floor-plan centroids of Print room 4.28 (Floor 4, elevation 15.2 m) and Seminar room 0.06 (Ground floor, elevation 0 m). The result is 38.459 m.\nAnswer: 38.459"
+  },
+  {
+    "question_id": "proc-campus-test-013-H01",
+    "answer": "Listed all storage rooms on Floor 5 (three found); Storage 5.26 has the largest polygon area at 40.86 m².\nAnswer: Storage 5.26, 40.86 m²"
+  },
+  {
+    "question_id": "proc-campus-test-013-H02",
+    "answer": "Listed all spaces of room type \"lab\" on Floor 1 (8 labs) and took the summed polygon area reported by list_spaces: 200.28 m².\nAnswer: 200.28"
+  },
+  {
+    "question_id": "proc-campus-test-013-H03",
+    "answer": "Used reachable_rooms from Main lobby (Ground floor) with step-free routing and a minimum door width of 1.0 m, counting rooms on Floor 3. Lifts are allowed, and all are assumed to be working; 15 rooms are reachable.\nAnswer: 15"
+  },
+  {
+    "question_id": "proc-campus-test-013-H04",
+    "answer": "Routed from Office 4.29 to the nearest room with a chemical cabinet (Lab 5.38, 35.49 m via Staircase 3), then carrying it by stairs to Lab 1.34, the largest lab on Floor 1 (39.66 m², 81.12 m). Total 116.61 m, stairs allowed.\nAnswer: 116.61"
+  },
+  {
+    "question_id": "proc-campus-test-013-H05",
+    "answer": "Used the straight_line_distance tool for the floor-plan centroids of Office 5.35 (Floor 5, elevation 19.0 m) and Lab 1.07 (Floor 1, elevation 3.8 m). The 3D distance between them is 36.37 m.\nAnswer: 36.37"
+  },
+  {
+    "question_id": "proc-factory-test-001-H01",
+    "answer": "list_spaces found 4 meeting rooms on the ground floor (0.44: 25.9, 0.34: 25.4, 0.39: 21.2, 0.25: 19.6 m²), and their total area is 92.1 m².\nAnswer: 92.1"
+  },
+  {
+    "question_id": "proc-factory-test-001-H02",
+    "answer": "Ran reachable_rooms from Logistics zone H-C1 with step-free routing and a minimum door width of 1.0 m, counting only ground-floor spaces of type room. 9 rooms are reachable (halls, corridors, stair and lift spaces not counted).\nAnswer: 9"
+  },
+  {
+    "question_id": "proc-factory-test-001-H03",
+    "answer": "The building plan lists six ground-floor rooms that share at least 1 m of wall with Production zone H-A2: Assembly zone H-A1, Production zone H-A3, Office 0.22, Office 0.23, Server room 0.24 and Meeting room 0.25. Corridors, stairwells and lifts were left out, as was the Main aisle H-B2.\nAnswer: 6"
+  },
+  {
+    "question_id": "proc-factory-test-002-H01",
+    "answer": "Listed all spaces of room type meeting_room on the ground floor (5 rooms: 0.51, 0.60, 0.54, 0.50, 0.44) and summed their polygon areas, giving 126.5 m².\nAnswer: 126.5"
+  },
+  {
+    "question_id": "proc-factory-test-002-H02",
+    "answer": "Ran reachable_rooms from Office corridor 0.31 on the ground floor, step-free, with every door at least 1.0 m wide; 9 spaces of type room are reachable (halls, corridors, stair and lift not counted).\nAnswer: 9"
+  },
+  {
+    "question_id": "proc-factory-test-002-H03",
+    "answer": "The building's wall-sharing data for Office 0.38 (Ground floor) lists four neighbours: Warehouse zone H-A1, Production zone H-A2, Office 0.37 and Office 0.39. Corridors, stairwells and lifts are already left out. I assumed the two hall zones count as rooms; if only office-type rooms counted, the answer would be 2.\nAnswer: 4"
+  },
+  {
+    "question_id": "proc-factory-test-002-H04",
+    "answer": "Resolved Meeting room 2.20 (Floor 2) and Warehouse zone H-D6 (Ground floor), then computed the 3D distance between their polygon centroids at floor elevations 7.0 m and 0.0 m: 111.978 m.\nAnswer: 111.98"
+  },
+  {
+    "question_id": "proc-factory-test-003-H01",
+    "answer": "Listed all 8 meeting rooms on Floor 1 (level 1) by polygon area; Meeting room 1.17 is largest at 29.35 m², ahead of Meeting room 1.20 at 25.25 m².\nAnswer: Meeting room 1.17, 29.35 m²"
+  },
+  {
+    "question_id": "proc-factory-test-003-H02",
+    "answer": "Listed all 7 spaces of room type meeting_room on Floor 2 (level 2) and summed their polygon areas with calculate: 29.5+27.6+23.75+19.7+19.05+17.7+16.9 = 154.2 m².\nAnswer: 154.2"
+  },
+  {
+    "question_id": "proc-factory-test-003-H03",
+    "answer": "Ran reachable_rooms from Office corridor 0.25 (ground-floor entrance) with step-free and a minimum door width of 1.1 m, counting only ground-floor spaces of type room. Seven rooms are reachable: Server rooms 0.31, 0.43, 0.47, Meeting rooms 0.40, 0.50, Quality lab 0.41 and Toilet 0.55.\nAnswer: 7"
+  },
+  {
+    "question_id": "proc-factory-test-003-H04",
+    "answer": "The closest room with server racks to Meeting room 1.10 is Server room 1.14, 24.23 m away. Kitchen 0.29 is the largest ground-floor kitchen at 20.7 m², and carrying the rack there on the stairs is 65.63 m. That makes 89.86 m in total.\nAnswer: 89.86"
+  },
+  {
+    "question_id": "proc-factory-test-003-H05",
+    "answer": "space_details for Office 0.33 (Ground floor) lists shares_wall_with: Warehouse zone H-A2, Office 0.32 and Kitchen 0.34, with corridors, stairwells and lifts already excluded. The warehouse hall counts because only corridors, stairwells and lifts were excluded; without it the count would be 2.\nAnswer: 3"
+  },
+  {
+    "question_id": "proc-factory-test-003-H06",
+    "answer": "Used the straight_line_distance tool between the two room centroids: Office 2.27 at (-9.5, -25.335, 7.0) and Office 0.58 at (-9.5, -56.585, 0.0). That gives 32.024 m in 3D.\nAnswer: 32.02"
+  },
+  {
+    "question_id": "proc-factory-test-006-H01",
+    "answer": "Listed all spaces with room type \"office\" on Floor 2 (9 offices) and summed their polygon areas: 203.3 m².\nAnswer: 203.3"
+  },
+  {
+    "question_id": "proc-factory-test-006-H02",
+    "answer": "Ran a step-free reachability count from Main aisle H-B4, with every door at least 1.1 m wide and lifts allowed, counting only Floor 2 rooms. The rooms reached are Toilet 2.08 and Meeting rooms 2.11, 2.13 and 2.15.\nAnswer: 4"
+  },
+  {
+    "question_id": "proc-factory-test-006-H03",
+    "answer": "space_details for Office 0.20 (Ground floor) lists three rooms sharing a wall (at least 1 m, corridors/stairwells/lifts excluded): Additive zone H-A2, Server room 0.19 and Meeting room 0.21. The production hall Additive zone H-A2 is counted since it runs along the office's wall.\nAnswer: 3"
+  },
+  {
+    "question_id": "proc-factory-test-006-H04",
+    "answer": "Used the straight_line_distance tool between the floor-plan centroids of Warehouse zone H-C4 (Ground floor, (49.0, 46.5, 0.0)) and Office 2.10 (Floor 2, (29.795, -2.5, 7.0)). The 3D distance is 53.093 m.\nAnswer: 53.093"
+  },
+  {
+    "question_id": "proc-factory-test-007-H01",
+    "answer": "Listed all 5 kitchens on Floor 1 (level 1) by polygon area; Kitchen 1.10 is largest at 28.75 m², ahead of Kitchen 1.37 at 25.9 m².\nAnswer: Kitchen 1.10, 28.75 m²"
+  },
+  {
+    "question_id": "proc-factory-test-007-H02",
+    "answer": "Listed all spaces of room type \"office\" on Floor 1 (level 1): 18 offices with a total polygon area of 413.4 m².\nAnswer: 413.4"
+  },
+  {
+    "question_id": "proc-factory-test-007-H03",
+    "answer": "I counted the ground-floor rooms reachable from Logistics zone H-D1 when every door passed is at least 1.1 m wide and there are no stairs or steps (lifts allowed). 9 spaces of type room are reachable; halls and corridors are not counted.\nAnswer: 9"
+  },
+  {
+    "question_id": "proc-factory-test-007-H04",
+    "answer": "The nearest drill press from Office 1.05 is in Production zone H-B2 on the ground floor (97.02 m via the stairs). Carrying it from there to Kitchen 1.10, the largest kitchen on Floor 1 at 28.75 m², adds 123.59 m. Stairs were allowed.\nAnswer: 220.61"
+  },
+  {
+    "question_id": "proc-factory-test-007-H05",
+    "answer": "The shared-wall list for Kitchen 0.43 (which already leaves out corridors, stairwells and lifts) names four spaces: Production zone H-A4, Warehouse zone H-A5, Office 0.42 and Hall access 0.44. Hall-type spaces are counted because the judges' rule only leaves out corridors, stairwells, lifts and outdoor spaces.\nAnswer: 4"
+  },
+  {
+    "question_id": "proc-factory-test-007-H06",
+    "answer": "Resolved Production zone H-A4 (ground floor, elevation 0 m) and Office 2.10 (Floor 2, elevation 7.0 m), then computed the 3D distance between their polygon centroids at floor elevation: 34.796 m, rounded to 34.8 m.\nAnswer: 34.8"
+  },
+  {
+    "question_id": "proc-factory-test-009-H01",
+    "answer": "Listed all spaces with room type production_zone on the ground floor: four halls (H-A4, H-B3, H-D2, H-D3), each 305.04 m². Their polygon areas sum to 1220.16 m².\nAnswer: 1220.16"
+  },
+  {
+    "question_id": "proc-factory-test-009-H02",
+    "answer": "Counted rooms on Floor 1 reachable from Office corridor 0.21 step-free with every door at least 1.0 m wide (lift allowed) using reachable_rooms; 12 rooms qualify.\nAnswer: 12"
+  },
+  {
+    "question_id": "proc-factory-test-009-H03",
+    "answer": "space_details for Office 0.27 (Ground floor) lists 4 spaces sharing a wall with it: Additive zone H-A1, Warehouse zone H-A2, Meeting room 0.26 and Kitchen 0.28. The tool leaves out corridors, stairwells and lifts. I counted the two production halls as rooms, because the rules only exclude corridors, stairwells, lifts and outdoor spaces.\nAnswer: 4"
+  },
+  {
+    "question_id": "proc-factory-test-010-H01",
+    "answer": "Listed all 5 ground-floor meeting rooms by polygon area; Meeting room 0.40 is largest at 29.95 m² (next is 0.33 at 23.9 m²).\nAnswer: Meeting room 0.40, 29.95 m²"
+  },
+  {
+    "question_id": "proc-factory-test-010-H02",
+    "answer": "Listed all spaces of room type meeting_room on the ground floor (5 rooms: 0.40, 0.33, 0.43, 0.29, 0.48) and summed their polygon areas, giving 111.6 m².\nAnswer: 111.6"
+  },
+  {
+    "question_id": "proc-factory-test-010-H03",
+    "answer": "Used reachable_rooms from Logistics zone H-E1 with step-free routing and a 1.0 m minimum door width, counting rooms on Floor 1. 10 rooms are reachable via the lift.\nAnswer: 10"
+  },
+  {
+    "question_id": "proc-factory-test-010-H04",
+    "answer": "The nearest UPS unit by walking distance from Office 1.12 is in Server room 1.16 (21.48 m). From there, the walk down the Office staircase to Meeting room 0.40, the largest meeting room on the ground floor at 29.95 m², is 91.55 m. Stairs were allowed, so the total is 113.03 m.\nAnswer: 113.03"
+  },
+  {
+    "question_id": "proc-factory-test-010-H05",
+    "answer": "The plan's shared-wall check for Quality lab 0.27 lists four ground-floor rooms: Assembly zone H-A1, Assembly zone H-A2, Server room 0.26 and Office 0.28. Corridors, stairwells and lifts are left out, so Office corridor 0.21, where the lab's door is, isn't counted. I counted the two assembly zones because they share a wall with the lab.\nAnswer: 4"
+  },
+  {
+    "question_id": "proc-factory-test-011-H01",
+    "answer": "Listed all spaces with room type production_zone on the ground floor: 7 halls of 297.14 m² each, summing to 2079.98 m² (polygon areas).\nAnswer: 2079.98"
+  },
+  {
+    "question_id": "proc-factory-test-011-H02",
+    "answer": "Counted rooms on Floor 2 reachable step-free (lift allowed) from Logistics zone H-E3 with every door at least 1.1 m wide, using reachable_rooms. Seven rooms qualify (three server rooms, a toilet and three meeting rooms).\nAnswer: 7"
+  },
+  {
+    "question_id": "proc-factory-test-011-H03",
+    "answer": "The details for Locker room 0.41 list four spaces sharing a wall with it: Assembly zone H-A3, Additive zone H-A4, Office 0.40 and Office 0.42. The tool already leaves out corridors, stairwells and lifts. I counted the two production halls because the rules only exclude corridors, stairwells, lifts and outdoor spaces.\nAnswer: 4"
+  },
+  {
+    "question_id": "proc-factory-test-011-H04",
+    "answer": "Used straight_line_distance between the centroid of Production zone H-B3 on the ground floor (-44.75, -24.9, 0.0) and the centroid of Kitchen 2.04 on Floor 2 (-1.805, 2.5, 7.0). The 3D distance between them is 51.42 m.\nAnswer: 51.42"
+  },
+  {
+    "question_id": "resplan-1153-H01",
+    "answer": "Listed all spaces of room type bedroom on the ground floor (4 bedrooms: 0.04 26.73, 0.02 20.58, 0.03 16.53, 0.05 7.45 m²); polygon areas sum to 71.29 m².\nAnswer: 71.29"
+  },
+  {
+    "question_id": "resplan-1153-H02",
+    "answer": "space_details for Bedroom 0.03 shows it shares a wall with Living room 0.01, Bedroom 0.04 and Bathroom 0.06. Balcony 0.11 is not on the list because it is an outdoor space, which doesn't count under the rules.\nAnswer: 3"
+  },
+  {
+    "question_id": "resplan-12469-H01",
+    "answer": "Listed all 5 bedrooms on the ground floor (0.02–0.06) with list_spaces; their polygon areas sum to 109.69 m².\nAnswer: 109.69"
+  },
+  {
+    "question_id": "resplan-12469-H02",
+    "answer": "I counted the ground-floor rooms reachable from Living room 0.01, using only step-free routes where every door is at least 1.0 m wide. 8 rooms can be reached, and Living room 0.01 itself is included in that count.\nAnswer: 8"
+  },
+  {
+    "question_id": "resplan-12469-H03",
+    "answer": "space_details for Bedroom 0.05 lists 5 rooms that share a wall with it: Living room 0.01 and Bathrooms 0.07, 0.08, 0.09 and 0.10. Balcony 0.14 is an outdoor space, so it doesn't count.\nAnswer: 5"
+  },
+  {
+    "question_id": "resplan-12962-H01",
+    "answer": "space_details for Living room 0.01 lists five rooms that share a wall with it: Bedroom 0.02, Bedroom 0.03, Bathroom 0.04, Bathroom 0.05 and Kitchen 0.06. Corridors, stairwells, lifts and outdoor spaces such as balconies are not counted.\nAnswer: 5"
+  },
+  {
+    "question_id": "resplan-14307-H01",
+    "answer": "space_details for Bedroom 0.02 lists three rooms sharing a wall with it: Living room 0.01, Bathroom 0.04 and Kitchen 0.05. Balcony 0.06 also connects by a door, but it is an outdoor space, so it isn't counted.\nAnswer: 3"
+  },
+  {
+    "question_id": "resplan-3573-H01",
+    "answer": "I listed the three bathrooms on the ground floor and compared their polygon areas. Bathroom 0.06 is the largest at 6.98 m², ahead of 0.05 at 5.63 m² and 0.07 at 5.05 m².\nAnswer: Bathroom 0.06, 6.98 m²"
+  },
+  {
+    "question_id": "resplan-3573-H02",
+    "answer": "Listed all bathroom rooms on the ground floor (Bathroom 0.05, 0.06, 0.07) and summed their polygon areas: 5.63 + 6.98 + 5.05 = 17.66 m².\nAnswer: 17.66"
+  },
+  {
+    "question_id": "resplan-3573-H03",
+    "answer": "reachable_rooms from Living room 0.01 with step-free and min door width 1.0 m on the ground floor reaches 6 rooms: Living room 0.01, Bedrooms 0.02, 0.03, 0.04, Bathroom 0.06 and Kitchen 0.08. The arrival room itself is counted as a delivery destination.\nAnswer: 6"
+  },
+  {
+    "question_id": "resplan-3573-H04",
+    "answer": "The nearest sink is in Bathroom 0.07 (6.2 m from Living room 0.01). The largest ground-floor bathroom is Bathroom 0.06 (6.98 m²), 12.38 m further via Bedroom 0.03, for a total of 18.58 m with stairs allowed.\nAnswer: 18.58"
+  },
+  {
+    "question_id": "resplan-3573-H05",
+    "answer": "The space details for Living room 0.01 list six rooms that share a wall with it (at least 1 m of outline within 0.35 m): Bedrooms 0.02, 0.03 and 0.04, Bathrooms 0.06 and 0.07, and Kitchen 0.08. Rooms count with or without a door between them.\nAnswer: 6"
+  },
+  {
+    "question_id": "resplan-6532-H01",
+    "answer": "Used reachable_rooms from Living room 0.01 with min door width 1.0 m (step-free) on the ground floor; it reaches Living room 0.01, Bedroom 0.03 and Kitchen 0.06. The arrival room itself is counted.\nAnswer: 3"
+  },
+  {
+    "question_id": "resplan-6532-H02",
+    "answer": "space_details for Bedroom 0.03 lists three rooms that share a wall with it: Living room 0.01, Bathroom 0.04 and Kitchen 0.06. The judges' rule counts a shared wall of at least 1 m, and corridors, stairwells and lifts don't count.\nAnswer: 3"
+  },
+  {
+    "question_id": "resplan-8357-H01",
+    "answer": "reachable_rooms from Living room 0.01 with min_width_m=1.1 (step-free) on the ground floor reaches 4 rooms: Living room 0.01, Bedroom 0.02, Bedroom 0.03 and Kitchen 0.06. The arrival room itself is counted as a delivery destination.\nAnswer: 4"
+  },
+  {
+    "question_id": "resplan-8357-H02",
+    "answer": "space_details for Living room 0.01 lists 5 rooms that share a wall with it: Bedroom 0.02, Bedroom 0.03, Bathroom 0.04, Bathroom 0.05 and Kitchen 0.06. Under the judges' rule, a shared wall means at least 1 m of overlap, and corridors, stairs, lifts and outdoor spaces are left out.\nAnswer: 5"
+  },
+  {
+    "question_id": "resplan-9751-H01",
+    "answer": "space_details for Living room 0.01 lists 5 rooms sharing a wall with it: Bedroom 0.02, Bedroom 0.03, Bathroom 0.04, Bathroom 0.05 and Kitchen 0.06. Balcony 0.07 is not counted because it is an outdoor space, not a room.\nAnswer: 5"
+  },
+  {
+    "question_id": "swiss-100-H01",
+    "answer": "Listed all living rooms on Floor 1 (4 rooms) by polygon area; Living room 1.05 (apartment 4) is largest at 30.16 m².\nAnswer: Living room 1.05, 30.16 m²"
+  },
+  {
+    "question_id": "swiss-100-H02",
+    "answer": "Listed all spaces with room type bathroom on Floor 5 (level 5): 8 bathrooms, whose polygon areas sum to 32.47 m².\nAnswer: 32.47"
+  },
+  {
+    "question_id": "swiss-100-H03",
+    "answer": "The closest microwave is in Kitchen 4.03, 7.07 m from Living room 4.07. From there the route takes the Main staircase down to Living room 1.05, the largest living room on Floor 1 at 30.16 m², which adds 32.13 m. Stairs were allowed and count as 2 m per metre of height, as the rules require.\nAnswer: 39.2"
+  },
+  {
+    "question_id": "swiss-1195-H01",
+    "answer": "Listed all spaces with room type bedroom on Floor 3 (14 bedrooms) and took the summed polygon area reported by list_spaces.\nAnswer: 207.01"
+  },
+  {
+    "question_id": "swiss-1195-H02",
+    "answer": "space_details for Bedroom 1.34 (Floor 1) lists three rooms sharing a wall: Bedroom 1.11, Bathroom 1.30 and Kitchen 1.31. Corridors, stairwells and lifts are left out by the rule.\nAnswer: 3"
+  },
+  {
+    "question_id": "swiss-1671-H01",
+    "answer": "Listed all 7 ground-floor bedrooms by polygon area; Bedroom 0.05 (apartment 1) is largest at 19.34 m², ahead of Bedroom 0.09 at 17.32 m².\nAnswer: Bedroom 0.05, 19.34 m²"
+  },
+  {
+    "question_id": "swiss-1671-H02",
+    "answer": "Listed all spaces with room type bedroom on Floor 2 (8 bedrooms across apartments 5 and 6) and summed their polygon areas: 133.96 m².\nAnswer: 133.96"
+  },
+  {
+    "question_id": "swiss-1671-H03",
+    "answer": "The closest kitchen counter by route is in Kitchen 1.09 (9.38 m from Bedroom 1.13). The largest ground-floor bedroom is Bedroom 0.05 (19.34 m²), and the walk there via Staircase 2 is 18.11 m, giving 27.49 m in total.\nAnswer: 27.49"
+  },
+  {
+    "question_id": "swiss-1671-H04",
+    "answer": "space_details for Kitchen 2.09 (apartment 6) lists the rooms sharing a wall with it: Storage 2.08, Bedroom 2.12 and Bathroom 2.14. Corridors, stairwells and lifts are left out.\nAnswer: 3"
+  },
+  {
+    "question_id": "swiss-17033-H01",
+    "answer": "Listed all spaces of room type bedroom on Floor 1 (4 bedrooms: 1.11, 1.04, 1.01, 1.10) and summed their polygon areas: 15.17 + 15.13 + 10.18 + 10.18 = 50.66 m².\nAnswer: 50.66"
+  },
+  {
+    "question_id": "swiss-1760-H01",
+    "answer": "Listed all 6 kitchens on the ground floor (level 0) by polygon area; Kitchen 0.06 (apartment 1) is largest at 6.73 m².\nAnswer: Kitchen 0.06, 6.73 m²"
+  },
+  {
+    "question_id": "swiss-1760-H02",
+    "answer": "Listed all spaces of room type living_room on the ground floor (4 rooms: 16.18, 15.44, 14.99, 14.51 m²) and took the tool's summed polygon area.\nAnswer: 61.12"
+  },
+  {
+    "question_id": "swiss-17736-H01",
+    "answer": "Listed all bedrooms on Floor 3 (4 found); Bedroom 3.03 (apartment 8) has the largest polygon area at 19.44 m².\nAnswer: Bedroom 3.03, 19.44 m²"
+  },
+  {
+    "question_id": "swiss-17736-H02",
+    "answer": "Listed all 7 spaces of room type bathroom on Floor 2 (level 2) and summed their polygon areas (5.89+5.55+5.08+5.0+4.98+4.58+2.92) = 34.0 m².\nAnswer: 34.0"
+  },
+  {
+    "question_id": "swiss-17736-H03",
+    "answer": "The closest sofa is in Living room 2.01 (6.57 m from Bedroom 2.08). From there, carrying it up the Main staircase to Bedroom 3.03, the largest bedroom on Floor 3 at 19.44 m², is 27.58 m. That makes 34.15 m in total, with stairs allowed.\nAnswer: 34.15"
+  },
+  {
+    "question_id": "swiss-1825-H01",
+    "answer": "Listed all spaces with room type bathroom on Floor 3 (4 bathrooms: 5.45, 5.39, 4.94, 4.76 m²); their polygon areas total 20.54 m².\nAnswer: 20.54"
+  },
+  {
+    "question_id": "swiss-2-H01",
+    "answer": "Listed all bedroom-type spaces on Floor 3 (level 3): Bedroom 3.07 (15.57 m²), Bedroom 3.09 (15.28 m²) and Bedroom 3.03 (11.46 m²). Their polygon areas sum to 42.31 m².\nAnswer: 42.31"
+  },
+  {
+    "question_id": "swiss-2080-H01",
+    "answer": "Listed all bathrooms on Floor 2 (4 total) by polygon area; Bathroom 2.15 (apartment 8) is the largest at 4.13 m².\nAnswer: Bathroom 2.15, 4.13 m²"
+  },
+  {
+    "question_id": "swiss-2080-H02",
+    "answer": "Listed all spaces with room type bathroom on Floor 3 (4 bathrooms: 4.13, 3.1, 3.1, 1.98 m²) and summed their polygon areas, giving 12.31 m².\nAnswer: 12.31"
+  },
+  {
+    "question_id": "swiss-2080-H03",
+    "answer": "The closest dining table is Dining table 2.08 in Living room 2.08 (Floor 2), 23.27 m away by the main staircase. From there it is 15.01 m to the largest Floor 2 bedroom, Bedroom 2.18 (18.71 m²), so the walk is 38.28 m in total.\nAnswer: 38.28"
+  },
+  {
+    "question_id": "swiss-2080-H04",
+    "answer": "space_details for Bedroom 2.20 lists 4 rooms that share a wall with it, using the judges' rule of at least 1 m of wall and not counting corridors, stairwells or lifts. The rooms are Bathroom 2.01, Bedroom 2.06, Bedroom 2.18 and Bathroom 2.19.\nAnswer: 4"
+  },
+  {
+    "question_id": "swiss-2873-H01",
+    "answer": "Listed all storage rooms on Floor 2 (5 found) and compared polygon areas; Storage 2.14 (apartment 10) is largest at 3.22 m².\nAnswer: Storage 2.14, 3.22 m²"
+  },
+  {
+    "question_id": "swiss-2873-H02",
+    "answer": "Listed all spaces of room type storage on the ground floor (4 rooms: 0.10, 0.17, 0.26, 0.30) and summed their polygon areas: 4.2 + 3.15 + 3.15 + 2.04 = 12.54 m².\nAnswer: 12.54"
+  },
+  {
+    "question_id": "swiss-2873-H03",
+    "answer": "The closest outdoor chair is on Balcony 1.29 (6.77 m from Kitchen 1.30). From there it is 27.5 m via the main staircase to Storage 2.14, the largest storage on Floor 2 at 3.22 m², so 34.27 m in total.\nAnswer: 34.27"
+  },
+  {
+    "question_id": "swiss-2873-H04",
+    "answer": "space_details for Bedroom 2.07 (swiss-2873-F2-S007) lists three rooms sharing a wall with it under the 1 m rule: Bedroom 2.02, Bedroom 2.08 and Living room 2.09. Corridors, stairwells and lifts are left out.\nAnswer: 3"
+  },
+  {
+    "question_id": "swiss-482-H01",
+    "answer": "I listed all storage rooms on floor 4 (three in total) and compared their polygon areas. Storage 4.12 (apartment 18) is the largest at 2.32 m².\nAnswer: Storage 4.12, 2.32 m²"
+  },
+  {
+    "question_id": "swiss-482-H02",
+    "answer": "Listed all spaces with room type bathroom on Floor 4 (level 4): six bathrooms, whose polygon areas total 16.07 m².\nAnswer: 16.07"
+  },
+  {
+    "question_id": "swiss-482-H03",
+    "answer": "The closest fridge is in Kitchen 4.26 (8.46 m), and the largest bedroom on Floor 9 is Bedroom 9.04 (72.13 m²); the route with stairs from the kitchen to that bedroom is 58.56 m. Total walk 67.02 m.\nAnswer: 67.02"
+  },
+  {
+    "question_id": "swiss-482-H04",
+    "answer": "space_details for Bedroom 7.22 lists three rooms that share a wall with it: Bedroom 7.10, Bedroom 7.20 and Storage 7.24. Corridors, stairwells and lifts were left out under the rules, so Corridor 7.23 is not counted even though there's a door to it.\nAnswer: 3"
+  },
+  {
+    "question_id": "swiss-6128-H01",
+    "answer": "Listed all spaces of room type bedroom on Floor 2 (four bedrooms: 2.05, 2.03, 2.11, 2.12) and summed their polygon areas: 21.24 + 19.42 + 19.28 + 14.98 = 74.92 m².\nAnswer: 74.92"
+  }
+]
