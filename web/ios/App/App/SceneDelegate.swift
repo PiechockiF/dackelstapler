@@ -5,7 +5,9 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     var window: UIWindow?
 
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
-        guard let windowScene = scene as? UIWindowScene else { return }
+        // AirPlay/HDMI connect an external-display scene; giving it no window makes iOS mirror the phone
+        // instead of booting a second, non-interactive copy of the app on the TV.
+        guard let windowScene = scene as? UIWindowScene, session.role == .windowApplication else { return }
 
         window = UIWindow(windowScene: windowScene)
         window?.rootViewController = MainViewController()
