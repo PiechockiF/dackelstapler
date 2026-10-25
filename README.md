@@ -1,4 +1,4 @@
-# SiteTwin: a living 3D twin for every location (Track 01)
+# Dackel: a living 3D twin for every location (Track 01)
 
 The interrupted integration is now completed and checked against the real local backend. See [integration status and demo steps](docs/INTEGRATION.md) for verified features, commands, and the external services that still need live validation.
 
