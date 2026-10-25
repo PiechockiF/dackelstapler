@@ -548,19 +548,14 @@ def client() -> anthropic.Anthropic:
     return anthropic.Anthropic(max_retries=6)
 
 
-def answer_entry(building_directory: Path, question_text: str, given: dict | None = None) -> dict:
-    """Run the agent on one question. Returns the answers.json entry: kind, the reply (`answer`, ending in
-    an 'Answer:' line), room/item ids, the chosen route's fields, the tool trace and token usage.
-    `given` is the question's entry from the question file; its `constraints` are passed to the agent."""
+def answer_entry(building_directory: Path, question_text: str) -> dict:
+    """Run the agent on one question. Returns the reply (`answer`, ending in an 'Answer:' line) with the
+    kind, room/item ids, the chosen route's fields, the tool trace and token usage."""
     directory = str(Path(building_directory).resolve())
     tools = BenchmarkTools(load_map(directory))
-    prompt = question_text
-    constraints = (given or {}).get("constraints")
-    if constraints:
-        prompt += f"\n\nConstraints given with this question (apply them): {json.dumps(constraints, ensure_ascii=False)}"
     tool_list = make_tools(tools)
     by_name = {tool.name: tool for tool in tool_list}
-    messages: list[dict] = [{"role": "user", "content": prompt}]
+    messages: list[dict] = [{"role": "user", "content": question_text}]
     trace, usage, final = [], Counter(), None
     # A plain tool loop rather than the SDK's beta tool_runner, which sometimes ended a turn without running
     # the requested tool. Here a turn without tool calls gets one nudge to submit.

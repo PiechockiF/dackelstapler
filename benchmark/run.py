@@ -1,23 +1,19 @@
-"""Sunday benchmark: answer a question file about one building and write answers.json.
+"""Benchmark: answer the questions about one building and add them to answers.json.
 
-  uv run run_benchmark <building_dir> [questions.json] [answers.json]
-  uv run python -m benchmark.run <building_dir> [questions.json] [answers.json]     (same thing)
+  uv run run_benchmark <building_dir> [answers.json]
 
-Without a questions file it uses the questions.json/.jsonl/.csv next to the building; a questions file name
-that isn't found where you run the command is also looked up there. Answers default to SUBMISSION/answers.json,
-the file the organizers grade.
+<building_dir> is one building in the kit format: building.json, its floor plans and questions.jsonl. A Claude
+agent (agent/answer.py) answers every question with tools over the building; questions run in parallel.
 
-A Claude agent (agent/answer.py) answers every question with tools over the building; questions run in
-parallel. One entry per question id, in the input's order: the kind, the full reply (`answer`, ending in an
-'Answer:' line), the located item or room id, for routes the ordered space ids, the opening/stair/lift ids
-and the length in metres, and the agent's tool calls. SUBMISSION/BENCHMARK.md lists every output field.
+answers.json is a JSON list of {"question_id", "answer"}, `answer` being the agent's reply ending in an
+'Answer:' line. Entries for this building's question ids are replaced and all others kept, so one call per
+building builds up the file for a whole split. Default: SUBMISSION/answers.json, the file the organizers grade.
+The full entries (kind, tool trace, tokens) go to agent_output/benchmark/<building>.jsonl.
 Needs ANTHROPIC_API_KEY, from the environment or a .env file in the repository root."""
 
 from __future__ import annotations
 
 import argparse
-import csv
-import io
 import json
 import os
 import sys
@@ -29,13 +25,11 @@ from dotenv import load_dotenv
 
 from agent.answer import answer_entry
 
-ID_KEYS = ("id", "question_id", "qid", "uid")
-TEXT_KEYS = ("text", "question", "question_text", "prompt", "query", "q")
-LIST_KEYS = ("questions", "items", "data", "entries")
 WORKERS = 8  # questions answered at once
 REPO = Path(__file__).resolve().parent.parent
-QUESTION_FILES = ("questions.json", "questions.jsonl", "questions.csv")
+QUESTIONS_FILE = "questions.jsonl"
 DEFAULT_ANSWERS = REPO / "SUBMISSION" / "answers.json"  # graded file: SUBMISSION/ holds BENCHMARK.md and this
+LOG_DIRECTORY = REPO / "agent_output" / "benchmark"
 
 
 def find_building(path: Path) -> Path:
@@ -51,104 +45,66 @@ def find_building(path: Path) -> Path:
     return found[0].parent
 
 
-def find_questions(given: Path, building: Path, name: Path | None) -> Path:
-    """The questions file: `name` as given, else in the given folder or the building folder; with no name,
-    the first of QUESTION_FILES in those folders."""
-    folders = list(dict.fromkeys(folder for folder in (given if given.is_dir() else given.parent, building)))
-    if name is not None:
-        candidates = [name] + ([folder / name for folder in folders] if not name.is_absolute() else [])
-    else:
-        candidates = [folder / file for folder in folders for file in QUESTION_FILES]
-    for candidate in candidates:
-        if candidate.is_file():
-            return candidate
-    raise SystemExit("run_benchmark: no questions file found; tried " + ", ".join(str(c) for c in candidates))
+def load_questions(building: Path) -> list[dict]:
+    path = building / QUESTIONS_FILE
+    if not path.is_file():
+        raise SystemExit(f"run_benchmark: no {QUESTIONS_FILE} in {building}")
+    return [json.loads(line) for line in path.read_text(encoding="utf-8-sig").splitlines() if line.strip()]
 
 
-def load_questions(path: Path) -> tuple[list[dict], str | None]:
-    """Question entries from a JSON list, {"questions": [...]}, {id: text or entry}, JSON lines or CSV.
-    Returns the entries and the list key (or "" for an id-keyed object, None for a plain list)."""
-    raw = path.read_text(encoding="utf-8-sig")
-    shape = None
-    if path.suffix.lower() == ".csv":
-        rows = csv.DictReader(io.StringIO(raw, newline=""))
-        data = [{(key or "").strip().lower(): value for key, value in row.items()} for row in rows]
-    else:
-        try:
-            data = json.loads(raw) if path.suffix.lower() != ".jsonl" else None
-        except json.JSONDecodeError:
-            data = None
-        if data is None:
-            data = [json.loads(line) for line in raw.splitlines() if line.strip()]
-        has_list = isinstance(data, dict) and any(isinstance(data.get(key), list) for key in LIST_KEYS)
-        if isinstance(data, dict) and not has_list and any(key in data for key in (*ID_KEYS, *TEXT_KEYS)):
-            data = [data]  # a single question
-        if isinstance(data, dict):
-            shape = next((key for key in LIST_KEYS if isinstance(data.get(key), list)), "")
-            data = data[shape] if shape else [
-                {"id": key, **(value if isinstance(value, dict) else {"text": value})} for key, value in data.items()
-            ]
-    entries = []
-    for index, item in enumerate(data):
-        item = item if isinstance(item, dict) else {"text": str(item)}
-        question_id = next((item[key] for key in ID_KEYS if item.get(key) not in (None, "")), f"Q{index + 1:03d}")
-        text = next((item[key] for key in TEXT_KEYS if isinstance(item.get(key), str)), "")
-        entries.append({"id": question_id, "text": text, "fields": item})
-    return entries, shape
+def merge(path: Path, answers: list[dict]) -> list[dict]:
+    """The answers already in `path` minus this run's question ids, then this run's answers."""
+    existing = json.loads(path.read_text(encoding="utf-8")) if path.exists() else []
+    new_ids = {entry["question_id"] for entry in answers}
+    return [entry for entry in existing if entry["question_id"] not in new_ids] + answers
 
 
-def run(building_dir: Path, questions_path: Path | None = None, answers_path: Path | None = None) -> list[dict]:
+def run(building_dir: Path, answers_path: Path | None = None) -> list[dict]:
     building = find_building(building_dir)
-    questions_path = find_questions(building_dir, building, questions_path)
+    questions = load_questions(building)
     answers_path = answers_path or DEFAULT_ANSWERS
-    print(f"[run_benchmark] {building.name}: questions from {questions_path}", flush=True)
-    entries, shape = load_questions(questions_path)
+    print(f"[run_benchmark] {building.name}: {len(questions)} questions", flush=True)
 
-    def answer_one(item: dict) -> dict:
+    def answer_one(question: dict) -> dict:
         try:
-            entry = answer_entry(building, item["text"], item["fields"])
+            entry = answer_entry(building, question["question"])
         except Exception as error:  # noqa: BLE001 - one bad question must not stop the run
             entry = {"kind": None, "error": f"{type(error).__name__}: {error}",
                      "answer": f"I could not answer this ({error}).\nAnswer: unknown"}
         status = "ok" if "error" not in entry else f"ERROR {entry['error'][:100]}"
-        print(f"[run_benchmark] {item['id']}  {entry.get('kind') or '?':20s} {status}", flush=True)
-        return {"id": item["id"], "question": item["text"], **entry}
+        print(f"[run_benchmark] {question['id']}  {entry.get('kind') or '?':20s} {status}", flush=True)
+        return {"question_id": question["id"], "question": question["question"], **entry}
 
     with ThreadPoolExecutor(WORKERS) as pool:
-        answers = list(pool.map(answer_one, entries))
-    tally, usage = Counter(), Counter()
-    for entry in answers:
-        tally[(entry.get("kind") or "unknown", "error" not in entry)] += 1
-        usage.update(entry.get("usage") or {})
-    if shape is None:
-        output: object = answers
-    elif shape == "":
-        output = {str(entry["id"]): {k: v for k, v in entry.items() if k != "id"} for entry in answers}
-    else:
-        output = {"answers": answers}
+        entries = list(pool.map(answer_one, questions))
+    LOG_DIRECTORY.mkdir(parents=True, exist_ok=True)
+    log_path = LOG_DIRECTORY / f"{building.name}.jsonl"
+    log_path.write_text("".join(json.dumps(entry, ensure_ascii=False) + "\n" for entry in entries), encoding="utf-8")
+    answers = [{"question_id": entry["question_id"], "answer": entry["answer"]} for entry in entries]
     answers_path.parent.mkdir(parents=True, exist_ok=True)
-    answers_path.write_text(json.dumps(output, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    print("\nkind                  answered / total")
-    for kind in sorted({kind for kind, _ in tally}):
-        done, failed = tally[(kind, True)], tally[(kind, False)]
-        print(f"  {kind:20s} {done:4d} / {done + failed}")
+    merged = merge(answers_path, answers)
+    answers_path.write_text(json.dumps(merged, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    usage = Counter()
+    for entry in entries:
+        usage.update(entry.get("usage") or {})
+    failed = sum("error" in entry for entry in entries)
     print(f"tokens: {dict(usage)}")
-    print(f"{len(answers)} answers for {building.name} written to {answers_path}")
+    print(f"{len(answers) - failed} / {len(answers)} answered for {building.name}; "
+          f"{len(merged)} answers in {answers_path}; full entries in {log_path}")
     return answers
 
 
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="run_benchmark", description=__doc__.splitlines()[0])
-    parser.add_argument("building_dir", type=Path, help="folder with building.json (or the building.json itself)")
-    parser.add_argument("questions", type=Path, nargs="?", default=None,
-                        help="questions file (JSON, JSON lines or CSV); default: the one in the building folder")
-    parser.add_argument("answers", type=Path, nargs="?", default=None, help="where to write answers (default: SUBMISSION/answers.json)")
+    parser.add_argument("building_dir", type=Path, help="folder with building.json and questions.jsonl")
+    parser.add_argument("answers", type=Path, nargs="?", default=None,
+                        help="answers file to add to (default: SUBMISSION/answers.json)")
     arguments = parser.parse_args(argv)
     load_dotenv(REPO / ".env")
     if not os.environ.get("ANTHROPIC_API_KEY"):
         raise SystemExit("run_benchmark: set ANTHROPIC_API_KEY (in the environment or in .env at the repository root)")
     sys.stdout.reconfigure(errors="replace")  # room names in the log must not crash a non-UTF-8 console
-    run(arguments.building_dir, arguments.questions, arguments.answers)
+    run(arguments.building_dir, arguments.answers)
 
 
 if __name__ == "__main__":

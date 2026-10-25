@@ -128,45 +128,18 @@ def test_route_rules_and_submission():
         evaluate_expression("__import__('os')")
 
 
-def test_run_benchmark_file_shapes_and_order(tmp_path, monkeypatch):
-    seen = []
-
-    def fake_agent(building, text, given):
-        seen.append(given.get("constraints"))
-        return {"kind": "route", "answer": f"{text}\nAnswer: 1"}
-
-    monkeypatch.setattr(benchmark.run, "answer_entry", fake_agent)
-    text = "How do I get from Office 1.18 (Floor 1) to Quality lab 0.21 (Ground floor)?"
-    shapes = {
-        "list.json": json.dumps([{"id": "A", "text": text, "constraints": {"step_free": True}}, {"id": "B", "text": "?"}]),
-        "wrapped.json": json.dumps({"questions": [{"question_id": "A", "question": text}]}),
-        "keyed.json": json.dumps({"A": text}),
-        "lines.jsonl": json.dumps({"id": "A", "prompt": text}) + "\n",
-        "table.csv": f'id,text\nA,"{text}"\n',
-    }
-    for name, content in shapes.items():
-        (tmp_path / name).write_text(content)
-        benchmark.run.run(FACTORY, tmp_path / name, tmp_path / f"{name}.out")
-        output = json.loads((tmp_path / f"{name}.out").read_text())
-        entry = output["A"] if name == "keyed.json" else (output["answers"] if name == "wrapped.json" else output)[0]
-        assert entry["answer"].startswith(text), name
-    assert {"step_free": True} in seen
-    assert [e["id"] for e in json.loads((tmp_path / "list.json.out").read_text())] == ["A", "B"]
-
-
-def test_questions_file_fallbacks(tmp_path, monkeypatch):
-    building = tmp_path / "release" / "building-x"
-    building.mkdir(parents=True)
-    (building / "building.json").write_text("{}")
-    (building / "questions.jsonl").write_text("")
-    find = benchmark.run.find_questions
-    monkeypatch.chdir(tmp_path)
-    assert find(building, building, None) == building / "questions.jsonl"  # omitted: next to the building
-    assert find(building, building, Path("questions.jsonl")) == building / "questions.jsonl"  # name only
-    (tmp_path / "release" / "questions.json").write_text("[]")
-    release = tmp_path / "release"
-    assert find(release, building, None) == release / "questions.json"  # an unpacked release's own file
-    (tmp_path / "questions.jsonl").write_text("")
-    assert find(building, building, Path("questions.jsonl")) == Path("questions.jsonl")  # as given wins
-    with pytest.raises(SystemExit):
-        find(building, building, Path("missing.json"))
+def test_run_benchmark_adds_one_building_at_a_time(tmp_path, monkeypatch):
+    monkeypatch.setattr(benchmark.run, "answer_entry", lambda building, text: {"kind": "x", "answer": f"{text}\nAnswer: 1"})
+    monkeypatch.setattr(benchmark.run, "LOG_DIRECTORY", tmp_path / "log")
+    for name, ids in {"b1": ["A", "B"], "b2": ["C"]}.items():
+        (tmp_path / name).mkdir()
+        (tmp_path / name / "building.json").write_text("{}")
+        lines = [json.dumps({"id": i, "question": f"q{i}"}) for i in ids]
+        (tmp_path / name / "questions.jsonl").write_text("\n".join(lines) + "\n")
+    answers = tmp_path / "answers.json"
+    for name in ("b1", "b2", "b1"):  # b1 again: its entries are replaced, not duplicated
+        benchmark.run.run(tmp_path / name, answers)
+    output = json.loads(answers.read_text())
+    assert [entry["question_id"] for entry in output] == ["C", "A", "B"]
+    assert all(set(entry) == {"question_id", "answer"} for entry in output)
+    assert output[1]["answer"] == "qA\nAnswer: 1"
