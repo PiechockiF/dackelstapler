@@ -12,7 +12,7 @@ from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/voice")
 ELEVENLABS = "https://api.elevenlabs.io/v1"
-DEFAULT_VOICE_ID = "JBFqnCBsd6RMkjVDRZzb"  # "George", a stock ElevenLabs voice
+DEFAULT_VOICE_ID = "OnQdvQKEr4UNRtg1mSrF"  # "Graeme", a Scottish ElevenLabs library voice
 
 
 def api_key() -> str:
