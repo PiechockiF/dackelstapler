@@ -5,7 +5,7 @@ import { useTwinUi } from '../twin/uiStore'
 // push-to-talk (ElevenLabs STT via the server, Web Speech fallback) and spoken replies (TTS, fallback speechSynthesis).
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Loader2, Mic, Send, Sparkles, Square, Volume2, VolumeX } from 'lucide-react'
+import { ChevronRight, Loader2, Mic, Send, Sparkles, Square, Volume2, VolumeX } from 'lucide-react'
 import { api, streamChat } from '../lib/api'
 import { useTwin } from '../lib/store'
 import type { ChatAction } from '../lib/types'
@@ -75,7 +75,7 @@ function looksGerman(text: string): boolean {
   return /[äöüß]|\b(der|die|das|ist|wo|bitte|ich|nicht|zum|zur)\b/i.test(text)
 }
 
-export default function ChatPanel({ siteId }: { siteId: string }) {
+export default function ChatPanel({ siteId, onClose }: { siteId: string; onClose?: () => void }) {
   const { messages, setMessages, busy, setBusy } = useChat<Message>(siteId)
   const [input, setInput] = useState('')
   const [muted, setMuted] = useState(() => {
@@ -99,6 +99,8 @@ export default function ChatPanel({ siteId }: { siteId: string }) {
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const holdingRef = useRef(false)
+  const mutedRef = useRef(muted)
+  mutedRef.current = muted
 
   const setRoute = useTwin((s) => s.setRoute)
   const setHighlight = useTwin((s) => s.setHighlight)
@@ -179,7 +181,8 @@ export default function ChatPanel({ siteId }: { siteId: string }) {
   const speak = useCallback(
     async (raw: string) => {
       const text = speakable(raw)
-      if (muted || !text) return
+      // ref, not state: a reply already in flight when mute was pressed must stay silent
+      if (mutedRef.current || !text) return
       stopSpeaking()
       if (serverTts) {
         try {
@@ -191,8 +194,11 @@ export default function ChatPanel({ siteId }: { siteId: string }) {
           if (response.status === 501) setServerTts(false)
           if (response.ok) {
             const url = URL.createObjectURL(await response.blob())
-            const audio = sharedAudio()
-            audio.src = url
+
+            if (mutedRef.current) return URL.revokeObjectURL(url)
+            const audio = new Audio(url)
+            audioRef.current = audio
+
             audio.onended = () => {
               setSpeaking(false)
               URL.revokeObjectURL(url)
@@ -211,7 +217,7 @@ export default function ChatPanel({ siteId }: { siteId: string }) {
       speakWithBrowser(text)
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [muted, serverTts],
+    [serverTts],
   )
 
   const handleAction = useCallback(
@@ -408,6 +414,17 @@ export default function ChatPanel({ siteId }: { siteId: string }) {
         >
           {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
         </button>
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg p-2 text-slate-300 transition hover:bg-white/10 hover:text-white"
+            title="Hide chat"
+            aria-label="Hide chat"
+          >
+            <ChevronRight size={16} />
+          </button>
+        )}
       </div>
 
       {/* messages */}

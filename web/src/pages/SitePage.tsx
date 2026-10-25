@@ -2,7 +2,7 @@
 import { useQuery } from '@tanstack/react-query'
 import clsx from 'clsx'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ArrowLeft, Box, CalendarDays, ChevronRight, MessageSquare, Navigation, PackageOpen, PackagePlus, Radio, Wrench, X } from 'lucide-react'
+import { ArrowLeft, Box, CalendarDays, MessageSquare, Navigation, PackageOpen, PackagePlus, Radio, Wrench, X } from 'lucide-react'
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import ChatPanel from '../chat/ChatPanel'
@@ -262,7 +262,7 @@ export default function SitePage() {
               ))}
             </div>
             )}
-            <div className="min-h-0 flex-1 overflow-y-auto p-2.5 [scrollbar-width:thin]">
+            <div className="min-h-0 flex-1 overflow-y-auto p-2.5 scrollbar-thin">
               {tab === 'feed' && (
                 <div className="flex flex-col gap-3">
                   <div className="grid grid-cols-2 gap-2">
@@ -308,10 +308,7 @@ export default function SitePage() {
             style={{ width: compact ? 'calc(100% - 32px)' : CHAT_W, bottom: compact ? 70 : 16, top: compact ? '43%' : 16 }}
           >
             <Glass className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
-              <button onClick={() => { setChatOpen(false); setMobilePanel(null) }} className="absolute right-2 top-2 z-10 grid size-6 place-items-center rounded-full border border-white/10 bg-slate-900 text-slate-400 hover:text-white" title="Hide chat">
-                <ChevronRight size={14} />
-              </button>
-              <div className="min-h-0 flex-1 overflow-hidden">{siteId && <ChatPanel key={siteId} siteId={siteId} />}</div>
+              <div className="min-h-0 flex-1 overflow-hidden">{siteId && <ChatPanel key={siteId} siteId={siteId} onClose={() => { setChatOpen(false); setMobilePanel(null) }} />}</div>
             </Glass>
           </motion.div>
         ) : !compact ? (
@@ -379,7 +376,7 @@ export default function SitePage() {
 
       </div>
 
-      {building && compact && !navActive && <nav aria-label="Building panels" className="absolute inset-x-0 bottom-0 z-30 flex h-[calc(4rem+var(--safe-bottom))] items-center border-t border-white/10 bg-slate-950/95 px-1 pb-[var(--safe-bottom)] backdrop-blur-xl">
+      {building && compact && !navActive && <nav aria-label="Building panels" className="absolute inset-x-0 bottom-0 z-30 flex h-[calc(4rem+var(--safe-bottom))] items-center border-t border-white/10 bg-slate-950/95 px-1 pb-(--safe-bottom) backdrop-blur-xl">
         <button className={`flex flex-1 flex-col items-center gap-1 py-2 text-[9px] ${!mobilePanel ? 'text-sky-300' : 'text-slate-400'}`} onClick={() => setMobilePanel(null)}><Box size={18} /> 3D view</button>
         {TABS.map((t) => <button key={t.id} className={`flex flex-1 flex-col items-center gap-1 py-2 text-[9px] ${mobilePanel === t.id ? 'text-sky-300' : 'text-slate-400'}`} onClick={() => { setTab(t.id); setMobilePanel(mobilePanel === t.id ? null : t.id) }}>{t.icon}{t.label}</button>)}
         <button className={`flex flex-1 flex-col items-center gap-1 py-2 text-[9px] ${mobilePanel === 'chat' ? 'text-sky-300' : 'text-slate-400'}`} onClick={() => setMobilePanel(mobilePanel === 'chat' ? null : 'chat')}><MessageSquare size={17} /> Assistant</button>
@@ -400,7 +397,7 @@ export default function SitePage() {
 
       {/* crossfade from the map on entry, back to dark on exit */}
       <motion.div
-        className="pointer-events-none absolute inset-0 z-[60] bg-[#05070d]"
+        className="pointer-events-none absolute inset-0 z-60 bg-[#05070d]"
         initial={{ opacity: 1 }}
         animate={{ opacity: !leaving && (building || error) ? 0 : 1 }}
         transition={leaving ? { duration: 0.3, ease: 'easeIn' } : { duration: 1.1, ease: 'easeOut' }}

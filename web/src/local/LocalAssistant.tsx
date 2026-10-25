@@ -1,4 +1,4 @@
-import { Send, Sparkles } from 'lucide-react'
+import { ChevronRight, Send, Sparkles } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../lib/api'
 import { useTwin } from '../lib/store'
@@ -7,7 +7,7 @@ import { useTwinUi } from '../twin/uiStore'
 import { openChatThread, useChat } from '../chat/chatStore'
 import { runLocalCommand } from './assistant'
 
-export default function LocalAssistant({ siteId }: { siteId: string }) {
+export default function LocalAssistant({ siteId, onClose }: { siteId: string; onClose?: () => void }) {
   const { messages, setMessages, busy, setBusy } = useChat<{ role: string; text: string }>(siteId)
   const [input, setInput] = useState('')
   const bottom = useRef<HTMLDivElement>(null)
@@ -41,7 +41,7 @@ export default function LocalAssistant({ siteId }: { siteId: string }) {
   const room = b?.spaces.find((s) => /quality|meeting|lecture/i.test(s.name)) ?? b?.spaces[0]
   const suggestions = ['What changed?', 'Free rooms for 6', ...(room ? [`Route to ${room.name}`, `Area of ${room.name}`] : []), ...(b?.vertical_connectors[0] ? [`Close ${b.vertical_connectors[0].name}`] : []), 'Help']
   return <section className="flex h-full min-h-0 flex-col">
-    <header className="border-b border-white/10 px-4 py-3"><h2 className="flex items-center gap-2 text-sm font-semibold text-slate-100"><Sparkles size={15} className="text-sky-300" /> Local assistant</h2><p className="mt-1 text-[11px] leading-relaxed text-slate-400">Building commands on this phone. No cloud AI or voice. Use exact names or IDs.</p></header>
+    <header className="border-b border-white/10 px-4 py-3"><h2 className="flex items-center gap-2 text-sm font-semibold text-slate-100"><Sparkles size={15} className="text-sky-300" /> Local assistant{onClose && <button type="button" onClick={onClose} title="Hide chat" aria-label="Hide chat" className="-my-1 ml-auto rounded-lg p-2 text-slate-300 transition hover:bg-white/10 hover:text-white"><ChevronRight size={16} /></button>}</h2><p className="mt-1 text-[11px] leading-relaxed text-slate-400">Building commands on this phone. No cloud AI or voice. Use exact names or IDs.</p></header>
     <div className="min-h-0 flex-1 overflow-y-auto p-3 text-sm">
       {!messages.length && <div className="flex flex-col gap-2">{suggestions.map((s) => <button key={s} onClick={() => void send(s)} className="rounded-xl border border-white/10 bg-slate-900/60 p-3 text-left text-xs text-slate-300 hover:border-sky-300/40">{s}</button>)}</div>}
       {messages.map((m, i) => <div key={i} className={`mb-3 whitespace-pre-wrap break-words rounded-xl p-3 text-[12px] leading-relaxed ${m.role === 'you' ? 'ml-5 bg-sky-500/15 text-sky-100' : 'mr-3 bg-white/5 text-slate-300'}`}>{m.text}</div>)}

@@ -343,7 +343,8 @@ def test_bad_building_json_is_400(client):
     assert client.post("/api/sites", data={"name": "Bad", "lat": "1", "lon": "2"}, files=files).status_code == 400
 
 
-def test_voice_without_key_is_501(client):
+def test_voice_without_key_is_501(client, monkeypatch):
+    monkeypatch.delenv("ELEVENLABS_API_KEY", raising=False)
     assert client.post("/api/voice/tts", json={"text": "hello"}).status_code == 501
     files = {"audio": ("a.webm", io.BytesIO(b"1234"), "audio/webm")}
     assert client.post("/api/voice/stt", files=files).status_code == 501
